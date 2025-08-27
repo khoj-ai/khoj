@@ -234,6 +234,7 @@ class KhojUserSubscription(unfold_admin.ModelAdmin):
 class ChatModelAdmin(unfold_admin.ModelAdmin):
     list_display = (
         "id",
+        "friendly_name",
         "name",
         "ai_model_api",
         "max_prompt_size",
@@ -245,6 +246,7 @@ class ChatModelAdmin(unfold_admin.ModelAdmin):
 class TextToImageModelOptionsAdmin(unfold_admin.ModelAdmin):
     list_display = (
         "id",
+        "friendly_name",
         "model_name",
         "model_type",
     )
@@ -256,10 +258,10 @@ class AiModelApiAdmin(unfold_admin.ModelAdmin):
     list_display = (
         "id",
         "name",
-        "api_key",
         "api_base_url",
+        "api_key",
     )
-    search_fields = ("id", "name", "api_key", "api_base_url")
+    search_fields = ("id", "name", "api_base_url", "api_key")
 
 
 @admin.register(SearchModelConfig)
@@ -278,6 +280,10 @@ class ServerChatSettingsAdmin(unfold_admin.ModelAdmin):
     list_display = (
         "chat_default",
         "chat_advanced",
+        "think_free_fast",
+        "think_free_deep",
+        "think_paid_fast",
+        "think_paid_deep",
         "web_scraper",
     )
 

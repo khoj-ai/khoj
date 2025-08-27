@@ -16,7 +16,6 @@ from khoj.processor.conversation.utils import model_to_prompt_size, model_to_tok
 from khoj.utils.constants import (
     default_anthropic_chat_models,
     default_gemini_chat_models,
-    default_offline_chat_models,
     default_openai_chat_models,
 )
 
@@ -43,7 +42,7 @@ def initialization(interactive: bool = True):
             "🗣️ Configure chat models available to your server. You can always update these at /server/admin using your admin account"
         )
 
-        openai_base_url = os.getenv("OPENAI_BASE_URL")
+        openai_base_url = os.getenv("OPENAI_BASE_URL") or None
         provider = "Ollama" if openai_base_url and openai_base_url.endswith(":11434/v1/") else "OpenAI"
         openai_api_key = os.getenv("OPENAI_API_KEY", "placeholder" if openai_base_url else None)
         default_chat_models = default_openai_chat_models
@@ -61,9 +60,7 @@ def initialization(interactive: bool = True):
                 ]
                 default_chat_models = known_available_models + other_available_models
             except Exception as e:
-                logger.warning(
-                    f"⚠️ Failed to fetch {provider} chat models. Fallback to default models. Error: {str(e)}"
-                )
+                logger.warning(f"⚠️ Failed to fetch {provider} chat models. Fallback to default models. Error: {str(e)}")
 
         # Set up OpenAI's online chat models
         openai_configured, openai_provider = _setup_chat_model_provider(
@@ -72,7 +69,6 @@ def initialization(interactive: bool = True):
             default_api_key=openai_api_key,
             api_base_url=openai_base_url,
             vision_enabled=True,
-            is_offline=False,
             interactive=interactive,
             provider_name=provider,
         )
@@ -118,7 +114,6 @@ def initialization(interactive: bool = True):
             default_gemini_chat_models,
             default_api_key=os.getenv("GEMINI_API_KEY"),
             vision_enabled=True,
-            is_offline=False,
             interactive=interactive,
             provider_name="Google Gemini",
         )
@@ -145,39 +140,10 @@ def initialization(interactive: bool = True):
             default_anthropic_chat_models,
             default_api_key=os.getenv("ANTHROPIC_API_KEY"),
             vision_enabled=True,
-            is_offline=False,
-            interactive=interactive,
-        )
-
-        # Set up offline chat models
-        _setup_chat_model_provider(
-            ChatModel.ModelType.OFFLINE,
-            default_offline_chat_models,
-            default_api_key=None,
-            vision_enabled=False,
-            is_offline=True,
             interactive=interactive,
         )
 
         logger.info("🗣️ Chat model configuration complete")
-
-        # Set up offline speech to text model
-        use_offline_speech2text_model = "n" if not interactive else input("Use offline speech to text model? (y/n): ")
-        if use_offline_speech2text_model == "y":
-            logger.info("🗣️ Setting up offline speech to text model")
-            # Delete any existing speech to text model options. There can only be one.
-            SpeechToTextModelOptions.objects.all().delete()
-
-            default_offline_speech2text_model = "base"
-            offline_speech2text_model = input(
-                f"Enter the Whisper model to use Offline (default: {default_offline_speech2text_model}): "
-            )
-            offline_speech2text_model = offline_speech2text_model or default_offline_speech2text_model
-            SpeechToTextModelOptions.objects.create(
-                model_name=offline_speech2text_model, model_type=SpeechToTextModelOptions.ModelType.OFFLINE
-            )
-
-            logger.info(f"🗣️  Offline speech to text model configured to {offline_speech2text_model}")
 
     def _setup_chat_model_provider(
         model_type: ChatModel.ModelType,
@@ -186,7 +152,6 @@ def initialization(interactive: bool = True):
         interactive: bool,
         api_base_url: str = None,
         vision_enabled: bool = False,
-        is_offline: bool = False,
         provider_name: str = None,
     ) -> Tuple[bool, AiModelApi]:
         supported_vision_models = (
@@ -195,11 +160,6 @@ def initialization(interactive: bool = True):
         provider_name = provider_name or model_type.name.capitalize()
 
         default_use_model = default_api_key is not None
-        # If not in interactive mode & in the offline setting, it's most likely that we're running in a containerized environment.
-        # This usually means there's not enough RAM to load offline models directly within the application.
-        # In such cases, we default to not using the model -- it's recommended to use another service like Ollama to host the model locally in that case.
-        if is_offline:
-            default_use_model = False
 
         use_model_provider = (
             default_use_model if not interactive else input(f"Add {provider_name} chat models? (y/n): ") == "y"
@@ -211,13 +171,12 @@ def initialization(interactive: bool = True):
         logger.info(f"️💬 Setting up your {provider_name} chat configuration")
 
         ai_model_api = None
-        if not is_offline:
-            if interactive:
-                user_api_key = input(f"Enter your {provider_name} API key (default: {default_api_key}): ")
-                api_key = user_api_key if user_api_key != "" else default_api_key
-            else:
-                api_key = default_api_key
-            ai_model_api = AiModelApi.objects.create(api_key=api_key, name=provider_name, api_base_url=api_base_url)
+        if interactive:
+            user_api_key = input(f"Enter your {provider_name} API key (default: {default_api_key}): ")
+            api_key = user_api_key if user_api_key != "" else default_api_key
+        else:
+            api_key = default_api_key
+        ai_model_api = AiModelApi.objects.create(api_key=api_key, name=provider_name, api_base_url=api_base_url)
 
         if interactive:
             user_chat_models = input(
@@ -235,6 +194,7 @@ def initialization(interactive: bool = True):
 
             chat_model_options = {
                 "name": chat_model,
+                "friendly_name": chat_model,
                 "model_type": model_type,
                 "max_prompt_size": default_max_tokens,
                 "vision_enabled": vision_enabled,
@@ -275,6 +235,7 @@ def initialization(interactive: bool = True):
                         if not existing_models.filter(name=model_name).exists():
                             ChatModel.objects.create(
                                 name=model_name,
+                                friendly_name=model_name,
                                 model_type=ChatModel.ModelType.OPENAI,
                                 max_prompt_size=model_to_prompt_size.get(model_name),
                                 vision_enabled=model_name in default_openai_chat_models,
@@ -329,4 +290,4 @@ def initialization(interactive: bool = True):
             )
             return
         ConversationAdapters.set_default_chat_model(chat_model)
-        logger.info(f"🗣️ Default chat model set to {chat_model.name}")
+        logger.info(f"🗣️ Default chat model set to {chat_model.name} served by {chat_model.ai_model_api}")

@@ -48,13 +48,12 @@ async function openChat(userData: UserProfile | null | undefined) {
     }
 }
 
-
 // Menu items.
 const items = [
     {
         title: "Home",
         url: "/",
-        icon: HouseSimple
+        icon: HouseSimple,
     },
     {
         title: "Agents",

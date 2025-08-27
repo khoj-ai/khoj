@@ -14,7 +14,7 @@ from django.dispatch import receiver
 from pgvector.django import VectorField
 from phonenumber_field.modelfields import PhoneNumberField
 from pydantic import BaseModel as PydanticBaseModel
-from pydantic import Field
+from pydantic import Field, model_validator
 
 logger = logging.getLogger(__name__)
 
@@ -23,6 +23,21 @@ logger = logging.getLogger(__name__)
 class Context(PydanticBaseModel):
     compiled: str
     file: str
+    uri: Optional[str] = None
+    query: Optional[str] = None
+
+    @model_validator(mode="after")
+    def set_uri_fallback(self):
+        """Set the URI to existing deeplink URI. Fallback to file based URI if unset."""
+        if self.uri and self.uri.strip():
+            self.uri = self.uri
+        elif self.file and (self.file.startswith("http") or self.file.startswith("file://")):
+            self.uri = self.file
+        elif self.file:
+            self.uri = f"file://{self.file}"
+        else:
+            self.uri = None
+        return self
 
 
 class CodeContextFile(PydanticBaseModel):
@@ -33,14 +48,14 @@ class CodeContextFile(PydanticBaseModel):
 class CodeContextResult(PydanticBaseModel):
     success: bool
     output_files: List[CodeContextFile]
-    std_out: str
+    std_out: Optional[str] = None
     std_err: str
-    code_runtime: int
+    code_runtime: Optional[int] = None
 
 
 class CodeContextData(PydanticBaseModel):
     code: str
-    result: Optional[CodeContextResult] = None
+    results: Optional[CodeContextResult] = None
 
 
 class WebPage(PydanticBaseModel):
@@ -74,7 +89,7 @@ class KnowledgeGraph(PydanticBaseModel):
 
 
 class OrganicContext(PydanticBaseModel):
-    snippet: str
+    snippet: Optional[str] = None
     title: str
     link: str
 
@@ -84,13 +99,13 @@ class OnlineContext(PydanticBaseModel):
     answerBox: Optional[AnswerBox] = None
     peopleAlsoAsk: Optional[List[PeopleAlsoAsk]] = None
     knowledgeGraph: Optional[KnowledgeGraph] = None
-    organicContext: Optional[List[OrganicContext]] = None
+    organic: Optional[List[OrganicContext]] = None
 
 
 class Intent(PydanticBaseModel):
     type: str
-    query: str
-    memory_type: str = Field(alias="memory-type")
+    query: Optional[str] = None
+    memory_type: Optional[str] = Field(alias="memory-type", default=None)
     inferred_queries: Optional[List[str]] = Field(default=None, alias="inferred-queries")
 
 
@@ -99,18 +114,20 @@ class TrainOfThought(PydanticBaseModel):
     data: str
 
 
-class ChatMessage(PydanticBaseModel):
-    message: str
+class ChatMessageModel(PydanticBaseModel):
+    by: str
+    message: str | list[dict]
     trainOfThought: List[TrainOfThought] = []
     context: List[Context] = []
     onlineContext: Dict[str, OnlineContext] = {}
     codeContext: Dict[str, CodeContextData] = {}
-    created: str
+    researchContext: Optional[List] = None
+    operatorContext: Optional[List] = None
+    created: Optional[str] = None
     images: Optional[List[str]] = None
     queryFiles: Optional[List[Dict]] = None
     excalidrawDiagram: Optional[List[Dict]] = None
-    mermaidjsDiagram: str = None
-    by: str
+    mermaidjsDiagram: Optional[str] = None
     turnId: Optional[str] = None
     intent: Optional[Intent] = None
     automationId: Optional[str] = None
@@ -134,7 +151,7 @@ class ClientApplication(DbBaseModel):
 
 
 class KhojUser(AbstractUser):
-    uuid = models.UUIDField(models.UUIDField(default=uuid.uuid4, editable=False))
+    uuid = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
     phone_number = PhoneNumberField(null=True, default=None, blank=True)
     verified_phone_number = models.BooleanField(default=False)
     verified_email = models.BooleanField(default=False)
@@ -203,15 +220,15 @@ class PriceTier(models.TextChoices):
 class ChatModel(DbBaseModel):
     class ModelType(models.TextChoices):
         OPENAI = "openai"
-        OFFLINE = "offline"
         ANTHROPIC = "anthropic"
         GOOGLE = "google"
 
     max_prompt_size = models.IntegerField(default=None, null=True, blank=True)
     subscribed_max_prompt_size = models.IntegerField(default=None, null=True, blank=True)
     tokenizer = models.CharField(max_length=200, default=None, null=True, blank=True)
-    name = models.CharField(max_length=200, default="bartowski/Meta-Llama-3.1-8B-Instruct-GGUF")
-    model_type = models.CharField(max_length=200, choices=ModelType.choices, default=ModelType.OFFLINE)
+    name = models.CharField(max_length=200, default="gemini-2.5-flash")
+    friendly_name = models.CharField(max_length=200, default=None, null=True, blank=True)
+    model_type = models.CharField(max_length=200, choices=ModelType.choices, default=ModelType.GOOGLE)
     price_tier = models.CharField(max_length=20, choices=PriceTier.choices, default=PriceTier.FREE)
     vision_enabled = models.BooleanField(default=False)
     ai_model_api = models.ForeignKey(AiModelApi, on_delete=models.CASCADE, default=None, null=True, blank=True)
@@ -219,7 +236,7 @@ class ChatModel(DbBaseModel):
     strengths = models.TextField(default=None, null=True, blank=True)
 
     def __str__(self):
-        return self.name
+        return self.friendly_name
 
 
 class VoiceModelOption(DbBaseModel):
@@ -455,6 +472,18 @@ class ServerChatSettings(DbBaseModel):
     chat_advanced = models.ForeignKey(
         ChatModel, on_delete=models.CASCADE, default=None, null=True, blank=True, related_name="chat_advanced"
     )
+    think_free_fast = models.ForeignKey(
+        ChatModel, on_delete=models.CASCADE, default=None, null=True, blank=True, related_name="think_free_fast"
+    )
+    think_free_deep = models.ForeignKey(
+        ChatModel, on_delete=models.CASCADE, default=None, null=True, blank=True, related_name="think_free_deep"
+    )
+    think_paid_fast = models.ForeignKey(
+        ChatModel, on_delete=models.CASCADE, default=None, null=True, blank=True, related_name="think_paid_fast"
+    )
+    think_paid_deep = models.ForeignKey(
+        ChatModel, on_delete=models.CASCADE, default=None, null=True, blank=True, related_name="think_paid_deep"
+    )
     web_scraper = models.ForeignKey(
         WebScraper, on_delete=models.CASCADE, default=None, null=True, blank=True, related_name="web_scraper"
     )
@@ -463,40 +492,16 @@ class ServerChatSettings(DbBaseModel):
         error = {}
         if self.chat_default and self.chat_default.price_tier != PriceTier.FREE:
             error["chat_default"] = "Set the price tier of this chat model to free or use a free tier chat model."
+        if self.think_free_fast and self.think_free_fast.price_tier != PriceTier.FREE:
+            error["think_free_fast"] = "Set the price tier of this chat model to free or use a free tier chat model."
+        if self.think_free_deep and self.think_free_deep.price_tier != PriceTier.FREE:
+            error["think_free_deep"] = "Set the price tier of this chat model to free or use a free tier chat model."
         if error:
             raise ValidationError(error)
 
     def save(self, *args, **kwargs):
         self.clean()
         super().save(*args, **kwargs)
-
-
-class LocalOrgConfig(DbBaseModel):
-    input_files = models.JSONField(default=list, null=True)
-    input_filter = models.JSONField(default=list, null=True)
-    index_heading_entries = models.BooleanField(default=False)
-    user = models.ForeignKey(KhojUser, on_delete=models.CASCADE)
-
-
-class LocalMarkdownConfig(DbBaseModel):
-    input_files = models.JSONField(default=list, null=True)
-    input_filter = models.JSONField(default=list, null=True)
-    index_heading_entries = models.BooleanField(default=False)
-    user = models.ForeignKey(KhojUser, on_delete=models.CASCADE)
-
-
-class LocalPdfConfig(DbBaseModel):
-    input_files = models.JSONField(default=list, null=True)
-    input_filter = models.JSONField(default=list, null=True)
-    index_heading_entries = models.BooleanField(default=False)
-    user = models.ForeignKey(KhojUser, on_delete=models.CASCADE)
-
-
-class LocalPlaintextConfig(DbBaseModel):
-    input_files = models.JSONField(default=list, null=True)
-    input_filter = models.JSONField(default=list, null=True)
-    index_heading_entries = models.BooleanField(default=False)
-    user = models.ForeignKey(KhojUser, on_delete=models.CASCADE)
 
 
 class SearchModelConfig(DbBaseModel):
@@ -551,6 +556,7 @@ class TextToImageModelConfig(DbBaseModel):
         GOOGLE = "google"
 
     model_name = models.CharField(max_length=200, default="dall-e-3")
+    friendly_name = models.CharField(max_length=200, default=None, null=True, blank=True)
     model_type = models.CharField(max_length=200, choices=ModelType.choices, default=ModelType.OPENAI)
     price_tier = models.CharField(max_length=20, choices=PriceTier.choices, default=PriceTier.FREE)
     api_key = models.CharField(max_length=200, default=None, null=True, blank=True)
@@ -561,12 +567,12 @@ class TextToImageModelConfig(DbBaseModel):
         error = {}
         if self.model_type == self.ModelType.OPENAI:
             if self.api_key and self.ai_model_api:
-                error[
-                    "api_key"
-                ] = "Both API key and AI Model API cannot be set for OpenAI models. Please set only one of them."
-                error[
-                    "ai_model_api"
-                ] = "Both API key and OpenAI config cannot be set for OpenAI models. Please set only one of them."
+                error["api_key"] = (
+                    "Both API key and AI Model API cannot be set for OpenAI models. Please set only one of them."
+                )
+                error["ai_model_api"] = (
+                    "Both API key and OpenAI config cannot be set for OpenAI models. Please set only one of them."
+                )
         if self.model_type != self.ModelType.OPENAI and self.model_type != self.ModelType.GOOGLE:
             if not self.api_key:
                 error["api_key"] = "The API key field must be set for non OpenAI, non Google models."
@@ -586,10 +592,10 @@ class TextToImageModelConfig(DbBaseModel):
 class SpeechToTextModelOptions(DbBaseModel):
     class ModelType(models.TextChoices):
         OPENAI = "openai"
-        OFFLINE = "offline"
 
-    model_name = models.CharField(max_length=200, default="base")
-    model_type = models.CharField(max_length=200, choices=ModelType.choices, default=ModelType.OFFLINE)
+    model_name = models.CharField(max_length=200, default="whisper-1")
+    friendly_name = models.CharField(max_length=200, default=None, null=True, blank=True)
+    model_type = models.CharField(max_length=200, choices=ModelType.choices, default=ModelType.OPENAI)
     price_tier = models.CharField(max_length=20, choices=PriceTier.choices, default=PriceTier.FREE)
     ai_model_api = models.ForeignKey(AiModelApi, on_delete=models.CASCADE, default=None, null=True, blank=True)
 
@@ -631,7 +637,7 @@ class Conversation(DbBaseModel):
         try:
             messages = self.conversation_log.get("chat", [])
             for msg in messages:
-                ChatMessage.model_validate(msg)
+                ChatMessageModel.model_validate(msg)
         except Exception as e:
             raise ValidationError(f"Invalid conversation_log format: {str(e)}")
 
@@ -640,22 +646,50 @@ class Conversation(DbBaseModel):
         super().save(*args, **kwargs)
 
     @property
-    def messages(self) -> List[ChatMessage]:
+    def messages(self) -> List[ChatMessageModel]:
         """Type-hinted accessor for conversation messages"""
         validated_messages = []
         for msg in self.conversation_log.get("chat", []):
             try:
                 # Clean up inferred queries if they contain None
-                if msg.get("intent") and msg["intent"].get("inferred-queries"):
+                if msg.get("intent") and msg["intent"].get("inferred_queries"):
                     msg["intent"]["inferred-queries"] = [
-                        q for q in msg["intent"]["inferred-queries"] if q is not None and isinstance(q, str)
+                        q for q in msg["intent"]["inferred_queries"] if q is not None and isinstance(q, str)
                     ]
                 msg["message"] = str(msg.get("message", ""))
-                validated_messages.append(ChatMessage.model_validate(msg))
+                validated_messages.append(ChatMessageModel.model_validate(msg))
             except ValidationError as e:
                 logger.warning(f"Skipping invalid message in conversation: {e}")
                 continue
         return validated_messages
+
+    async def pop_message(self, interrupted: bool = False) -> Optional[ChatMessageModel]:
+        """
+        Remove and return the last message from the conversation log, persisting the change to the database.
+        When interrupted is True, we only drop the last message if it was an interrupted message by khoj.
+        """
+        chat_log = self.conversation_log.get("chat", [])
+
+        if not chat_log:
+            return None
+
+        last_message = chat_log[-1]
+        is_interrupted_msg = last_message.get("by") == "khoj" and not last_message.get("message")
+        # When handling an interruption, only pop if the last message is an empty one by khoj.
+        if interrupted and not is_interrupted_msg:
+            return None
+
+        # Pop the last message, save the conversation, and then return the message.
+        popped_message_dict = chat_log.pop()
+        await self.asave()
+
+        # Try to validate and return the popped message as a Pydantic model
+        try:
+            return ChatMessageModel.model_validate(popped_message_dict)
+        except ValidationError as e:
+            logger.warning(f"Popped an invalid message from conversation. The removal has been saved. Error: {e}")
+            # The invalid message was removed and saved, but we can't return a valid model.
+            return None
 
 
 class PublicConversation(DbBaseModel):
@@ -668,23 +702,16 @@ class PublicConversation(DbBaseModel):
 
 @receiver(pre_save, sender=PublicConversation)
 def verify_public_conversation(sender, instance, **kwargs):
-    def generate_random_alphanumeric(length):
-        characters = "0123456789abcdefghijklmnopqrstuvwxyz"
-        return "".join(choice(characters) for _ in range(length))
-
     # check if this is a new instance
     if instance._state.adding:
-        slug = re.sub(r"\W+", "-", instance.slug.lower())[:50] if instance.slug else uuid.uuid4().hex
-        observed_random_id = set()
-        while PublicConversation.objects.filter(slug=slug).exists():
-            try:
-                random_id = generate_random_alphanumeric(7)
-            except IndexError:
-                raise ValidationError(
-                    "Unable to generate a unique slug for the Public Conversation. Please try again later."
-                )
-            observed_random_id.add(random_id)
-            slug = f"{slug}-{random_id}"
+        base_length = 50  # Base slug length before adding random suffix
+        base_slug = re.sub(r"\W+", "-", instance.slug.lower())[:base_length] if instance.slug else uuid.uuid4().hex
+        suffix_length = 8  # Length of the random suffix to ensure uniqueness
+        while True:
+            random_id = uuid.uuid4().hex[:suffix_length]
+            slug = f"{base_slug}-{random_id}"
+            if not PublicConversation.objects.filter(slug=slug).exists():
+                break
         instance.slug = slug
 
 

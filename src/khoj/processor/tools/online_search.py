@@ -12,6 +12,7 @@ from markdownify import markdownify
 from khoj.database.adapters import ConversationAdapters
 from khoj.database.models import (
     Agent,
+    ChatMessageModel,
     KhojUser,
     ServerChatSettings,
     UserMemory,
@@ -47,6 +48,9 @@ JINA_API_KEY = os.getenv("JINA_API_KEY")
 FIRECRAWL_API_KEY = os.getenv("FIRECRAWL_API_KEY")
 FIRECRAWL_USE_LLM_EXTRACT = is_env_var_true("FIRECRAWL_USE_LLM_EXTRACT")
 
+# Timeout for web search and webpage read HTTP requests
+WEBPAGE_REQUEST_TIMEOUT = 60  # seconds
+
 OLOSTEP_QUERY_PARAMS = {
     "timeout": 35,  # seconds
     "waitBeforeScraping": 0,  # seconds
@@ -65,17 +69,18 @@ OLOSTEP_QUERY_PARAMS = {
 
 async def search_online(
     query: str,
-    conversation_history: dict,
+    conversation_history: List[ChatMessageModel],
     location: LocationData,
     user: KhojUser,
     send_status_func: Optional[Callable] = None,
     custom_filters: List[str] = [],
+    max_online_searches: int = 3,
     max_webpages_to_read: int = 1,
     query_images: List[str] = None,
-    previous_subqueries: Set = set(),
-    agent: Agent = None,
     query_files: str = None,
     relevant_memories: List[UserMemory] = None,
+    previous_subqueries: Set = set(),
+    agent: Agent = None,
     tracer: dict = {},
 ):
     query += " ".join(custom_filters)
@@ -91,9 +96,10 @@ async def search_online(
         location,
         user,
         query_images=query_images,
-        agent=agent,
         query_files=query_files,
         relevant_memories=relevant_memories,
+        max_queries=max_online_searches,
+        agent=agent,
         tracer=tracer,
     )
     subqueries = list(new_subqueries - previous_subqueries)
@@ -148,7 +154,7 @@ async def search_online(
     for subquery in response_dict:
         if "answerBox" in response_dict[subquery]:
             continue
-        for idx, organic in enumerate(response_dict[subquery].get("organic", [])):
+        for idx, organic in enumerate(response_dict[subquery].get("organic") or []):
             link = organic.get("link")
             if link in webpages and idx < max_webpages_to_read:
                 webpages[link]["queries"].add(subquery)
@@ -221,7 +227,9 @@ async def search_with_firecrawl(query: str, location: LocationData) -> Tuple[str
 
     async with aiohttp.ClientSession() as session:
         try:
-            async with session.post(firecrawl_api_url, headers=headers, json=payload) as response:
+            async with session.post(
+                firecrawl_api_url, headers=headers, json=payload, timeout=WEBPAGE_REQUEST_TIMEOUT
+            ) as response:
                 if response.status != 200:
                     error_text = await response.text()
                     logger.error(f"Firecrawl search failed: {error_text}")
@@ -263,7 +271,7 @@ async def search_with_searxng(query: str, location: LocationData) -> Tuple[str, 
 
     async with aiohttp.ClientSession() as session:
         try:
-            async with session.get(search_url, params=params) as response:
+            async with session.get(search_url, params=params, timeout=WEBPAGE_REQUEST_TIMEOUT) as response:
                 if response.status != 200:
                     logger.error(f"SearXNG search failed to call {searxng_url}: {await response.text()}")
                     return query, {}
@@ -305,7 +313,7 @@ async def search_with_google(query: str, location: LocationData) -> Tuple[str, D
     }
 
     async with aiohttp.ClientSession() as session:
-        async with session.get(base_url, params=params) as response:
+        async with session.get(base_url, params=params, timeout=WEBPAGE_REQUEST_TIMEOUT) as response:
             if response.status != 200:
                 logger.error(await response.text())
                 return query, {}
@@ -356,7 +364,9 @@ async def search_with_serper(query: str, location: LocationData) -> Tuple[str, D
     payload = json.dumps({"q": query, "gl": country_code})
 
     async with aiohttp.ClientSession() as session:
-        async with session.post(SERPER_DEV_URL, headers=headers, data=payload) as response:
+        async with session.post(
+            SERPER_DEV_URL, headers=headers, data=payload, timeout=WEBPAGE_REQUEST_TIMEOUT
+        ) as response:
             if response.status != 200:
                 logger.error(await response.text())
                 return query, {}
@@ -373,7 +383,7 @@ async def search_with_serper(query: str, location: LocationData) -> Tuple[str, D
 
 async def read_webpages(
     query: str,
-    conversation_history: dict,
+    conversation_history: List[ChatMessageModel],
     location: LocationData,
     user: KhojUser,
     send_status_func: Optional[Callable] = None,
@@ -385,7 +395,7 @@ async def read_webpages(
     tracer: dict = {},
 ):
     "Infer web pages to read from the query and extract relevant information from them"
-    logger.info(f"Inferring web pages to read")
+    logger.info("Inferring web pages to read")
     urls = await infer_webpage_urls(
         query,
         max_webpages_to_read,
@@ -398,7 +408,26 @@ async def read_webpages(
         relevant_memories=relevant_memories,
         tracer=tracer,
     )
+    async for result in read_webpages_content(
+        query,
+        urls,
+        user,
+        send_status_func=send_status_func,
+        agent=agent,
+        tracer=tracer,
+    ):
+        yield result
 
+
+async def read_webpages_content(
+    query: str,
+    urls: List[str],
+    user: KhojUser,
+    send_status_func: Optional[Callable] = None,
+    agent: Agent = None,
+    relevant_memories: List[UserMemory] = None,
+    tracer: dict = {},
+):
     logger.info(f"Reading web pages at: {urls}")
     if send_status_func:
         webpage_links_str = "\n- " + "\n- ".join(list(urls))
@@ -487,7 +516,7 @@ async def read_webpage_at_url(web_url: str) -> str:
     }
 
     async with aiohttp.ClientSession() as session:
-        async with session.get(web_url, headers=headers, timeout=30) as response:
+        async with session.get(web_url, headers=headers, timeout=WEBPAGE_REQUEST_TIMEOUT) as response:
             response.raise_for_status()
             html = await response.text()
             parsed_html = BeautifulSoup(html, "html.parser")
@@ -501,7 +530,9 @@ async def read_webpage_with_olostep(web_url: str, api_key: str, api_url: str) ->
     web_scraping_params["url"] = web_url
 
     async with aiohttp.ClientSession() as session:
-        async with session.get(api_url, params=web_scraping_params, headers=headers) as response:
+        async with session.get(
+            api_url, params=web_scraping_params, headers=headers, timeout=WEBPAGE_REQUEST_TIMEOUT
+        ) as response:
             response.raise_for_status()
             response_json = await response.json()
             return response_json["markdown_content"]
@@ -514,7 +545,7 @@ async def read_webpage_with_jina(web_url: str, api_key: str, api_url: str) -> st
         headers["Authorization"] = f"Bearer {api_key}"
 
     async with aiohttp.ClientSession() as session:
-        async with session.post(api_url, json=data, headers=headers) as response:
+        async with session.post(api_url, json=data, headers=headers, timeout=WEBPAGE_REQUEST_TIMEOUT) as response:
             response.raise_for_status()
             content = await response.text()
             return content
@@ -523,10 +554,19 @@ async def read_webpage_with_jina(web_url: str, api_key: str, api_url: str) -> st
 async def read_webpage_with_firecrawl(web_url: str, api_key: str, api_url: str) -> str:
     firecrawl_api_url = f"{api_url}/v1/scrape"
     headers = {"Content-Type": "application/json", "Authorization": f"Bearer {api_key}"}
-    params = {"url": web_url, "formats": ["markdown"], "excludeTags": ["script", ".ad"]}
+    params = {
+        "url": web_url,
+        "formats": ["markdown"],
+        "excludeTags": ["script", ".ad"],
+        "removeBase64Images": True,
+        "proxy": "auto",
+        "maxAge": 3600000,  # accept upto 1 hour old cached content for speed
+    }
 
     async with aiohttp.ClientSession() as session:
-        async with session.post(firecrawl_api_url, json=params, headers=headers) as response:
+        async with session.post(
+            firecrawl_api_url, json=params, headers=headers, timeout=WEBPAGE_REQUEST_TIMEOUT
+        ) as response:
             response.raise_for_status()
             response_json = await response.json()
             return response_json["data"]["markdown"]
@@ -562,7 +602,9 @@ Collate only relevant information from the website to answer the target query an
     params = {"url": web_url, "formats": ["extract"], "extract": {"systemPrompt": system_prompt, "schema": schema}}
 
     async with aiohttp.ClientSession() as session:
-        async with session.post(firecrawl_api_url, json=params, headers=headers) as response:
+        async with session.post(
+            firecrawl_api_url, json=params, headers=headers, timeout=WEBPAGE_REQUEST_TIMEOUT
+        ) as response:
             response.raise_for_status()
             response_json = await response.json()
             return response_json["data"]["extract"]["relevant_extract"]
@@ -591,7 +633,9 @@ async def search_with_jina(query: str, location: LocationData) -> Tuple[str, Dic
         headers["Authorization"] = f"Bearer {api_key}"
 
     async with aiohttp.ClientSession() as session:
-        async with session.post(JINA_SEARCH_API_URL, json=data, headers=headers) as response:
+        async with session.post(
+            JINA_SEARCH_API_URL, json=data, headers=headers, timeout=WEBPAGE_REQUEST_TIMEOUT
+        ) as response:
             if response.status != 200:
                 error_text = await response.text()
                 logger.error(f"Jina search failed: {error_text}")

@@ -74,7 +74,7 @@ import { KhojLogoType } from "../components/logo/khojLogo";
 
 const automationsFetcher = () =>
     window
-        .fetch("/api/automations")
+        .fetch("/api/automation")
         .then((res) => res.json())
         .catch((err) => console.log(err));
 
@@ -245,7 +245,7 @@ function deleteAutomation(automationId: string, setIsDeleted: (isDeleted: boolea
 }
 
 function sendAPreview(automationId: string, setToastMessage: (toastMessage: string) => void) {
-    fetch(`/api/trigger/automation?automation_id=${automationId}`, { method: "POST" })
+    fetch(`/api/automation/trigger?automation_id=${automationId}`, { method: "POST" })
         .then((response) => {
             if (!response.ok) {
                 throw new Error("Network response was not ok");

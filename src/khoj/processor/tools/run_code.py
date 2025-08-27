@@ -9,8 +9,8 @@ from pathlib import Path
 from typing import Any, Callable, List, NamedTuple, Optional
 
 import aiohttp
+import httpx
 from asgiref.sync import sync_to_async
-from httpx import RemoteProtocolError
 from tenacity import (
     before_sleep_log,
     retry,
@@ -19,8 +19,8 @@ from tenacity import (
     wait_random_exponential,
 )
 
-from khoj.database.adapters import FileObjectAdapters
-from khoj.database.models import Agent, FileObject, KhojUser, UserMemory
+from khoj.database.adapters import AgentAdapters, FileObjectAdapters
+from khoj.database.models import Agent, ChatMessageModel, FileObject, KhojUser, UserMemory
 from khoj.processor.conversation import prompts
 from khoj.processor.conversation.utils import (
     ChatEvent,
@@ -49,8 +49,8 @@ class GeneratedCode(NamedTuple):
 
 
 async def run_code(
-    query: str,
-    conversation_history: dict,
+    instructions: str,
+    conversation_history: List[ChatMessageModel],
     context: str,
     location_data: LocationData,
     user: KhojUser,
@@ -64,12 +64,12 @@ async def run_code(
 ):
     # Generate Code
     if send_status_func:
-        async for event in send_status_func(f"**Generate code snippet** for {query}"):
+        async for event in send_status_func(f"**Generate code snippet** for {instructions}"):
             yield {ChatEvent.STATUS: event}
     try:
         with timer("Chat actor: Generate programs to execute", logger):
             generated_code = await generate_python_code(
-                query,
+                instructions,
                 conversation_history,
                 context,
                 location_data,
@@ -78,9 +78,10 @@ async def run_code(
                 agent,
                 tracer,
                 query_files,
+                relevant_memories,
             )
     except Exception as e:
-        raise ValueError(f"Failed to generate code for {query} with error: {e}")
+        raise ValueError(f"Failed to generate code for {instructions} with error: {e}")
 
     # Prepare Input Data
     input_data = []
@@ -94,7 +95,7 @@ async def run_code(
 
     # Run Code
     if send_status_func:
-        async for event in send_status_func(f"**Running code snippet**"):
+        async for event in send_status_func("**Running code snippet**"):
             yield {ChatEvent.STATUS: event}
     try:
         with timer("Chat actor: Execute generated program", logger, log_level=logging.INFO):
@@ -102,22 +103,22 @@ async def run_code(
             code = result.pop("code")
             cleaned_result = truncate_code_context({"cleaned": {"results": result}})["cleaned"]["results"]
             logger.info(f"Executed Code\n----\n{code}\n----\nResult\n----\n{cleaned_result}\n----")
-            yield {query: {"code": code, "results": result}}
+            yield {instructions: {"code": code, "results": result}}
     except asyncio.TimeoutError as e:
         # Call the sandbox_url/stop GET API endpoint to stop the code sandbox
-        error = f"Failed to run code for {query} with Timeout error: {e}"
+        error = f"Failed to run code for {instructions} with Timeout error: {e}"
         try:
             await aiohttp.ClientSession().get(f"{sandbox_url}/stop", timeout=5)
         except Exception as e:
             error += f"\n\nFailed to stop code sandbox with error: {e}"
         raise ValueError(error)
     except Exception as e:
-        raise ValueError(f"Failed to run code for {query} with error: {e}")
+        raise ValueError(f"Failed to run code for {instructions} with error: {e}")
 
 
 async def generate_python_code(
-    q: str,
-    conversation_history: dict,
+    instructions: str,
+    chat_history: List[ChatMessageModel],
     context: str,
     location_data: LocationData,
     user: KhojUser,
@@ -129,7 +130,7 @@ async def generate_python_code(
 ) -> GeneratedCode:
     location = f"{location_data}" if location_data else "Unknown"
     username = prompts.user_name.format(name=user.get_full_name()) if user.get_full_name() else ""
-    chat_history = construct_chat_history(conversation_history)
+    chat_history_str = construct_chat_history(chat_history)
 
     utc_date = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d")
     personality_context = (
@@ -144,8 +145,8 @@ async def generate_python_code(
     network_access_context = "**NO** " if not is_e2b_code_sandbox_enabled() else ""
 
     code_generation_prompt = prompts.python_code_generation_prompt.format(
-        query=q,
-        chat_history=chat_history,
+        instructions=instructions,
+        chat_history=chat_history_str,
         context=context,
         has_network_access=network_access_context,
         current_date=utc_date,
@@ -154,17 +155,21 @@ async def generate_python_code(
         personality_context=personality_context,
     )
 
+    agent_chat_model = AgentAdapters.get_agent_chat_model(agent, user) if agent else None
+
     response = await send_message_to_model_wrapper(
         code_generation_prompt,
+        query_files=query_files,
         query_images=query_images,
+        relevant_memories=relevant_memories,
+        fast_model=False,
+        agent_chat_model=agent_chat_model,
         user=user,
         tracer=tracer,
-        query_files=query_files,
-        relevant_memories=relevant_memories,
     )
 
     # Extract python code wrapped in markdown code blocks from the response
-    code_blocks = re.findall(r"```(?:python)?\n(.*?)```", response, re.DOTALL)
+    code_blocks = re.findall(r"```(?:python)?\n(.*?)```", response.text, re.DOTALL)
 
     if not code_blocks:
         raise ValueError("No Python code blocks found in response")
@@ -195,7 +200,9 @@ async def generate_python_code(
         | retry_if_exception_type(aiohttp.ClientTimeout)
         | retry_if_exception_type(asyncio.TimeoutError)
         | retry_if_exception_type(ConnectionError)
-        | retry_if_exception_type(RemoteProtocolError)
+        | retry_if_exception_type(httpx.RemoteProtocolError)
+        | retry_if_exception_type(httpx.NetworkError)
+        | retry_if_exception_type(httpx.TimeoutException)
     ),
     wait=wait_random_exponential(min=1, max=5),
     stop=stop_after_attempt(3),
@@ -233,8 +240,7 @@ async def execute_e2b(code: str, input_files: list[dict]) -> dict[str, Any]:
     try:
         # Upload input files in parallel
         upload_tasks = [
-            sandbox.files.write(path=file["filename"], data=base64.b64decode(file["b64_data"]), request_timeout=30)
-            for file in input_files
+            sandbox.files.write(file["filename"], base64.b64decode(file["b64_data"])) for file in input_files
         ]
         await asyncio.gather(*upload_tasks)
 
@@ -251,8 +257,12 @@ async def execute_e2b(code: str, input_files: list[dict]) -> dict[str, Any]:
 
         # Identify new files created during execution
         new_files = set(E2bFile(f.name, f.path) for f in await sandbox.files.list("~")) - original_files
+
         # Read newly created files in parallel
-        download_tasks = [sandbox.files.read(f.path, request_timeout=30) for f in new_files]
+        def read_format(f):
+            return "bytes" if Path(f.name).suffix in image_file_ext else "text"
+
+        download_tasks = [sandbox.files.read(f.path, format=read_format(f), request_timeout=30) for f in new_files]
         downloaded_files = await asyncio.gather(*download_tasks)
         for f, content in zip(new_files, downloaded_files):
             if isinstance(content, bytes):
@@ -260,22 +270,11 @@ async def execute_e2b(code: str, input_files: list[dict]) -> dict[str, Any]:
                 b64_data = base64.b64encode(content).decode("utf-8")
             elif Path(f.name).suffix in image_file_ext:
                 # Ignore image files as they are extracted from execution results below for inline display
-                continue
+                b64_data = base64.b64encode(content).decode("utf-8")
             else:
                 # Text files - encode utf-8 string as base64
                 b64_data = content
             output_files.append({"filename": f.name, "b64_data": b64_data})
-
-        # Collect output files from execution results
-        # Repect ordering of output result types to disregard text output associated with images
-        output_result_types = ["png", "jpeg", "svg", "text", "markdown", "json"]
-        for idx, result in enumerate(execution.results):
-            if getattr(result, "chart", None):
-                continue
-            for result_type in output_result_types:
-                if b64_data := getattr(result, result_type, None):
-                    output_files.append({"filename": f"{idx}.{result_type}", "b64_data": b64_data})
-                    break
 
         # collect logs
         success = not execution.error and not execution.logs.stderr

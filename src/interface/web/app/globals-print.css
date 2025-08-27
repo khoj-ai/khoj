@@ -1,0 +1,366 @@
+/* Hide print-only elements on screen */
+.print-only-header {
+    display: none;
+}
+
+/* Print-specific styles for clean PDF export */
+@media print {
+    /* Show print-only header */
+    .print-only-header {
+        display: block !important;
+        margin-bottom: 2rem !important;
+        padding-bottom: 1rem !important;
+        page-break-after: avoid;
+    }
+
+    .print-header-content {
+        display: flex !important;
+        align-items: flex-start !important;
+        gap: 1.5rem !important;
+        margin-bottom: 1rem !important;
+    }
+
+    .print-header-left {
+        flex-shrink: 0 !important;
+    }
+
+    .print-logo {
+        width: 60px !important;
+        height: 60px !important;
+        fill: #000 !important;
+    }
+
+    .print-header-right {
+        flex: 1 !important;
+    }
+
+    .print-only-header h1 {
+        font-size: 28pt !important;
+        font-weight: bold !important;
+        color: #000 !important;
+        margin: 0 0 0.75rem 0 !important;
+        line-height: 1.2 !important;
+        page-break-after: avoid;
+    }
+
+    .conversation-meta {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 0.25rem !important;
+        margin-bottom: 0 !important;
+    }
+
+    .conversation-meta p {
+        margin: 0 !important;
+        font-size: 14pt !important;
+        color: #000 !important;
+        line-height: 1.3 !important;
+    }
+
+    .conversation-meta strong {
+        font-weight: bold !important;
+        color: #000 !important;
+    }
+
+    .print-only-header hr {
+        border: none !important;
+        height: 2px !important;
+        background-color: #000 !important;
+        margin: 1rem 0 0 0 !important;
+        width: 100% !important;
+    }
+    /* Hide non-essential elements */
+    .sidebar,
+    .sidebar-trigger,
+    .sidebar-inset > header,
+    .print-hidden,
+    button,
+    nav,
+    [data-sidebar],
+    [data-sidebar-trigger],
+    .chat-sidebar,
+    .app-sidebar {
+        display: none !important;
+    }
+
+    /* Reset page margins and layout */
+    @page {
+        margin: 0.5in;
+        size: A4;
+    }
+
+    /* Main layout adjustments for print */
+    body {
+        font-size: 12pt !important;
+        line-height: 1.4 !important;
+        color: #000 !important;
+        background: white !important;
+    }
+
+    /* Remove background colors and shadows */
+    * {
+        background: transparent !important;
+        box-shadow: none !important;
+        text-shadow: none !important;
+        animation: none !important;
+        transition: none !important;
+    }
+
+    /* Remove any height constraints that could limit content */
+    div,
+    section,
+    main,
+    article,
+    aside {
+        max-height: none !important;
+    }
+
+    /* Specific height fixes for flex containers */
+    [style*="height"],
+    [style*="max-height"] {
+        height: auto !important;
+        max-height: none !important;
+    }
+
+    /* Ensure all content is visible - target all scroll containers */
+    .scroll-area,
+    .scroll-area > div,
+    [data-radix-scroll-area-viewport],
+    [data-radix-scroll-area-scrollbar],
+    [data-radix-scroll-area-content] {
+        height: auto !important;
+        max-height: none !important;
+        overflow: visible !important;
+        position: static !important;
+    }
+
+    /* Chat history styling */
+    .chat-history,
+    .chat-history > *,
+    .chat-body,
+    .chat-body-full {
+        display: block !important;
+        width: 100% !important;
+        height: auto !important;
+        max-height: none !important;
+        overflow: visible !important;
+        position: static !important;
+    }
+
+    /* Ensure chat messages container expands fully */
+    .chat-messages,
+    .chat-messages-container,
+    .messages-container {
+        height: auto !important;
+        max-height: none !important;
+        overflow: visible !important;
+    }
+
+    /* Make chat messages use full width in print */
+    .w-4\/6,
+    .w-2\/3,
+    .w-3\/4,
+    .max-w-2xl,
+    .max-w-3xl,
+    .max-w-4xl,
+    .max-w-5xl {
+        width: 100% !important;
+        max-width: none !important;
+    }
+
+    /* Message styling for print */
+    .chat-message {
+        page-break-inside: avoid;
+        margin-bottom: 1rem !important;
+        padding: 0.5rem !important;
+        border-bottom: 1px solid #ccc !important;
+        width: 100% !important;
+        max-width: none !important;
+    }
+
+    /* Ensure message containers use full width */
+    .chat-message-container,
+    .chat-message-wrapper {
+        width: 100% !important;
+        max-width: none !important;
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+    }
+
+    /* Title styling */
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6 {
+        page-break-after: avoid;
+        color: #000 !important;
+        font-weight: bold !important;
+        margin-top: 0.5rem !important;
+        margin-bottom: 0.5rem !important;
+    }
+
+    /* Code block styling */
+    pre,
+    code {
+        font-family: "Courier New", monospace !important;
+        font-size: 0.85em !important;
+        white-space: pre-wrap !important;
+        word-wrap: break-word !important;
+        border: 1px solid #ccc !important;
+        padding: 0.5rem !important;
+        margin: 0.5rem 0 !important;
+        background: #f9f9f9 !important;
+        color: #000 !important;
+    }
+
+    /* Link styling */
+    a {
+        color: #000 !important;
+        text-decoration: underline !important;
+    }
+
+    /* Image handling */
+    img {
+        max-width: 100% !important;
+        height: auto !important;
+        page-break-inside: avoid;
+    }
+
+    /* Force black text color */
+    p,
+    div,
+    span,
+    li,
+    td,
+    th {
+        color: #000 !important;
+    }
+
+    /* Lists */
+    ol,
+    ul {
+        margin-left: 1rem !important;
+        margin-bottom: 0.5rem !important;
+    }
+
+    /* Table styling */
+    table {
+        border-collapse: collapse !important;
+        width: 100% !important;
+        margin: 0.5rem 0 !important;
+    }
+
+    table,
+    th,
+    td {
+        border: 1px solid #000 !important;
+        padding: 0.25rem !important;
+    }
+
+    /* Paragraphs */
+    p {
+        margin-bottom: 0.5rem !important;
+        color: #000 !important;
+    }
+
+    /* Ensure proper spacing */
+    .chat-message + .chat-message {
+        margin-top: 1rem !important;
+    }
+
+    /* Hide scroll indicators */
+    ::-webkit-scrollbar {
+        display: none !important;
+    }
+
+    /* Hide interactive elements */
+    .retry-button,
+    .action-button,
+    .chat-footer,
+    .chat-buttons,
+    .code-copy-button,
+    .copy-button,
+    .feedback-buttons {
+        display: none !important;
+    }
+
+    /* Train of thought styling for print */
+    .train-of-thought {
+        border-left: 2px solid #ccc !important;
+        margin: 0.5rem 0 !important;
+        padding: 0.5rem !important;
+        font-size: 0.9em !important;
+        color: #666 !important;
+    }
+
+    .train-of-thought strong {
+        color: #000 !important;
+    }
+
+    .train-of-thought.primary {
+        border-left-color: #000 !important;
+    }
+
+    .train-of-thought-element {
+        display: block !important;
+        margin-bottom: 0.5rem !important;
+    }
+
+    /* Chat message container styling */
+    .chat-message-container {
+        background: transparent !important;
+        border: 1px solid #ccc !important;
+        border-radius: 8px !important;
+        margin: 0.5rem 0 !important;
+        padding: 0.5rem !important;
+        page-break-inside: avoid;
+    }
+
+    .chat-message-wrapper {
+        padding-left: 0.5rem !important;
+        padding-bottom: 0.5rem !important;
+    }
+
+    .you {
+        background-color: #f5f5f5 !important;
+        color: #000 !important;
+    }
+
+    .khoj {
+        background-color: transparent !important;
+        color: #000 !important;
+    }
+
+    .author {
+        color: #666 !important;
+        font-size: 0.7rem !important;
+    }
+
+    /* Image containers */
+    .images-container {
+        display: block !important;
+        overflow: visible !important;
+        margin-bottom: 0.5rem !important;
+    }
+
+    .image-wrapper {
+        margin-right: 0 !important;
+        margin-bottom: 0.5rem !important;
+    }
+
+    .image-wrapper img {
+        width: auto !important;
+        height: auto !important;
+        max-width: 100% !important;
+        max-height: 4in !important;
+        object-fit: contain !important;
+        page-break-inside: avoid;
+    }
+
+    /* Agent indicators */
+    .agent-indicator {
+        margin-bottom: 0.5rem !important;
+    }
+}

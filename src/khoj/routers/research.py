@@ -1,36 +1,43 @@
+import asyncio
 import logging
 import os
+from copy import deepcopy
 from datetime import datetime
-from enum import Enum
-from typing import Callable, Dict, List, Optional, Type
+from typing import Callable, Dict, List, Optional
 
 import yaml
-from fastapi import Request
-from pydantic import BaseModel, Field
 
 from khoj.database.adapters import AgentAdapters, EntryAdapters
-from khoj.database.models import Agent, KhojUser, UserMemory
+from khoj.database.models import Agent, ChatMessageModel, KhojUser, UserMemory
 from khoj.processor.conversation import prompts
 from khoj.processor.conversation.utils import (
-    InformationCollectionIteration,
-    construct_chat_history,
+    OperatorRun,
+    ResearchIteration,
+    ToolCall,
     construct_iteration_history,
     construct_tool_chat_history,
     load_complex_json,
 )
-from khoj.processor.tools.online_search import read_webpages, search_online
+from khoj.processor.operator import operate_environment
+from khoj.processor.tools.online_search import read_webpages_content, search_online
 from khoj.processor.tools.run_code import run_code
-from khoj.routers.api import extract_references_and_questions
 from khoj.routers.helpers import (
     ChatEvent,
-    generate_summary_from_files,
+    get_message_from_queue,
+    grep_files,
+    list_files,
+    search_documents,
     send_message_to_model_wrapper,
+    view_file_content,
 )
 from khoj.utils.helpers import (
     ConversationCommand,
-    function_calling_description_for_llm,
+    ToolDefinition,
+    dict_to_tuple,
     is_none_or_empty,
+    is_operator_enabled,
     timer,
+    tools_for_research_llm,
     truncate_code_context,
 )
 from khoj.utils.rawconfig import LocationData
@@ -38,82 +45,95 @@ from khoj.utils.rawconfig import LocationData
 logger = logging.getLogger(__name__)
 
 
-class PlanningResponse(BaseModel):
-    """
-    Schema for the response from planning agent when deciding the next tool to pick.
-    """
-
-    scratchpad: str = Field(..., description="Scratchpad to reason about which tool to use next")
-
-    class Config:
-        arbitrary_types_allowed = True
-
-    @classmethod
-    def create_model_with_enum(cls: Type["PlanningResponse"], tool_options: dict) -> Type["PlanningResponse"]:
-        """
-        Factory method that creates a customized PlanningResponse model
-        with a properly typed tool field based on available tools.
-
-        The tool field is dynamically generated based on available tools.
-        The query field should be filled by the model after the tool field for a more logical reasoning flow.
-
-        Args:
-            tool_options: Dictionary mapping tool names to values
-
-        Returns:
-            A customized PlanningResponse class
-        """
-        # Create dynamic enum from tool options
-        tool_enum = Enum("ToolEnum", tool_options)  # type: ignore
-
-        # Create and return a customized response model with the enum
-        class PlanningResponseWithTool(PlanningResponse):
-            tool: tool_enum = Field(..., description="Name of the tool to use")
-            query: str = Field(..., description="Detailed query for the selected tool")
-
-        return PlanningResponseWithTool
-
-
 async def apick_next_tool(
     query: str,
-    conversation_history: dict,
+    conversation_history: List[ChatMessageModel],
     user: KhojUser = None,
-    query_images: List[str] = [],
     location: LocationData = None,
     user_name: str = None,
     agent: Agent = None,
-    previous_iterations: List[InformationCollectionIteration] = [],
+    previous_iterations: List[ResearchIteration] = [],
     max_iterations: int = 5,
-    send_status_func: Optional[Callable] = None,
+    query_images: List[str] = [],
     query_files: str = None,
     relevant_memories: List[UserMemory] = [],
+    max_document_searches: int = 7,
+    max_online_searches: int = 3,
+    max_webpages_to_read: int = 3,
+    send_status_func: Optional[Callable] = None,
     tracer: dict = {},
 ):
     """Given a query, determine which of the available tools the agent should use in order to answer appropriately."""
 
+    # Continue with previous iteration if a multi-step tool use is in progress
+    if (
+        previous_iterations
+        and previous_iterations[-1].query
+        and isinstance(previous_iterations[-1].query, ToolCall)
+        and previous_iterations[-1].query.name == ConversationCommand.Operator
+        and not previous_iterations[-1].summarizedResult
+    ):
+        previous_iteration = previous_iterations[-1]
+        yield ResearchIteration(
+            query=ToolCall(name=previous_iteration.query.name, args={"query": query}, id=previous_iteration.query.id),  # type: ignore
+            context=previous_iteration.context,
+            onlineContext=previous_iteration.onlineContext,
+            codeContext=previous_iteration.codeContext,
+            operatorContext=previous_iteration.operatorContext,
+            warning=previous_iteration.warning,
+        )
+        return
+
     # Construct tool options for the agent to choose from
-    tool_options = dict()
+    tools = []
     tool_options_str = ""
-    agent_tools = agent.input_tools if agent else []
+    agent_input_tools = agent.input_tools if agent else []
+    agent_tools = []
+
+    # Map agent user facing tools to research tools to include in agents toolbox
+    document_research_tools = [
+        ConversationCommand.SemanticSearchFiles,
+        ConversationCommand.RegexSearchFiles,
+        ConversationCommand.ViewFile,
+        ConversationCommand.ListFiles,
+    ]
+    input_tools_to_research_tools = {
+        ConversationCommand.Notes.value: [tool.value for tool in document_research_tools],
+        ConversationCommand.Webpage.value: [ConversationCommand.ReadWebpage.value],
+        ConversationCommand.Online.value: [ConversationCommand.SearchWeb.value],
+        ConversationCommand.Code.value: [ConversationCommand.PythonCoder.value],
+        ConversationCommand.Operator.value: [ConversationCommand.OperateComputer.value],
+    }
+    for input_tool, research_tools in input_tools_to_research_tools.items():
+        if input_tool in agent_input_tools:
+            agent_tools += research_tools
+
     user_has_entries = await EntryAdapters.auser_has_entries(user)
-    for tool, description in function_calling_description_for_llm.items():
-        # Skip showing Notes tool as an option if user has no entries
-        if tool == ConversationCommand.Notes and not user_has_entries:
+    for tool, tool_data in tools_for_research_llm.items():
+        # Skip showing operator tool as an option if not enabled
+        if tool == ConversationCommand.OperateComputer and not is_operator_enabled():
             continue
+        # Skip showing document related tools if user has no documents
+        if tool in document_research_tools and not user_has_entries:
+            continue
+        if tool == ConversationCommand.SemanticSearchFiles:
+            description = tool_data.description.format(max_search_queries=max_document_searches)
+        elif tool == ConversationCommand.ReadWebpage:
+            description = tool_data.description.format(max_webpages_to_read=max_webpages_to_read)
+        elif tool == ConversationCommand.SearchWeb:
+            description = tool_data.description.format(max_search_queries=max_online_searches)
+        else:
+            description = tool_data.description
         # Add tool if agent does not have any tools defined or the tool is supported by the agent.
         if len(agent_tools) == 0 or tool.value in agent_tools:
-            tool_options[tool.name] = tool.value
             tool_options_str += f'- "{tool.value}": "{description}"\n'
-
-    # Create planning reponse model with dynamically populated tool enum class
-    planning_response_model = PlanningResponse.create_model_with_enum(tool_options)
-
-    # Construct chat history with user and iteration history with researcher agent for context
-    chat_history = construct_chat_history(conversation_history, agent_name=agent.name if agent else "Khoj")
-    previous_iterations_history = construct_iteration_history(previous_iterations, prompts.previous_iteration)
-
-    if query_images:
-        query = f"[placeholder for user attached images]\n{query}"
+            tools.append(
+                ToolDefinition(
+                    name=tool.value,
+                    description=description,
+                    schema=tool_data.schema,
+                )
+            )
 
     today = datetime.today()
     location_data = f"{location}" if location else "Unknown"
@@ -124,146 +144,187 @@ async def apick_next_tool(
 
     function_planning_prompt = prompts.plan_function_execution.format(
         tools=tool_options_str,
-        chat_history=chat_history,
         personality_context=personality_context,
         current_date=today.strftime("%Y-%m-%d"),
         day_of_week=today.strftime("%A"),
         username=user_name or "Unknown",
         location=location_data,
-        previous_iterations=previous_iterations_history,
         max_iterations=max_iterations,
     )
+
+    # Construct chat history with user and iteration history with researcher agent for context
+    iteration_chat_history = construct_iteration_history(previous_iterations, query, query_images, query_files)
+    chat_and_research_history = conversation_history + iteration_chat_history
 
     try:
         with timer("Chat actor: Infer information sources to refer", logger):
             response = await send_message_to_model_wrapper(
-                query=query,
-                context=function_planning_prompt,
-                response_type="json_object",
-                response_schema=planning_response_model,
-                deepthought=True,
-                user=user,
-                query_images=query_images,
+                query="",
                 query_files=query_files,
+                query_images=query_images,
                 relevant_memories=relevant_memories,
+                system_message=function_planning_prompt,
+                chat_history=chat_and_research_history,
+                tools=tools,
+                deepthought=True,
+                fast_model=False,
                 agent_chat_model=agent_chat_model,
+                user=user,
                 tracer=tracer,
             )
     except Exception as e:
         logger.error(f"Failed to infer information sources to refer: {e}", exc_info=True)
-        yield InformationCollectionIteration(
-            tool=None,
+        yield ResearchIteration(
             query=None,
             warning="Failed to infer information sources to refer. Skipping iteration. Try again.",
         )
         return
 
     try:
-        response = load_complex_json(response)
-        selected_tool = response.get("tool", None)
-        generated_query = response.get("query", None)
-        scratchpad = response.get("scratchpad", None)
-        warning = None
-        logger.info(f"Response for determining relevant tools: {response}")
+        # Try parse the response as function call response to infer next tool to use.
+        # TODO: Handle multiple tool calls.
+        response_text = response.text
+        parsed_response = [ToolCall(**item) for item in load_complex_json(response_text)][0]
+    except Exception:
+        # Otherwise assume the model has decided to end the research run and respond to the user.
+        parsed_response = ToolCall(name=ConversationCommand.Text, args={"response": response_text}, id=None)
 
-        # Detect selection of previously used query, tool combination.
-        previous_tool_query_combinations = {(i.tool, i.query) for i in previous_iterations if i.warning is None}
-        if (selected_tool, generated_query) in previous_tool_query_combinations:
-            warning = f"Repeated tool, query combination detected. Skipping iteration. Try something different."
-        # Only send client status updates if we'll execute this iteration
-        elif send_status_func:
-            determined_tool_message = "**Determined Tool**: "
-            determined_tool_message += (
-                f"{selected_tool}({generated_query})." if selected_tool != ConversationCommand.Text else "respond."
-            )
-            determined_tool_message += f"\nReason: {scratchpad}" if scratchpad else ""
-            async for event in send_status_func(f"{scratchpad}"):
-                yield {ChatEvent.STATUS: event}
+    # If we have a valid response, extract the tool and query.
+    warning = None
+    logger.info(f"Response for determining relevant tools: {parsed_response.name}({parsed_response.args})")
 
-        yield InformationCollectionIteration(
-            tool=selected_tool,
-            query=generated_query,
-            warning=warning,
-        )
-    except Exception as e:
-        logger.error(f"Invalid response for determining relevant tools: {response}. {e}", exc_info=True)
-        yield InformationCollectionIteration(
-            tool=None,
-            query=None,
-            warning=f"Invalid response for determining relevant tools: {response}. Skipping iteration. Fix error: {e}",
-        )
+    # Detect selection of previously used query, tool combination.
+    previous_tool_query_combinations = {
+        (i.query.name, dict_to_tuple(i.query.args))
+        for i in previous_iterations
+        if i.warning is None and isinstance(i.query, ToolCall)
+    }
+    if (parsed_response.name, dict_to_tuple(parsed_response.args)) in previous_tool_query_combinations:
+        warning = f"Repeated tool, query combination detected. You've already called {parsed_response.name} with args: {parsed_response.args}. Try something different."
+    # Only send client status updates if we'll execute this iteration and model has thoughts to share.
+    elif send_status_func and not is_none_or_empty(response.thought):
+        async for event in send_status_func(response.thought):
+            yield {ChatEvent.STATUS: event}
+
+    yield ResearchIteration(query=parsed_response, warning=warning, raw_response=response.raw_content)
 
 
-async def execute_information_collection(
+async def research(
     user: KhojUser,
     query: str,
     conversation_id: str,
-    conversation_history: dict,
+    conversation_history: List[ChatMessageModel],
+    previous_iterations: List[ResearchIteration],
     query_images: List[str],
     agent: Agent = None,
     send_status_func: Optional[Callable] = None,
     user_name: str = None,
     location: LocationData = None,
-    file_filters: List[str] = [],
     relevant_memories: List[UserMemory] = [],
-    tracer: dict = {},
     query_files: str = None,
+    cancellation_event: Optional[asyncio.Event] = None,
+    interrupt_queue: Optional[asyncio.Queue] = None,
+    abort_message: str = ChatEvent.END_EVENT.value,
+    tracer: dict = {},
 ):
+    max_document_searches = 7
+    max_online_searches = 3
+    max_webpages_to_read = 1
     current_iteration = 0
     MAX_ITERATIONS = int(os.getenv("KHOJ_RESEARCH_ITERATIONS", 5))
-    previous_iterations: List[InformationCollectionIteration] = []
+
+    # Incorporate previous partial research into current research chat history
+    research_conversation_history = [chat for chat in deepcopy(conversation_history) if chat.message]
+    if current_iteration := len(previous_iterations) > 0:
+        logger.info(f"Continuing research with the previous {len(previous_iterations)} iteration results.")
+        previous_iterations_history = construct_iteration_history(previous_iterations)
+        research_conversation_history += previous_iterations_history
+
     while current_iteration < MAX_ITERATIONS:
+        # Check for cancellation at the start of each iteration
+        if cancellation_event and cancellation_event.is_set():
+            logger.debug(f"Research cancelled. User {user} disconnected client.")
+            break
+
+        # Update the query for the current research iteration
+        if interrupt_query := get_message_from_queue(interrupt_queue):
+            if interrupt_query == abort_message:
+                cancellation_event.set()
+                logger.debug(f"Research cancelled by user {user} via interrupt queue.")
+                break
+            # Add the interrupt query as a new user message to the research conversation history
+            logger.info(
+                f"Continuing research for user {user} with the previous {len(previous_iterations)} iterations and new instruction: {interrupt_query}"
+            )
+            previous_iterations_history = construct_iteration_history(
+                previous_iterations, query, query_images, query_files
+            )
+            research_conversation_history += previous_iterations_history
+            query = interrupt_query
+            previous_iterations = []
+
+            async for result in send_status_func(f"**Incorporate New Instruction**: {interrupt_query}"):
+                yield result
+
         online_results: Dict = dict()
         code_results: Dict = dict()
         document_results: List[Dict[str, str]] = []
-        summarize_files: str = ""
-        this_iteration = InformationCollectionIteration(tool=None, query=query)
+        operator_results: OperatorRun = None
+        this_iteration = ResearchIteration(query=query)
 
         async for result in apick_next_tool(
             query,
-            conversation_history,
+            research_conversation_history,
             user,
-            query_images,
             location,
             user_name,
             agent,
             previous_iterations,
             MAX_ITERATIONS,
-            send_status_func,
+            query_images=query_images,
             query_files=query_files,
             relevant_memories=relevant_memories,
+            max_document_searches=max_document_searches,
+            max_online_searches=max_online_searches,
+            max_webpages_to_read=max_webpages_to_read,
+            send_status_func=send_status_func,
             tracer=tracer,
         ):
             if isinstance(result, dict) and ChatEvent.STATUS in result:
                 yield result[ChatEvent.STATUS]
-            elif isinstance(result, InformationCollectionIteration):
+            elif isinstance(result, ResearchIteration):
                 this_iteration = result
+                yield this_iteration
 
         # Skip running iteration if warning present in iteration
         if this_iteration.warning:
             logger.warning(f"Research mode: {this_iteration.warning}.")
 
         # Terminate research if selected text tool or query, tool not set for next iteration
-        elif not this_iteration.query or not this_iteration.tool or this_iteration.tool == ConversationCommand.Text:
+        elif (
+            not this_iteration.query
+            or isinstance(this_iteration.query, str)
+            or this_iteration.query.name == ConversationCommand.Text
+        ):
             current_iteration = MAX_ITERATIONS
 
-        elif this_iteration.tool == ConversationCommand.Notes:
+        elif this_iteration.query.name == ConversationCommand.SemanticSearchFiles:
             this_iteration.context = []
             document_results = []
             previous_inferred_queries = {
                 c["query"] for iteration in previous_iterations if iteration.context for c in iteration.context
             }
-            async for result in extract_references_and_questions(
-                user,
-                construct_tool_chat_history(previous_iterations, ConversationCommand.Notes),
-                this_iteration.query,
-                7,
-                None,
-                conversation_id,
-                [ConversationCommand.Default],
-                location,
-                send_status_func,
-                query_images,
+            async for result in search_documents(
+                **this_iteration.query.args,
+                n=max_document_searches,
+                d=None,
+                user=user,
+                chat_history=construct_tool_chat_history(previous_iterations, ConversationCommand.SemanticSearchFiles),
+                conversation_id=conversation_id,
+                conversation_commands=[ConversationCommand.Notes],
+                location_data=location,
+                send_status_func=send_status_func,
+                query_images=query_images,
                 previous_inferred_queries=previous_inferred_queries,
                 agent=agent,
                 query_files=query_files,
@@ -289,8 +350,10 @@ async def execute_information_collection(
                 except Exception as e:
                     this_iteration.warning = f"Error extracting document references: {e}"
                     logger.error(this_iteration.warning, exc_info=True)
+            else:
+                this_iteration.warning = "No matching document references found"
 
-        elif this_iteration.tool == ConversationCommand.Online:
+        elif this_iteration.query.name == ConversationCommand.SearchWeb:
             previous_subqueries = {
                 subquery
                 for iteration in previous_iterations
@@ -299,17 +362,20 @@ async def execute_information_collection(
             }
             try:
                 async for result in search_online(
-                    this_iteration.query,
-                    construct_tool_chat_history(previous_iterations, ConversationCommand.Online),
-                    location,
-                    user,
-                    send_status_func,
-                    [],
+                    **this_iteration.query.args,
+                    conversation_history=construct_tool_chat_history(
+                        previous_iterations, ConversationCommand.SearchWeb
+                    ),
+                    location=location,
+                    user=user,
+                    send_status_func=send_status_func,
+                    custom_filters=[],
+                    max_online_searches=max_online_searches,
                     max_webpages_to_read=0,
                     query_images=query_images,
+                    relevant_memories=relevant_memories,
                     previous_subqueries=previous_subqueries,
                     agent=agent,
-                    relevant_memories=relevant_memories,
                     tracer=tracer,
                 ):
                     if isinstance(result, dict) and ChatEvent.STATUS in result:
@@ -323,18 +389,14 @@ async def execute_information_collection(
                 this_iteration.warning = f"Error searching online: {e}"
                 logger.error(this_iteration.warning, exc_info=True)
 
-        elif this_iteration.tool == ConversationCommand.Webpage:
+        elif this_iteration.query.name == ConversationCommand.ReadWebpage:
             try:
-                async for result in read_webpages(
-                    this_iteration.query,
-                    construct_tool_chat_history(previous_iterations, ConversationCommand.Webpage),
-                    location,
-                    user,
-                    send_status_func,
-                    max_webpages_to_read=1,
-                    query_images=query_images,
+                async for result in read_webpages_content(
+                    **this_iteration.query.args,
+                    user=user,
+                    send_status_func=send_status_func,
+                    # max_webpages_to_read=max_webpages_to_read,
                     agent=agent,
-                    query_files=query_files,
                     relevant_memories=relevant_memories,
                     tracer=tracer,
                 ):
@@ -357,15 +419,17 @@ async def execute_information_collection(
                 this_iteration.warning = f"Error reading webpages: {e}"
                 logger.error(this_iteration.warning, exc_info=True)
 
-        elif this_iteration.tool == ConversationCommand.Code:
+        elif this_iteration.query.name == ConversationCommand.PythonCoder:
             try:
                 async for result in run_code(
-                    this_iteration.query,
-                    construct_tool_chat_history(previous_iterations, ConversationCommand.Webpage),
-                    "",
-                    location,
-                    user,
-                    send_status_func,
+                    **this_iteration.query.args,
+                    conversation_history=construct_tool_chat_history(
+                        previous_iterations, ConversationCommand.PythonCoder
+                    ),
+                    context="",
+                    location_data=location,
+                    user=user,
+                    send_status_func=send_status_func,
                     query_images=query_images,
                     agent=agent,
                     query_files=query_files,
@@ -379,28 +443,99 @@ async def execute_information_collection(
                         this_iteration.codeContext = code_results
                 async for result in send_status_func(f"**Ran code snippets**: {len(this_iteration.codeContext)}"):
                     yield result
-            except ValueError as e:
+            except (ValueError, TypeError) as e:
                 this_iteration.warning = f"Error running code: {e}"
                 logger.warning(this_iteration.warning, exc_info=True)
 
-        elif this_iteration.tool == ConversationCommand.Summarize:
+        elif this_iteration.query.name == ConversationCommand.OperateComputer:
             try:
-                async for result in generate_summary_from_files(
-                    this_iteration.query,
-                    user,
-                    file_filters,
-                    construct_tool_chat_history(previous_iterations),
+                async for result in operate_environment(
+                    **this_iteration.query.args,
+                    user=user,
+                    conversation_log=construct_tool_chat_history(previous_iterations, ConversationCommand.Operator),
+                    location_data=location,
+                    previous_trajectory=previous_iterations[-1].operatorContext if previous_iterations else None,
+                    send_status_func=send_status_func,
                     query_images=query_images,
                     agent=agent,
-                    send_status_func=send_status_func,
                     query_files=query_files,
+                    cancellation_event=cancellation_event,
+                    interrupt_queue=interrupt_queue,
+                    tracer=tracer,
+                ):
+                    if isinstance(result, dict) and ChatEvent.STATUS in result:
+                        yield result[ChatEvent.STATUS]
+                    elif isinstance(result, OperatorRun):
+                        operator_results = result
+                        this_iteration.operatorContext = operator_results
+                        # Add webpages visited while operating browser to references
+                        if result.webpages:
+                            if not online_results.get(this_iteration.query):
+                                online_results[this_iteration.query] = {"webpages": result.webpages}
+                            elif not online_results[this_iteration.query].get("webpages"):
+                                online_results[this_iteration.query]["webpages"] = result.webpages
+                            else:
+                                online_results[this_iteration.query]["webpages"] += result.webpages
+                            this_iteration.onlineContext = online_results
+            except Exception as e:
+                this_iteration.warning = f"Error operating browser: {e}"
+                logger.error(this_iteration.warning, exc_info=True)
+
+        elif this_iteration.query.name == ConversationCommand.ViewFile:
+            try:
+                async for result in view_file_content(
+                    **this_iteration.query.args,
+                    user=user,
                 ):
                     if isinstance(result, dict) and ChatEvent.STATUS in result:
                         yield result[ChatEvent.STATUS]
                     else:
-                        summarize_files = result  # type: ignore
+                        if this_iteration.context is None:
+                            this_iteration.context = []
+                        document_results: List[Dict[str, str]] = result  # type: ignore
+                        this_iteration.context += document_results
+                async for result in send_status_func(f"**Viewed file**: {this_iteration.query.args['path']}"):
+                    yield result
             except Exception as e:
-                this_iteration.warning = f"Error summarizing files: {e}"
+                this_iteration.warning = f"Error viewing file: {e}"
+                logger.error(this_iteration.warning, exc_info=True)
+
+        elif this_iteration.query.name == ConversationCommand.ListFiles:
+            try:
+                async for result in list_files(
+                    **this_iteration.query.args,
+                    user=user,
+                ):
+                    if isinstance(result, dict) and ChatEvent.STATUS in result:
+                        yield result[ChatEvent.STATUS]
+                    else:
+                        if this_iteration.context is None:
+                            this_iteration.context = []
+                        document_results: List[Dict[str, str]] = [result]  # type: ignore
+                        this_iteration.context += document_results
+                async for result in send_status_func(result["query"]):
+                    yield result
+            except Exception as e:
+                this_iteration.warning = f"Error listing files: {e}"
+                logger.error(this_iteration.warning, exc_info=True)
+
+        elif this_iteration.query.name == ConversationCommand.RegexSearchFiles:
+            try:
+                async for result in grep_files(
+                    **this_iteration.query.args,
+                    user=user,
+                ):
+                    if isinstance(result, dict) and ChatEvent.STATUS in result:
+                        yield result[ChatEvent.STATUS]
+                    else:
+                        if this_iteration.context is None:
+                            this_iteration.context = []
+                        document_results: List[Dict[str, str]] = [result]  # type: ignore
+                        this_iteration.context += document_results
+                async for result in send_status_func(result["query"]):
+                    yield result
+            except Exception as e:
+                this_iteration.warning = f"Error searching with regex: {e}"
                 logger.error(this_iteration.warning, exc_info=True)
 
         else:
@@ -409,22 +544,25 @@ async def execute_information_collection(
 
         current_iteration += 1
 
-        if document_results or online_results or code_results or summarize_files or this_iteration.warning:
-            results_data = f"\n<iteration>{current_iteration}\n<tool>{this_iteration.tool}</tool>\n<query>{this_iteration.query}</query>\n<results>"
+        if document_results or online_results or code_results or operator_results or this_iteration.warning:
+            results_data = f"\n<iteration_{current_iteration}_results>"
             if document_results:
                 results_data += f"\n<document_references>\n{yaml.dump(document_results, allow_unicode=True, sort_keys=False, default_flow_style=False)}\n</document_references>"
             if online_results:
                 results_data += f"\n<online_results>\n{yaml.dump(online_results, allow_unicode=True, sort_keys=False, default_flow_style=False)}\n</online_results>"
             if code_results:
                 results_data += f"\n<code_results>\n{yaml.dump(truncate_code_context(code_results), allow_unicode=True, sort_keys=False, default_flow_style=False)}\n</code_results>"
-            if summarize_files:
-                results_data += f"\n<summarized_files>\n{yaml.dump(summarize_files, allow_unicode=True, sort_keys=False, default_flow_style=False)}\n</summarized_files>"
+            if operator_results:
+                results_data += (
+                    f"\n<browser_operator_results>\n{operator_results.response}\n</browser_operator_results>"
+                )
             if this_iteration.warning:
                 results_data += f"\n<warning>\n{this_iteration.warning}\n</warning>"
-            results_data += "\n</results>\n</iteration>"
+            results_data += f"\n</results>\n</iteration_{current_iteration}_results>"
 
             # intermediate_result = await extract_relevant_info(this_iteration.query, results_data, agent)
             this_iteration.summarizedResult = results_data
 
+        this_iteration.summarizedResult = this_iteration.summarizedResult or "Failed to get results."
         previous_iterations.append(this_iteration)
         yield this_iteration

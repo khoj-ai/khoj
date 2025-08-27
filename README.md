@@ -27,6 +27,8 @@
 <span>&nbsp;&nbsp;•&nbsp;&nbsp;</span>
 [✍🏽 Blog](https://blog.khoj.dev)
 
+<a href="https://trendshift.io/repositories/10318" target="_blank"><img src="https://trendshift.io/api/badge/repositories/10318" alt="khoj-ai%2Fkhoj | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
+
 </div>
 
 ***
@@ -97,5 +99,10 @@ Cheers to our awesome contributors! 🎉
 Made with [contrib.rocks](https://contrib.rocks).
 
 ### Interested in Contributing?
+Khoj is open source. It is sustained by the community and we’d love for you to join it! Whether you’re a coder, designer, writer, or enthusiast, there’s a place for you.
 
-We are always looking for contributors to help us build new features, improve the project documentation, or fix bugs. If you're interested, please see our [Contributing Guidelines](https://docs.khoj.dev/contributing/development) and check out our [Contributors Project Board](https://github.com/orgs/khoj-ai/projects/4).
+Why Contribute?
+- Make an Impact: Help build, test and improve a tool used by thousands to boost productivity.
+- Learn & Grow: Work on cutting-edge AI, LLMs, and semantic search technologies.
+
+You can help us build new features, improve the project documentation, report issues and fix bugs. If you're a developer, please see our [Contributing Guidelines](https://docs.khoj.dev/contributing/development) and check out [good first issues](https://github.com/khoj-ai/khoj/contribute) to work on.

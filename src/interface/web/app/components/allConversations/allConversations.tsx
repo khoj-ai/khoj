@@ -127,7 +127,7 @@ function renameConversation(conversationId: string, newTitle: string) {
         },
     })
         .then((response) => response.json())
-        .then((data) => { })
+        .then((data) => {})
         .catch((err) => {
             console.error(err);
             return;
@@ -171,7 +171,7 @@ function deleteConversation(conversationId: string) {
                 mutate("/api/chat/sessions");
             }
         })
-        .then((data) => { })
+        .then((data) => {})
         .catch((err) => {
             console.error(err);
             return;
@@ -245,9 +245,7 @@ export function FilesMenu(props: FilesMenuProps) {
                         Context
                         <p>
                             <span className="text-muted-foreground text-xs">
-                                {
-                                    error ? "Failed to load files" : "Failed to load selected files"
-                                }
+                                {error ? "Failed to load files" : "Failed to load selected files"}
                             </span>
                         </p>
                     </h4>
@@ -257,7 +255,7 @@ export function FilesMenu(props: FilesMenuProps) {
                     </Button>
                 </div>
             </div>
-        )
+        );
     }
 
     if (!files) return <InlineLoading />;
@@ -443,10 +441,7 @@ function SessionsAndFiles(props: SessionsAndFilesProps) {
         <div>
             {props.sideBarOpen && (
                 <ScrollArea>
-                    <ScrollAreaScrollbar
-                        orientation="vertical"
-                        className="h-full w-2.5"
-                    />
+                    <ScrollAreaScrollbar orientation="vertical" className="h-full w-2.5" />
                     <div className="p-0 m-0">
                         {props.subsetOrganizedData != null &&
                             Object.keys(props.subsetOrganizedData)
@@ -471,7 +466,9 @@ function SessionsAndFiles(props: SessionsAndFilesProps) {
                                                         agent_name={chatHistory.agent_name}
                                                         agent_color={chatHistory.agent_color}
                                                         agent_icon={chatHistory.agent_icon}
-                                                        agent_is_hidden={chatHistory.agent_is_hidden}
+                                                        agent_is_hidden={
+                                                            chatHistory.agent_is_hidden
+                                                        }
                                                     />
                                                 ),
                                             )}
@@ -709,7 +706,7 @@ function ChatSession(props: ChatHistory) {
                     className="flex items-center gap-2 no-underline"
                 >
                     <p
-                        className={`${styles.session} ${props.compressed ? styles.compressed : 'max-w-[15rem] md:max-w-[22rem]'}`}
+                        className={`${styles.session} ${props.compressed ? styles.compressed : "max-w-[15rem] md:max-w-[22rem]"}`}
                     >
                         {title}
                     </p>

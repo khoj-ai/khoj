@@ -1,12 +1,14 @@
+import asyncio
 import base64
+import fnmatch
 import hashlib
 import json
 import logging
 import math
 import os
 import re
+import time
 from datetime import datetime, timedelta, timezone
-from functools import partial
 from random import random
 from typing import (
     Annotated,
@@ -30,7 +32,8 @@ from apscheduler.job import Job
 from apscheduler.triggers.cron import CronTrigger
 from asgiref.sync import sync_to_async
 from django.utils import timezone as django_timezone
-from fastapi import Depends, Header, HTTPException, Request, UploadFile
+from fastapi import Depends, Header, HTTPException, Request, UploadFile, WebSocket
+from langchain_core.messages.chat import ChatMessage
 from pydantic import BaseModel, EmailStr, Field
 from starlette.authentication import has_required_scope
 from starlette.requests import URL
@@ -45,8 +48,8 @@ from khoj.database.adapters import (
     FileObjectAdapters,
     UserMemoryAdapters,
     aget_user_by_email,
-    ais_user_subscribed,
     create_khoj_token,
+    get_default_search_model,
     get_khoj_tokens,
     get_user_name,
     get_user_notion_config,
@@ -56,6 +59,7 @@ from khoj.database.adapters import (
 )
 from khoj.database.models import (
     Agent,
+    ChatMessageModel,
     ChatModel,
     ClientApplication,
     Conversation,
@@ -86,41 +90,54 @@ from khoj.processor.conversation.google.gemini_chat import (
     converse_gemini,
     gemini_send_message_to_model,
 )
-from khoj.processor.conversation.offline.chat_model import (
-    converse_offline,
-    send_message_to_model_offline,
-)
 from khoj.processor.conversation.openai.gpt import (
     converse_openai,
     send_message_to_model,
 )
 from khoj.processor.conversation.utils import (
     ChatEvent,
+    OperatorRun,
+    ResearchIteration,
+    ResponseWithThought,
     clean_json,
     clean_mermaidjs,
     construct_chat_history,
+    construct_question_history,
+    defilter_query,
     generate_chatml_messages_with_context,
-    save_to_conversation_log,
 )
 from khoj.processor.speech.text_to_speech import is_eleven_labs_enabled
 from khoj.routers.email import is_resend_enabled, send_task_email
 from khoj.routers.twilio import is_twilio_enabled
+from khoj.search_filter.date_filter import DateFilter
+from khoj.search_filter.file_filter import FileFilter
+from khoj.search_filter.word_filter import WordFilter
 from khoj.search_type import text_search
 from khoj.utils import state
-from khoj.utils.config import OfflineChatProcessorModel
 from khoj.utils.helpers import (
     LRU,
     ConversationCommand,
+    ImageShape,
+    ToolDefinition,
     get_file_type,
     in_debug_mode,
     is_none_or_empty,
+    is_operator_enabled,
     is_valid_url,
     log_telemetry,
     mode_descriptions_for_llm,
     timer,
     tool_descriptions_for_llm,
+    truncate_code_context,
 )
-from khoj.utils.rawconfig import ChatRequestBody, FileAttachment, FileData, LocationData
+from khoj.utils.rawconfig import (
+    ChatRequestBody,
+    FileData,
+    LocationData,
+    SearchResponse,
+)
+from khoj.utils.state import SearchType
+from khoj.utils.yaml import yaml_dump
 
 logger = logging.getLogger(__name__)
 
@@ -146,16 +163,8 @@ def validate_chat_model(user: KhojUser):
 
 async def is_ready_to_chat(user: KhojUser):
     user_chat_model = await ConversationAdapters.aget_user_chat_model(user)
-    if user_chat_model == None:
+    if user_chat_model is None:
         user_chat_model = await ConversationAdapters.aget_default_chat_model(user)
-
-    if user_chat_model and user_chat_model.model_type == ChatModel.ModelType.OFFLINE:
-        chat_model_name = user_chat_model.name
-        max_tokens = user_chat_model.max_prompt_size
-        if state.offline_chat_processor_config is None:
-            logger.info("Loading Offline Chat Model...")
-            state.offline_chat_processor_config = OfflineChatProcessorModel(chat_model_name, max_tokens)
-        return True
 
     if (
         user_chat_model
@@ -212,7 +221,6 @@ def update_telemetry_state(
             telemetry_type=telemetry_type,
             api=api,
             client=client,
-            app_config=state.config.app,
             disable_telemetry_env=state.telemetry_disabled,
             properties=user_state,
         )
@@ -234,8 +242,6 @@ def get_next_url(request: Request) -> str:
 def get_conversation_command(query: str) -> ConversationCommand:
     if query.startswith("/notes"):
         return ConversationCommand.Notes
-    elif query.startswith("/help"):
-        return ConversationCommand.Help
     elif query.startswith("/general"):
         return ConversationCommand.General
     elif query.startswith("/online"):
@@ -246,14 +252,14 @@ def get_conversation_command(query: str) -> ConversationCommand:
         return ConversationCommand.Image
     elif query.startswith("/automated_task"):
         return ConversationCommand.AutomatedTask
-    elif query.startswith("/summarize"):
-        return ConversationCommand.Summarize
     elif query.startswith("/diagram"):
         return ConversationCommand.Diagram
     elif query.startswith("/code"):
         return ConversationCommand.Code
     elif query.startswith("/research"):
         return ConversationCommand.Research
+    elif query.startswith("/operator") and is_operator_enabled():
+        return ConversationCommand.Operator
     else:
         return ConversationCommand.Default
 
@@ -281,14 +287,14 @@ async def acreate_title_from_history(
     """
     Create a title from the given conversation history
     """
-    chat_history = construct_chat_history(conversation.conversation_log)
+    chat_history = construct_chat_history(conversation.messages)
 
     title_generation_prompt = prompts.conversation_title_generation.format(chat_history=chat_history)
 
     with timer("Chat actor: Generate title from conversation history", logger):
-        response = await send_message_to_model_wrapper(title_generation_prompt, user=user)
+        response = await send_message_to_model_wrapper(title_generation_prompt, fast_model=True, user=user)
 
-    return response.strip()
+    return response.text.strip()
 
 
 async def acreate_title_from_query(query: str, user: KhojUser = None) -> str:
@@ -298,9 +304,9 @@ async def acreate_title_from_query(query: str, user: KhojUser = None) -> str:
     title_generation_prompt = prompts.subject_generation.format(query=query)
 
     with timer("Chat actor: Generate title from query", logger):
-        response = await send_message_to_model_wrapper(title_generation_prompt, user=user)
+        response = await send_message_to_model_wrapper(title_generation_prompt, fast_model=True, user=user)
 
-    return response.strip()
+    return response.text.strip()
 
 
 async def acheck_if_safe_prompt(system_prompt: str, user: KhojUser = None, lax: bool = False) -> Tuple[bool, str]:
@@ -321,10 +327,10 @@ async def acheck_if_safe_prompt(system_prompt: str, user: KhojUser = None, lax: 
 
     with timer("Chat actor: Check if safe prompt", logger):
         response = await send_message_to_model_wrapper(
-            safe_prompt_check, user=user, response_type="json_object", response_schema=SafetyCheck
+            safe_prompt_check, response_type="json_object", response_schema=SafetyCheck, fast_model=True, user=user
         )
 
-        response = response.strip()
+        response = response.text.strip()
         try:
             response = json.loads(clean_json(response))
             is_safe = str(response.get("safe", "true")).lower() == "true"
@@ -341,8 +347,7 @@ async def acheck_if_safe_prompt(system_prompt: str, user: KhojUser = None, lax: 
 
 async def aget_data_sources_and_output_format(
     query: str,
-    conversation_history: dict,
-    is_task: bool,
+    chat_history: list[ChatMessageModel],
     user: KhojUser,
     query_images: List[str] = None,
     agent: Agent = None,
@@ -364,6 +369,8 @@ async def aget_data_sources_and_output_format(
         # Skip showing Notes tool as an option if user has no entries
         if source == ConversationCommand.Notes and not user_has_entries:
             continue
+        if source == ConversationCommand.Operator and not is_operator_enabled():
+            continue
         source_options[source.value] = description
         if len(agent_sources) == 0 or source.value in agent_sources:
             source_options_str += f'- "{source.value}": "{description}"\n'
@@ -374,17 +381,11 @@ async def aget_data_sources_and_output_format(
     agent_outputs = agent.output_modes if agent else []
 
     for output, description in mode_descriptions_for_llm.items():
-        # Do not allow tasks to schedule another task
-        if is_task and output == ConversationCommand.Automation:
-            continue
         output_options[output.value] = description
         if len(agent_outputs) == 0 or output.value in agent_outputs:
             output_options_str += f'- "{output.value}": "{description}"\n'
 
-    chat_history = construct_chat_history(conversation_history)
-
-    if query_images:
-        query = f"[placeholder for {len(query_images)} user attached images]\n{query}"
+    chat_history_str = construct_chat_history(chat_history, n=6)
 
     personality_context = (
         prompts.personality_context.format(personality=agent.personality) if agent and agent.personality else ""
@@ -394,7 +395,7 @@ async def aget_data_sources_and_output_format(
         query=query,
         sources=source_options_str,
         outputs=output_options_str,
-        chat_history=chat_history,
+        chat_history=chat_history_str,
         personality_context=personality_context,
     )
 
@@ -405,19 +406,21 @@ async def aget_data_sources_and_output_format(
         output: str
 
     with timer("Chat actor: Infer information sources to refer", logger):
-        response = await send_message_to_model_wrapper(
+        raw_response = await send_message_to_model_wrapper(
             relevant_tools_prompt,
+            query_files=query_files,
+            query_images=query_images,
+            relevant_memories=relevant_memories,
             response_type="json_object",
             response_schema=PickTools,
-            user=user,
-            query_files=query_files,
-            relevant_memories=relevant_memories,
+            fast_model=False,
             agent_chat_model=agent_chat_model,
+            user=user,
             tracer=tracer,
         )
 
     try:
-        response = clean_json(response)
+        response = clean_json(raw_response.text)
         response = json.loads(response)
 
         chosen_sources = [s.strip() for s in response.get("source", []) if s.strip()]
@@ -458,7 +461,7 @@ async def aget_data_sources_and_output_format(
 async def infer_webpage_urls(
     q: str,
     max_webpages: int,
-    conversation_history: dict,
+    chat_history: List[ChatMessageModel],
     location_data: LocationData,
     user: KhojUser,
     query_images: List[str] = None,
@@ -472,7 +475,7 @@ async def infer_webpage_urls(
     """
     location = f"{location_data}" if location_data else "Unknown"
     username = prompts.user_name.format(name=user.get_full_name()) if user.get_full_name() else ""
-    chat_history = construct_chat_history(conversation_history)
+    chat_history_str = construct_chat_history(chat_history)
 
     utc_date = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     personality_context = (
@@ -482,7 +485,7 @@ async def infer_webpage_urls(
     online_queries_prompt = prompts.infer_webpages_to_read.format(
         query=q,
         max_webpages=max_webpages,
-        chat_history=chat_history,
+        chat_history=chat_history_str,
         current_date=utc_date,
         location=location,
         username=username,
@@ -495,21 +498,22 @@ async def infer_webpage_urls(
         links: List[str] = Field(..., min_items=1, max_items=max_webpages)
 
     with timer("Chat actor: Infer webpage urls to read", logger):
-        response = await send_message_to_model_wrapper(
+        raw_response = await send_message_to_model_wrapper(
             online_queries_prompt,
+            query_files=query_files,
             query_images=query_images,
+            relevant_memories=relevant_memories,
             response_type="json_object",
             response_schema=WebpageUrls,
-            user=user,
-            query_files=query_files,
-            relevant_memories=relevant_memories,
+            fast_model=False,
             agent_chat_model=agent_chat_model,
+            user=user,
             tracer=tracer,
         )
 
     # Validate that the response is a non-empty, JSON-serializable list of URLs
     try:
-        response = clean_json(response)
+        response = clean_json(raw_response.text)
         urls = json.loads(response)
         valid_unique_urls = {str(url).strip() for url in urls["links"] if is_valid_url(url)}
         if is_none_or_empty(valid_unique_urls):
@@ -524,13 +528,14 @@ async def infer_webpage_urls(
 
 async def generate_online_subqueries(
     q: str,
-    conversation_history: dict,
+    chat_history: List[ChatMessageModel],
     location_data: LocationData,
     user: KhojUser,
     query_images: List[str] = None,
-    agent: Agent = None,
     query_files: str = None,
     relevant_memories: List[UserMemory] = None,
+    max_queries: int = 3,
+    agent: Agent = None,
     tracer: dict = {},
 ) -> Set[str]:
     """
@@ -538,9 +543,8 @@ async def generate_online_subqueries(
     """
     location = f"{location_data}" if location_data else "Unknown"
     username = prompts.user_name.format(name=user.get_full_name()) if user.get_full_name() else ""
-    chat_history = construct_chat_history(conversation_history)
+    chat_history_str = construct_chat_history(chat_history)
 
-    max_queries = 3
     utc_date = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     personality_context = (
         prompts.personality_context.format(personality=agent.personality) if agent and agent.personality else ""
@@ -548,7 +552,7 @@ async def generate_online_subqueries(
 
     online_queries_prompt = prompts.online_search_conversation_subqueries.format(
         query=q,
-        chat_history=chat_history,
+        chat_history=chat_history_str,
         max_queries=max_queries,
         current_date=utc_date,
         location=location,
@@ -562,21 +566,22 @@ async def generate_online_subqueries(
         queries: List[str] = Field(..., min_items=1, max_items=max_queries)
 
     with timer("Chat actor: Generate online search subqueries", logger):
-        response = await send_message_to_model_wrapper(
+        raw_response = await send_message_to_model_wrapper(
             online_queries_prompt,
+            query_files=query_files,
             query_images=query_images,
+            relevant_memories=relevant_memories,
             response_type="json_object",
             response_schema=OnlineQueries,
-            user=user,
-            query_files=query_files,
-            relevant_memories=relevant_memories,
+            fast_model=False,
             agent_chat_model=agent_chat_model,
+            user=user,
             tracer=tracer,
         )
 
     # Validate that the response is a non-empty, JSON-serializable list
     try:
-        response = clean_json(response)
+        response = clean_json(raw_response.text)
         response = pyjson5.loads(response)
         response = {q.strip() for q in response["queries"] if q.strip()}
         if not isinstance(response, set) or not response or len(response) == 0:
@@ -585,22 +590,22 @@ async def generate_online_subqueries(
             )
             return {q}
         return response
-    except Exception as e:
+    except Exception:
         logger.error(f"Invalid response for constructing online subqueries: {response}. Returning original query: {q}")
         return {q}
 
 
 def schedule_query(
-    q: str, conversation_history: dict, user: KhojUser, query_images: List[str] = None, tracer: dict = {}
+    q: str, chat_history: List[ChatMessageModel], user: KhojUser, query_images: List[str] = None, tracer: dict = {}
 ) -> Tuple[str, str, str]:
     """
     Schedule the date, time to run the query. Assume the server timezone is UTC.
     """
-    chat_history = construct_chat_history(conversation_history)
+    chat_history_str = construct_chat_history(chat_history)
 
     crontime_prompt = prompts.crontime_prompt.format(
         query=q,
-        chat_history=chat_history,
+        chat_history=chat_history_str,
     )
 
     raw_response = send_message_to_model_wrapper_sync(
@@ -609,35 +614,40 @@ def schedule_query(
 
     # Validate that the response is a non-empty, JSON-serializable list
     try:
-        raw_response = raw_response.strip()
-        response: Dict[str, str] = json.loads(clean_json(raw_response))
+        raw_response_text = raw_response.text
+        response: Dict[str, str] = json.loads(clean_json(raw_response_text))
         if not response or not isinstance(response, Dict) or len(response) != 3:
             raise AssertionError(f"Invalid response for scheduling query : {response}")
         return response.get("crontime"), response.get("query"), response.get("subject")
     except Exception:
-        raise AssertionError(f"Invalid response for scheduling query: {raw_response}")
+        raise AssertionError(f"Invalid response for scheduling query: {raw_response.text}")
 
 
 async def aschedule_query(
-    q: str, conversation_history: dict, user: KhojUser, query_images: List[str] = None, tracer: dict = {}
+    q: str, chat_history: List[ChatMessageModel], user: KhojUser, query_images: List[str] = None, tracer: dict = {}
 ) -> Tuple[str, str, str]:
     """
     Schedule the date, time to run the query. Assume the server timezone is UTC.
     """
-    chat_history = construct_chat_history(conversation_history)
+    chat_history_str = construct_chat_history(chat_history)
 
     crontime_prompt = prompts.crontime_prompt.format(
         query=q,
-        chat_history=chat_history,
+        chat_history=chat_history_str,
     )
 
     raw_response = await send_message_to_model_wrapper(
-        crontime_prompt, query_images=query_images, response_type="json_object", user=user, tracer=tracer
+        crontime_prompt,
+        query_images=query_images,
+        response_type="json_object",
+        fast_model=False,
+        user=user,
+        tracer=tracer,
     )
 
     # Validate that the response is a non-empty, JSON-serializable list
     try:
-        raw_response = raw_response.strip()
+        raw_response = raw_response.text.strip()
         response: Dict[str, str] = json.loads(clean_json(raw_response))
         if not response or not isinstance(response, Dict) or len(response) != 3:
             raise AssertionError(f"Invalid response for scheduling query : {response}")
@@ -675,19 +685,20 @@ async def extract_relevant_info(
 
     response = await send_message_to_model_wrapper(
         extract_relevant_information,
-        prompts.system_prompt_extract_relevant_information,
-        user=user,
-        agent_chat_model=agent_chat_model,
+        system_message=prompts.system_prompt_extract_relevant_information,
         relevant_memories=relevant_memories,
+        fast_model=True,
+        agent_chat_model=agent_chat_model,
+        user=user,
         tracer=tracer,
     )
-    return response.strip()
+    return response.text.strip()
 
 
 async def extract_relevant_summary(
     q: str,
     corpus: str,
-    conversation_history: dict,
+    chat_history: List[ChatMessageModel] = [],
     query_images: List[str] = None,
     user: KhojUser = None,
     agent: Agent = None,
@@ -704,11 +715,11 @@ async def extract_relevant_summary(
         prompts.personality_context.format(personality=agent.personality) if agent and agent.personality else ""
     )
 
-    chat_history = construct_chat_history(conversation_history)
+    chat_history_str = construct_chat_history(chat_history)
 
     extract_relevant_information = prompts.extract_relevant_summary.format(
         query=q,
-        chat_history=chat_history,
+        chat_history=chat_history_str,
         corpus=corpus.strip(),
         personality_context=personality_context,
     )
@@ -718,20 +729,21 @@ async def extract_relevant_summary(
     with timer("Chat actor: Extract relevant information from data", logger):
         response = await send_message_to_model_wrapper(
             extract_relevant_information,
-            prompts.system_prompt_extract_relevant_summary,
-            user=user,
             query_images=query_images,
+            system_message=prompts.system_prompt_extract_relevant_summary,
+            fast_model=True,
             agent_chat_model=agent_chat_model,
+            user=user,
             tracer=tracer,
         )
-    return response.strip()
+    return response.text.strip()
 
 
 async def generate_summary_from_files(
     q: str,
     user: KhojUser,
     file_filters: List[str],
-    meta_log: dict,
+    chat_history: List[ChatMessageModel] = [],
     query_images: List[str] = None,
     agent: Agent = None,
     send_status_func: Optional[Callable] = None,
@@ -772,7 +784,7 @@ async def generate_summary_from_files(
         response = await extract_relevant_summary(
             q,
             contextual_data,
-            conversation_history=meta_log,
+            chat_history=chat_history,
             query_images=query_images,
             user=user,
             agent=agent,
@@ -788,7 +800,7 @@ async def generate_summary_from_files(
 
 async def generate_excalidraw_diagram(
     q: str,
-    conversation_history: Dict[str, Any],
+    chat_history: List[ChatMessageModel],
     location_data: LocationData,
     note_references: List[Dict[str, Any]],
     online_results: Optional[dict] = None,
@@ -806,7 +818,7 @@ async def generate_excalidraw_diagram(
 
     better_diagram_description_prompt = await generate_better_diagram_description(
         q=q,
-        conversation_history=conversation_history,
+        chat_history=chat_history,
         location_data=location_data,
         note_references=note_references,
         online_results=online_results,
@@ -842,7 +854,7 @@ async def generate_excalidraw_diagram(
 
 async def generate_better_diagram_description(
     q: str,
-    conversation_history: Dict[str, Any],
+    chat_history: List[ChatMessageModel],
     location_data: LocationData,
     note_references: List[Dict[str, Any]],
     online_results: Optional[dict] = None,
@@ -866,7 +878,7 @@ async def generate_better_diagram_description(
 
     user_references = "\n\n".join([f"# {item['compiled']}" for item in note_references])
 
-    chat_history = construct_chat_history(conversation_history)
+    chat_history_str = construct_chat_history(chat_history)
 
     simplified_online_results = {}
 
@@ -879,7 +891,7 @@ async def generate_better_diagram_description(
 
     improve_diagram_description_prompt = prompts.improve_excalidraw_diagram_description_prompt.format(
         query=q,
-        chat_history=chat_history,
+        chat_history=chat_history_str,
         location=location,
         current_date=today_date,
         references=user_references,
@@ -893,13 +905,14 @@ async def generate_better_diagram_description(
         response = await send_message_to_model_wrapper(
             improve_diagram_description_prompt,
             query_images=query_images,
-            user=user,
             query_files=query_files,
             relevant_memories=relevant_memories,
+            fast_model=False,
             agent_chat_model=agent_chat_model,
+            user=user,
             tracer=tracer,
         )
-        response = response.strip()
+        response = response.text.strip()
         if response.startswith(('"', "'")) and response.endswith(('"', "'")):
             response = response[1:-1]
 
@@ -925,12 +938,16 @@ async def generate_excalidraw_diagram_from_description(
 
     with timer("Chat actor: Generate excalidraw diagram", logger):
         raw_response = await send_message_to_model_wrapper(
-            query=excalidraw_diagram_generation, user=user, agent_chat_model=agent_chat_model, tracer=tracer
+            query=excalidraw_diagram_generation,
+            fast_model=False,
+            agent_chat_model=agent_chat_model,
+            user=user,
+            tracer=tracer,
         )
-        raw_response = clean_json(raw_response)
+        raw_response_text = clean_json(raw_response.text)
         try:
             # Expect response to have `elements` and `scratchpad` keys
-            response: Dict[str, str] = json.loads(raw_response)
+            response: Dict[str, str] = json.loads(raw_response_text)
             if (
                 not response
                 or not isinstance(response, Dict)
@@ -939,7 +956,7 @@ async def generate_excalidraw_diagram_from_description(
             ):
                 raise AssertionError(f"Invalid response for generating Excalidraw diagram: {response}")
         except Exception:
-            raise AssertionError(f"Invalid response for generating Excalidraw diagram: {raw_response}")
+            raise AssertionError(f"Invalid response for generating Excalidraw diagram: {raw_response_text}")
         if not response or not isinstance(response["elements"], List) or not isinstance(response["elements"][0], Dict):
             # TODO Some additional validation here that it's a valid Excalidraw diagram
             raise AssertionError(f"Invalid response for improving diagram description: {response}")
@@ -954,7 +971,7 @@ class ExtractedFacts(BaseModel):
 
 async def extract_facts_from_query(
     user: KhojUser,
-    conversation_history: dict,
+    conversation_history: List[ChatMessageModel],
     existing_facts: List[UserMemory] = None,
     tracer: dict = {},
 ) -> ExtractedFacts:
@@ -972,7 +989,7 @@ async def extract_facts_from_query(
 
     with timer("Chat actor: Extract facts from query", logger):
         response = await send_message_to_model_wrapper(extract_facts_prompt, user=user, tracer=tracer)
-        response = response.strip()
+        response = response.text.strip()
         # JSON parse the list of strings
         try:
             response = clean_json(response)
@@ -988,7 +1005,9 @@ async def extract_facts_from_query(
 
 
 @require_valid_user
-async def ai_update_memories(user: KhojUser, conversation_history: dict, memories: List[UserMemory], tracer: dict = {}):
+async def ai_update_memories(
+    user: KhojUser, conversation_history: List[ChatMessageModel], memories: List[UserMemory], tracer: dict = {}
+):
     """
     Updates the memories for a given user, based on their latest input query.
     """
@@ -1014,7 +1033,7 @@ async def ai_update_memories(user: KhojUser, conversation_history: dict, memorie
 
 async def generate_mermaidjs_diagram(
     q: str,
-    conversation_history: Dict[str, Any],
+    chat_history: List[ChatMessageModel],
     location_data: LocationData,
     note_references: List[Dict[str, Any]],
     online_results: Optional[dict] = None,
@@ -1032,7 +1051,7 @@ async def generate_mermaidjs_diagram(
 
     better_diagram_description_prompt = await generate_better_mermaidjs_diagram_description(
         q=q,
-        conversation_history=conversation_history,
+        chat_history=chat_history,
         location_data=location_data,
         note_references=note_references,
         online_results=online_results,
@@ -1062,7 +1081,7 @@ async def generate_mermaidjs_diagram(
 
 async def generate_better_mermaidjs_diagram_description(
     q: str,
-    conversation_history: Dict[str, Any],
+    chat_history: List[ChatMessageModel],
     location_data: LocationData,
     note_references: List[Dict[str, Any]],
     online_results: Optional[dict] = None,
@@ -1086,7 +1105,7 @@ async def generate_better_mermaidjs_diagram_description(
 
     user_references = "\n\n".join([f"# {item['compiled']}" for item in note_references])
 
-    chat_history = construct_chat_history(conversation_history)
+    chat_history_str = construct_chat_history(chat_history)
 
     simplified_online_results = {}
 
@@ -1099,7 +1118,7 @@ async def generate_better_mermaidjs_diagram_description(
 
     improve_diagram_description_prompt = prompts.improve_mermaid_js_diagram_description_prompt.format(
         query=q,
-        chat_history=chat_history,
+        chat_history=chat_history_str,
         location=location,
         current_date=today_date,
         references=user_references,
@@ -1112,18 +1131,19 @@ async def generate_better_mermaidjs_diagram_description(
     with timer("Chat actor: Generate better Mermaid.js diagram description", logger):
         response = await send_message_to_model_wrapper(
             improve_diagram_description_prompt,
-            query_images=query_images,
-            user=user,
             query_files=query_files,
+            query_images=query_images,
             relevant_memories=relevant_memories,
+            fast_model=False,
             agent_chat_model=agent_chat_model,
+            user=user,
             tracer=tracer,
         )
-        response = response.strip()
-        if response.startswith(('"', "'")) and response.endswith(('"', "'")):
-            response = response[1:-1]
+        response_text = response.text.strip()
+        if response_text.startswith(('"', "'")) and response_text.endswith(('"', "'")):
+            response_text = response_text[1:-1]
 
-    return response
+    return response_text
 
 
 async def generate_mermaidjs_diagram_from_description(
@@ -1145,14 +1165,18 @@ async def generate_mermaidjs_diagram_from_description(
 
     with timer("Chat actor: Generate Mermaid.js diagram", logger):
         raw_response = await send_message_to_model_wrapper(
-            query=mermaidjs_diagram_generation, user=user, agent_chat_model=agent_chat_model, tracer=tracer
+            query=mermaidjs_diagram_generation,
+            fast_model=False,
+            agent_chat_model=agent_chat_model,
+            user=user,
+            tracer=tracer,
         )
-        return clean_mermaidjs(raw_response.strip())
+        return clean_mermaidjs(raw_response.text.strip())
 
 
 async def generate_better_image_prompt(
     q: str,
-    conversation_history: str,
+    conversation_history: List[ChatMessageModel],
     location_data: LocationData,
     note_references: List[Dict[str, Any]],
     online_results: Optional[dict] = None,
@@ -1163,12 +1187,11 @@ async def generate_better_image_prompt(
     query_files: str = "",
     relevant_memories: List[UserMemory] = None,
     tracer: dict = {},
-) -> str:
+) -> dict:
     """
     Generate a better image prompt from the given query
     """
 
-    today_date = datetime.now(tz=timezone.utc).strftime("%Y-%m-%d, %A")
     personality_context = (
         prompts.personality_context.format(personality=agent.personality) if agent and agent.personality else ""
     )
@@ -1176,76 +1199,365 @@ async def generate_better_image_prompt(
 
     location = f"{location_data}" if location_data else "Unknown"
 
-    user_references = "\n\n".join([f"# {item['compiled']}" for item in note_references])
+    user_references = "\n\n".join([f"- text:\n{item['compiled']}" for item in note_references])
 
     simplified_online_results = {}
+    for result in online_results or []:
+        if online_results[result].get("answerBox"):
+            simplified_online_results[result] = online_results[result]["answerBox"]
+        elif online_results[result].get("webpages"):
+            simplified_online_results[result] = online_results[result]["webpages"]
 
-    if online_results:
-        for result in online_results:
-            if online_results[result].get("answerBox"):
-                simplified_online_results[result] = online_results[result]["answerBox"]
-            elif online_results[result].get("webpages"):
-                simplified_online_results[result] = online_results[result]["webpages"]
+    enhance_image_system_message = prompts.enhance_image_system_message.format(
+        location=location,
+        references=user_references,
+        online_results=simplified_online_results or "",
+        personality_context=personality_context,
+    )
 
-    if model_type == TextToImageModelConfig.ModelType.OPENAI:
-        image_prompt = prompts.image_generation_improve_prompt_dalle.format(
-            query=q,
-            chat_history=conversation_history,
-            location=location,
-            current_date=today_date,
-            references=user_references,
-            online_results=simplified_online_results,
-            personality_context=personality_context,
-        )
-    elif model_type in [
-        TextToImageModelConfig.ModelType.STABILITYAI,
-        TextToImageModelConfig.ModelType.REPLICATE,
-        TextToImageModelConfig.ModelType.GOOGLE,
-    ]:
-        image_prompt = prompts.image_generation_improve_prompt_sd.format(
-            query=q,
-            chat_history=conversation_history,
-            location=location,
-            current_date=today_date,
-            references=user_references,
-            online_results=simplified_online_results,
-            personality_context=personality_context,
+    class ImagePromptResponse(BaseModel):
+        description: str = Field(description="Enhanced image description")
+        shape: ImageShape = Field(
+            description="Aspect ratio/shape best suited to render the image: Portrait, Landscape, or Square"
         )
 
     agent_chat_model = AgentAdapters.get_agent_chat_model(agent, user) if agent else None
 
     with timer("Chat actor: Generate contextual image prompt", logger):
-        response = await send_message_to_model_wrapper(
-            image_prompt,
-            query_images=query_images,
-            user=user,
+        raw_response = await send_message_to_model_wrapper(
+            q,
             query_files=query_files,
+            query_images=query_images,
             relevant_memories=relevant_memories,
+            chat_history=conversation_history,
+            system_message=enhance_image_system_message,
+            response_type="json_object",
+            response_schema=ImagePromptResponse,
+            fast_model=False,
             agent_chat_model=agent_chat_model,
+            user=user,
             tracer=tracer,
         )
-        response = response.strip()
-        if response.startswith(('"', "'")) and response.endswith(('"', "'")):
-            response = response[1:-1]
 
-    return response
+        # Parse the structured response
+        try:
+            response = clean_json(raw_response.text)
+            parsed_response = pyjson5.loads(response)
+            return parsed_response
+        except Exception:
+            # Fallback to user query as image description
+            return {"description": q, "shape": ImageShape.SQUARE}
+
+
+async def search_documents(
+    q: str,
+    n: int,
+    d: float,
+    user: KhojUser,
+    chat_history: list[ChatMessageModel],
+    conversation_id: str,
+    conversation_commands: List[ConversationCommand] = [ConversationCommand.Notes],
+    location_data: LocationData = None,
+    send_status_func: Optional[Callable] = None,
+    query_images: Optional[List[str]] = None,
+    previous_inferred_queries: Set = set(),
+    agent: Agent = None,
+    query_files: str = None,
+    relevant_memories: List[UserMemory] = None,
+    tracer: dict = {},
+):
+    # Initialize Variables
+    compiled_references: List[dict[str, str]] = []
+    inferred_queries: List[str] = []
+
+    agent_has_entries = False
+
+    if agent:
+        agent_has_entries = await sync_to_async(EntryAdapters.agent_has_entries)(agent=agent)
+
+    if ConversationCommand.Notes not in conversation_commands and not agent_has_entries:
+        yield compiled_references, inferred_queries, q
+        return
+
+    # If Notes is not in the conversation command, then the search should be restricted to the agent's knowledge base
+    should_limit_to_agent_knowledge = ConversationCommand.Notes not in conversation_commands
+
+    if not await sync_to_async(EntryAdapters.user_has_entries)(user=user):
+        if not agent_has_entries:
+            logger.debug("No documents in knowledge base. Use a Khoj client to sync and chat with your docs.")
+            yield compiled_references, inferred_queries, q
+            return
+
+    # Extract filter terms from user message
+    defiltered_query = defilter_query(q)
+    filters_in_query = q.replace(defiltered_query, "").strip()
+    conversation = await sync_to_async(ConversationAdapters.get_conversation_by_id)(conversation_id)
+
+    if not conversation:
+        logger.error(f"Conversation with id {conversation_id} not found when extracting references.")
+        yield compiled_references, inferred_queries, defiltered_query
+        return
+
+    filters_in_query += " ".join([f'file:"{filter}"' for filter in conversation.file_filters])
+    if is_none_or_empty(filters_in_query):
+        logger.debug(f"Filters in query: {filters_in_query}")
+
+    personality_context = prompts.personality_context.format(personality=agent.personality) if agent else ""
+
+    # Infer search queries from user message
+    with timer("Extracting search queries took", logger):
+        inferred_queries = await extract_questions(
+            query=defiltered_query,
+            user=user,
+            query_files=query_files,
+            query_images=query_images,
+            relevant_memories=relevant_memories,
+            personality_context=personality_context,
+            location_data=location_data,
+            chat_history=chat_history,
+            agent=agent,
+            tracer=tracer,
+        )
+
+    # Collate search results as context for the LLM
+    inferred_queries = list(set(inferred_queries) - previous_inferred_queries)
+    with timer("Searching knowledge base took", logger):
+        search_results = []
+        logger.info(f"🔍 Searching knowledge base with queries: {inferred_queries}")
+        if send_status_func:
+            inferred_queries_str = "\n- " + "\n- ".join(inferred_queries)
+            async for event in send_status_func(f"**Searching Documents for:** {inferred_queries_str}"):
+                yield {ChatEvent.STATUS: event}
+        for query in inferred_queries:
+            results = await execute_search(
+                user if not should_limit_to_agent_knowledge else None,
+                f"{query} {filters_in_query}",
+                n=n,
+                t=SearchType.All,
+                r=True,
+                max_distance=d,
+                dedupe=False,
+                agent=agent,
+            )
+            # Attach associated query to each search result
+            for item in results:
+                item.additional["query"] = query
+                search_results.append(item)
+
+        search_results = text_search.deduplicated_search_responses(search_results)
+        compiled_references = [
+            {
+                "query": item.additional["query"],
+                "compiled": item["entry"],
+                "file": item.additional["file"],
+                "uri": item.additional["uri"],
+            }
+            for item in search_results
+        ]
+
+    yield compiled_references, inferred_queries, defiltered_query
+
+
+async def extract_questions(
+    query: str,
+    user: KhojUser,
+    query_files: str = None,
+    query_images: Optional[List[str]] = None,
+    personality_context: str = "",
+    relevant_memories: List[UserMemory] = None,
+    location_data: LocationData = None,
+    chat_history: List[ChatMessageModel] = [],
+    max_queries: int = 5,
+    agent: Agent = None,
+    tracer: dict = {},
+):
+    """
+    Infer document search queries from user message and provided context
+    """
+    # Shared context setup
+    location = f"{location_data}" if location_data else "N/A"
+    username = prompts.user_name.format(name=user.get_full_name()) if user and user.get_full_name() else ""
+
+    # Date variables for prompt formatting
+    today = datetime.today()
+    current_new_year = today.replace(month=1, day=1)
+    last_new_year = current_new_year.replace(year=today.year - 1)
+    yesterday = (today - timedelta(days=1)).strftime("%Y-%m-%d")
+
+    # Common prompt setup for API-based models (using Anthropic prompts for consistency)
+    chat_history_str = construct_question_history(chat_history, query_prefix="User", agent_name="Assistant")
+
+    system_prompt = prompts.extract_questions_system_prompt.format(
+        current_date=today.strftime("%Y-%m-%d"),
+        day_of_week=today.strftime("%A"),
+        current_month=today.strftime("%Y-%m"),
+        last_new_year=last_new_year.strftime("%Y"),
+        last_new_year_date=last_new_year.strftime("%Y-%m-%d"),
+        current_new_year_date=current_new_year.strftime("%Y-%m-%d"),
+        yesterday_date=yesterday,
+        location=location,
+        username=username,
+        personality_context=personality_context,
+        max_queries=max_queries,
+    )
+
+    prompt = prompts.extract_questions_user_message.format(text=query, chat_history=chat_history_str)
+
+    class DocumentQueries(BaseModel):
+        """Choose semantic search queries to run on user documents."""
+
+        queries: List[str] = Field(
+            ...,
+            min_length=1,
+            max_length=max_queries,
+            description="List of semantic search queries to run on user documents.",
+        )
+
+    agent_chat_model = AgentAdapters.get_agent_chat_model(agent, user) if agent else None
+
+    raw_response = await send_message_to_model_wrapper(
+        query=prompt,
+        query_files=query_files,
+        query_images=query_images,
+        relevant_memories=relevant_memories,
+        system_message=system_prompt,
+        response_type="json_object",
+        response_schema=DocumentQueries,
+        fast_model=False,
+        agent_chat_model=agent_chat_model,
+        user=user,
+        tracer=tracer,
+    )
+
+    # Extract questions from the response
+    try:
+        response = clean_json(raw_response.text)
+        response = pyjson5.loads(response)
+        queries = [q.strip() for q in response["queries"] if q.strip()]
+        if not isinstance(queries, list) or not queries:
+            logger.error(f"Invalid response for constructing subqueries: {response}")
+            return [query]
+        return queries
+    except Exception:
+        logger.warning("LLM returned invalid JSON. Falling back to using user message as search query.")
+        return [query]
+
+
+async def execute_search(
+    user: KhojUser,
+    q: str,
+    n: Optional[int] = 5,
+    t: Optional[SearchType] = None,
+    r: Optional[bool] = False,
+    max_distance: Optional[Union[float, None]] = None,
+    dedupe: Optional[bool] = True,
+    agent: Optional[Agent] = None,
+):
+    # Run validation checks
+    results: List[SearchResponse] = []
+
+    start_time = time.time()
+
+    # Ensure the agent, if present, is accessible by the user
+    if user and agent and not await AgentAdapters.ais_agent_accessible(agent, user):
+        logger.error(f"Agent {agent.slug} is not accessible by user {user}")
+        return results
+
+    if q is None or q == "":
+        logger.warning("No query param (q) passed in API call to initiate search")
+        return results
+
+    # initialize variables
+    user_query = q.strip()
+    results_count = n or 5
+    t = t or state.SearchType.All
+    search_tasks = []
+
+    # return cached results, if available
+    if user:
+        query_cache_key = f"{user_query}-{n}-{t}-{r}-{max_distance}-{dedupe}"
+        if query_cache_key in state.query_cache[user.uuid]:
+            logger.debug("Return response from query cache")
+            return state.query_cache[user.uuid][query_cache_key]
+
+    # Encode query with filter terms removed
+    defiltered_query = user_query
+    for filter in [DateFilter(), WordFilter(), FileFilter()]:
+        defiltered_query = filter.defilter(defiltered_query)
+
+    encoded_asymmetric_query = None
+    if t.value != SearchType.Image.value:
+        with timer("Encoding query took", logger=logger):
+            search_model = await sync_to_async(get_default_search_model)()
+            encoded_asymmetric_query = state.embeddings_model[search_model.name].embed_query(defiltered_query)
+
+    # Use asyncio to run searches in parallel
+    if t.value in [
+        SearchType.All.value,
+        SearchType.Org.value,
+        SearchType.Markdown.value,
+        SearchType.Github.value,
+        SearchType.Notion.value,
+        SearchType.Plaintext.value,
+        SearchType.Pdf.value,
+    ]:
+        # query markdown notes
+        search_tasks.append(
+            text_search.query(
+                user_query,
+                user,
+                t,
+                question_embedding=encoded_asymmetric_query,
+                max_distance=max_distance,
+                agent=agent,
+            )
+        )
+
+    # Query across each requested content types in parallel
+    with timer("Query took", logger):
+        if search_tasks:
+            hits_list = await asyncio.gather(*search_tasks)
+            for hits in hits_list:
+                # Collate results
+                results += text_search.collate_results(hits, dedupe=dedupe)
+
+                # Sort results across all content types and take top results
+                results = text_search.rerank_and_sort_results(
+                    results, query=defiltered_query, rank_results=r, search_model_name=search_model.name
+                )[:results_count]
+
+    # Cache results
+    if user:
+        state.query_cache[user.uuid][query_cache_key] = results
+
+    end_time = time.time()
+    logger.debug(f"🔍 Search took: {end_time - start_time:.3f} seconds")
+
+    return results
 
 
 async def send_message_to_model_wrapper(
+    # Context
     query: str,
-    system_message: str = "",
-    response_type: str = "text",
-    response_schema: BaseModel = None,
-    deepthought: bool = False,
-    user: KhojUser = None,
+    query_files: str = None,
     query_images: List[str] = None,
     context: str = "",
-    query_files: str = None,
     relevant_memories: List[UserMemory] = None,
+    chat_history: list[ChatMessageModel] = [],
+    system_message: str = "",
+    # Model Config
+    response_type: str = "text",
+    response_schema: BaseModel = None,
+    tools: List[ToolDefinition] = None,
+    deepthought: bool = False,
+    fast_model: Optional[bool] = None,
     agent_chat_model: ChatModel = None,
+    # User
+    user: KhojUser = None,
+    # Tracer
     tracer: dict = {},
 ):
-    chat_model: ChatModel = await ConversationAdapters.aget_default_chat_model(user, agent_chat_model)
+    chat_model: ChatModel = await ConversationAdapters.aget_default_chat_model(user, agent_chat_model, fast=fast_model)
     vision_available = chat_model.vision_enabled
     if not vision_available and query_images:
         logger.warning(f"Vision is not enabled for default model: {chat_model.name}.")
@@ -1256,123 +1568,61 @@ async def send_message_to_model_wrapper(
     if vision_available and query_images:
         logger.info(f"Using {chat_model.name} model to understand {len(query_images)} images.")
 
-    subscribed = await ais_user_subscribed(user)
+    max_tokens = await ConversationAdapters.aget_max_context_size(chat_model, user)
     chat_model_name = chat_model.name
-    max_tokens = (
-        chat_model.subscribed_max_prompt_size
-        if subscribed and chat_model.subscribed_max_prompt_size
-        else chat_model.max_prompt_size
-    )
     tokenizer = chat_model.tokenizer
     model_type = chat_model.model_type
     vision_available = chat_model.vision_enabled
+    api_key = chat_model.ai_model_api.api_key
+    api_base_url = chat_model.ai_model_api.api_base_url
 
-    if model_type == ChatModel.ModelType.OFFLINE:
-        if state.offline_chat_processor_config is None or state.offline_chat_processor_config.loaded_model is None:
-            state.offline_chat_processor_config = OfflineChatProcessorModel(chat_model_name, max_tokens)
+    truncated_messages = generate_chatml_messages_with_context(
+        user_message=query,
+        query_files=query_files,
+        query_images=query_images,
+        context_message=context,
+        relevant_memories=relevant_memories,
+        chat_history=chat_history,
+        system_message=system_message,
+        model_name=chat_model_name,
+        model_type=model_type,
+        tokenizer_name=tokenizer,
+        max_prompt_size=max_tokens,
+        vision_enabled=vision_available,
+    )
 
-        loaded_model = state.offline_chat_processor_config.loaded_model
-        truncated_messages = generate_chatml_messages_with_context(
-            user_message=query,
-            context_message=context,
-            system_message=system_message,
-            model_name=chat_model_name,
-            loaded_model=loaded_model,
-            tokenizer_name=tokenizer,
-            max_prompt_size=max_tokens,
-            vision_enabled=vision_available,
-            model_type=chat_model.model_type,
-            query_files=query_files,
-            relevant_memories=relevant_memories,
-        )
-
-        return send_message_to_model_offline(
-            messages=truncated_messages,
-            loaded_model=loaded_model,
-            model_name=chat_model_name,
-            max_prompt_size=max_tokens,
-            streaming=False,
-            response_type=response_type,
-            tracer=tracer,
-        )
-
-    elif model_type == ChatModel.ModelType.OPENAI:
-        openai_chat_config = chat_model.ai_model_api
-        api_key = openai_chat_config.api_key
-        api_base_url = openai_chat_config.api_base_url
-        truncated_messages = generate_chatml_messages_with_context(
-            user_message=query,
-            context_message=context,
-            system_message=system_message,
-            model_name=chat_model_name,
-            max_prompt_size=max_tokens,
-            tokenizer_name=tokenizer,
-            vision_enabled=vision_available,
-            query_images=query_images,
-            model_type=chat_model.model_type,
-            query_files=query_files,
-            relevant_memories=relevant_memories,
-        )
-
+    if model_type == ChatModel.ModelType.OPENAI:
         return send_message_to_model(
             messages=truncated_messages,
             api_key=api_key,
             model=chat_model_name,
             response_type=response_type,
             response_schema=response_schema,
+            tools=tools,
             deepthought=deepthought,
             api_base_url=api_base_url,
             tracer=tracer,
         )
     elif model_type == ChatModel.ModelType.ANTHROPIC:
-        api_key = chat_model.ai_model_api.api_key
-        api_base_url = chat_model.ai_model_api.api_base_url
-        truncated_messages = generate_chatml_messages_with_context(
-            user_message=query,
-            context_message=context,
-            system_message=system_message,
-            model_name=chat_model_name,
-            max_prompt_size=max_tokens,
-            tokenizer_name=tokenizer,
-            vision_enabled=vision_available,
-            query_images=query_images,
-            model_type=chat_model.model_type,
-            query_files=query_files,
-            relevant_memories=relevant_memories,
-        )
-
         return anthropic_send_message_to_model(
             messages=truncated_messages,
             api_key=api_key,
             model=chat_model_name,
             response_type=response_type,
+            response_schema=response_schema,
+            tools=tools,
             deepthought=deepthought,
             api_base_url=api_base_url,
             tracer=tracer,
         )
     elif model_type == ChatModel.ModelType.GOOGLE:
-        api_key = chat_model.ai_model_api.api_key
-        api_base_url = chat_model.ai_model_api.api_base_url
-        truncated_messages = generate_chatml_messages_with_context(
-            user_message=query,
-            context_message=context,
-            system_message=system_message,
-            model_name=chat_model_name,
-            max_prompt_size=max_tokens,
-            tokenizer_name=tokenizer,
-            vision_enabled=vision_available,
-            query_images=query_images,
-            model_type=chat_model.model_type,
-            query_files=query_files,
-            relevant_memories=relevant_memories,
-        )
-
         return gemini_send_message_to_model(
             messages=truncated_messages,
             api_key=api_key,
             model=chat_model_name,
             response_type=response_type,
             response_schema=response_schema,
+            tools=tools,
             deepthought=deepthought,
             api_base_url=api_base_url,
             tracer=tracer,
@@ -1389,6 +1639,7 @@ def send_message_to_model_wrapper_sync(
     user: KhojUser = None,
     query_images: List[str] = None,
     query_files: str = "",
+    chat_history: List[ChatMessageModel] = [],
     tracer: dict = {},
 ):
     chat_model: ChatModel = ConversationAdapters.get_default_chat_model(user)
@@ -1396,51 +1647,26 @@ def send_message_to_model_wrapper_sync(
     if chat_model is None:
         raise HTTPException(status_code=500, detail="Contact the server administrator to set a default chat model.")
 
+    max_tokens = ConversationAdapters.get_max_context_size(chat_model, user)
     chat_model_name = chat_model.name
-    max_tokens = chat_model.max_prompt_size
+    model_type = chat_model.model_type
     vision_available = chat_model.vision_enabled
+    api_key = chat_model.ai_model_api.api_key
+    api_base_url = chat_model.ai_model_api.api_base_url
 
-    if chat_model.model_type == ChatModel.ModelType.OFFLINE:
-        if state.offline_chat_processor_config is None or state.offline_chat_processor_config.loaded_model is None:
-            state.offline_chat_processor_config = OfflineChatProcessorModel(chat_model_name, max_tokens)
+    truncated_messages = generate_chatml_messages_with_context(
+        user_message=message,
+        query_files=query_files,
+        query_images=query_images,
+        chat_history=chat_history,
+        system_message=system_message,
+        model_name=chat_model_name,
+        model_type=model_type,
+        max_prompt_size=max_tokens,
+        vision_enabled=vision_available,
+    )
 
-        loaded_model = state.offline_chat_processor_config.loaded_model
-        truncated_messages = generate_chatml_messages_with_context(
-            user_message=message,
-            system_message=system_message,
-            model_name=chat_model_name,
-            loaded_model=loaded_model,
-            max_prompt_size=max_tokens,
-            vision_enabled=vision_available,
-            model_type=chat_model.model_type,
-            query_images=query_images,
-            query_files=query_files,
-        )
-
-        return send_message_to_model_offline(
-            messages=truncated_messages,
-            loaded_model=loaded_model,
-            model_name=chat_model_name,
-            max_prompt_size=max_tokens,
-            streaming=False,
-            response_type=response_type,
-            tracer=tracer,
-        )
-
-    elif chat_model.model_type == ChatModel.ModelType.OPENAI:
-        api_key = chat_model.ai_model_api.api_key
-        api_base_url = chat_model.ai_model_api.api_base_url
-        truncated_messages = generate_chatml_messages_with_context(
-            user_message=message,
-            system_message=system_message,
-            model_name=chat_model_name,
-            max_prompt_size=max_tokens,
-            vision_enabled=vision_available,
-            model_type=chat_model.model_type,
-            query_images=query_images,
-            query_files=query_files,
-        )
-
+    if model_type == ChatModel.ModelType.OPENAI:
         return send_message_to_model(
             messages=truncated_messages,
             api_key=api_key,
@@ -1451,20 +1677,7 @@ def send_message_to_model_wrapper_sync(
             tracer=tracer,
         )
 
-    elif chat_model.model_type == ChatModel.ModelType.ANTHROPIC:
-        api_key = chat_model.ai_model_api.api_key
-        api_base_url = chat_model.ai_model_api.api_base_url
-        truncated_messages = generate_chatml_messages_with_context(
-            user_message=message,
-            system_message=system_message,
-            model_name=chat_model_name,
-            max_prompt_size=max_tokens,
-            vision_enabled=vision_available,
-            model_type=chat_model.model_type,
-            query_images=query_images,
-            query_files=query_files,
-        )
-
+    elif model_type == ChatModel.ModelType.ANTHROPIC:
         return anthropic_send_message_to_model(
             messages=truncated_messages,
             api_key=api_key,
@@ -1474,20 +1687,7 @@ def send_message_to_model_wrapper_sync(
             tracer=tracer,
         )
 
-    elif chat_model.model_type == ChatModel.ModelType.GOOGLE:
-        api_key = chat_model.ai_model_api.api_key
-        api_base_url = chat_model.ai_model_api.api_base_url
-        truncated_messages = generate_chatml_messages_with_context(
-            user_message=message,
-            system_message=system_message,
-            model_name=chat_model_name,
-            max_prompt_size=max_tokens,
-            vision_enabled=vision_available,
-            model_type=chat_model.model_type,
-            query_images=query_images,
-            query_files=query_files,
-        )
-
+    elif model_type == ChatModel.ModelType.GOOGLE:
         return gemini_send_message_to_model(
             messages=truncated_messages,
             api_key=api_key,
@@ -1501,73 +1701,148 @@ def send_message_to_model_wrapper_sync(
         raise HTTPException(status_code=500, detail="Invalid conversation config")
 
 
+def build_conversation_context(
+    # Query and Context
+    user_query: str,
+    references: List[Dict],
+    online_results: Dict[str, Dict],
+    code_results: Dict[str, Dict],
+    operator_results: List[OperatorRun],
+    query_files: str = None,
+    query_images: Optional[List[str]] = None,
+    relevant_memories: List[UserMemory] = None,
+    generated_asset_results: Dict[str, Dict] = {},
+    program_execution_context: List[str] = None,
+    chat_history: List[ChatMessageModel] = [],
+    location_data: LocationData = None,
+    user_name: str = None,
+    # Model config
+    agent: Agent = None,
+    model_name: str = None,
+    model_type: ChatModel.ModelType = None,
+    max_prompt_size: int = None,
+    tokenizer_name: str = None,
+    vision_available: bool = False,
+) -> List[ChatMessage]:
+    """
+    Construct system, context and chatml messages for chat response.
+    Share common logic across different model types.
+
+    Returns:
+        List of ChatMessages with context
+    """
+    # Initialize Variables
+    current_date = datetime.now()
+
+    # Build system prompt
+    if agent and agent.personality:
+        system_prompt = prompts.custom_personality.format(
+            name=agent.name,
+            bio=agent.personality,
+            current_date=current_date.strftime("%Y-%m-%d"),
+            day_of_week=current_date.strftime("%A"),
+        )
+    else:
+        system_prompt = prompts.personality.format(
+            current_date=current_date.strftime("%Y-%m-%d"),
+            day_of_week=current_date.strftime("%A"),
+        )
+
+    # Add Gemini-specific personality enhancement
+    if model_type == ChatModel.ModelType.GOOGLE:
+        system_prompt += f"\n\n{prompts.gemini_verbose_language_personality}"
+
+    # Add location context if available
+    if location_data:
+        location_prompt = prompts.user_location.format(location=f"{location_data}")
+        system_prompt += f"\n{location_prompt}"
+
+    # Add user name context if available
+    if user_name:
+        user_name_prompt = prompts.user_name.format(name=user_name)
+        system_prompt += f"\n{user_name_prompt}"
+
+    # Build context message
+    context_message = ""
+    if not is_none_or_empty(references):
+        context_message = f"{prompts.notes_conversation.format(references=yaml_dump(references))}\n\n"
+    if not is_none_or_empty(online_results):
+        context_message += f"{prompts.online_search_conversation.format(online_results=yaml_dump(online_results))}\n\n"
+    if not is_none_or_empty(code_results):
+        context_message += (
+            f"{prompts.code_executed_context.format(code_results=truncate_code_context(code_results))}\n\n"
+        )
+    if not is_none_or_empty(operator_results):
+        operator_content = [
+            {"query": oc.query, "response": oc.response, "webpages": oc.webpages} for oc in operator_results
+        ]
+        context_message += (
+            f"{prompts.operator_execution_context.format(operator_results=yaml_dump(operator_content))}\n\n"
+        )
+    context_message = context_message.strip()
+
+    # Generate the chatml messages
+    messages = generate_chatml_messages_with_context(
+        user_message=user_query,
+        query_files=query_files,
+        query_images=query_images,
+        context_message=context_message,
+        relevant_memories=relevant_memories,
+        generated_asset_results=generated_asset_results,
+        program_execution_context=program_execution_context,
+        chat_history=chat_history,
+        system_message=system_prompt,
+        model_name=model_name,
+        model_type=model_type,
+        max_prompt_size=max_prompt_size,
+        tokenizer_name=tokenizer_name,
+        vision_enabled=vision_available,
+    )
+
+    return messages
+
+
 async def agenerate_chat_response(
     q: str,
-    meta_log: dict,
+    chat_history: List[ChatMessageModel],
     conversation: Conversation,
     compiled_references: List[Dict] = [],
     online_results: Dict[str, Dict] = {},
     code_results: Dict[str, Dict] = {},
-    inferred_queries: List[str] = [],
-    conversation_commands: List[ConversationCommand] = [ConversationCommand.Default],
+    operator_results: List[OperatorRun] = [],
+    research_results: List[ResearchIteration] = [],
     user: KhojUser = None,
-    client_application: ClientApplication = None,
-    conversation_id: str = None,
-    matching_memories: List[UserMemory] = [],
     location_data: LocationData = None,
     user_name: Optional[str] = None,
-    meta_research: str = "",
     query_images: Optional[List[str]] = None,
-    train_of_thought: List[Any] = [],
     query_files: str = None,
-    raw_query_files: List[FileAttachment] = None,
-    generated_images: List[str] = None,
-    raw_generated_files: List[FileAttachment] = [],
-    generated_mermaidjs_diagram: str = None,
+    relevant_memories: List[UserMemory] = [],
     program_execution_context: List[str] = [],
     generated_asset_results: Dict[str, Dict] = {},
     is_subscribed: bool = False,
     tracer: dict = {},
-) -> Tuple[AsyncGenerator[str, None], Dict[str, str]]:
+) -> Tuple[AsyncGenerator[ResponseWithThought, None], Dict[str, str]]:
     # Initialize Variables
-    chat_response_generator = None
-    logger.debug(f"Conversation Types: {conversation_commands}")
+    chat_response_generator: AsyncGenerator[ResponseWithThought, None] = None
 
     metadata = {}
     agent = await AgentAdapters.aget_conversation_agent_by_id(conversation.agent.id) if conversation.agent else None
 
     try:
-        partial_completion = partial(
-            save_to_conversation_log,
-            q,
-            user=user,
-            meta_log=meta_log,
-            compiled_references=compiled_references,
-            online_results=online_results,
-            code_results=code_results,
-            inferred_queries=inferred_queries,
-            client_application=client_application,
-            conversation_id=conversation_id,
-            matching_memories=matching_memories,
-            query_images=query_images,
-            train_of_thought=train_of_thought,
-            raw_query_files=raw_query_files,
-            generated_images=generated_images,
-            raw_generated_files=raw_generated_files,
-            generated_mermaidjs_diagram=generated_mermaidjs_diagram,
-            tracer=tracer,
-        )
-
         query_to_run = q
         deepthought = False
-        if meta_research:
-            query_to_run = f"<query>{q}</query>\n<collected_research>\n{meta_research}\n</collected_research>"
+        if research_results:
+            compiled_research = "".join([r.summarizedResult for r in research_results if r.summarizedResult])
+            if compiled_research:
+                query_to_run = f"<query>{q}</query>\n<collected_research>\n{compiled_research}\n</collected_research>"
             compiled_references = []
             online_results = {}
             code_results = {}
+            operator_results = []
             deepthought = True
 
         chat_model = await ConversationAdapters.aget_valid_chat_model(user, conversation, is_subscribed)
+        max_prompt_size = await ConversationAdapters.aget_max_context_size(chat_model, user)
         vision_available = chat_model.vision_enabled
         if not vision_available and query_images:
             vision_enabled_config = await ConversationAdapters.aget_vision_enabled_config()
@@ -1575,56 +1850,40 @@ async def agenerate_chat_response(
                 chat_model = vision_enabled_config
                 vision_available = True
 
-        if chat_model.model_type == "offline":
-            loaded_model = state.offline_chat_processor_config.loaded_model
-            chat_response_generator = converse_offline(
-                user_query=query_to_run,
-                references=compiled_references,
-                online_results=online_results,
-                loaded_model=loaded_model,
-                conversation_log=meta_log,
-                completion_func=partial_completion,
-                conversation_commands=conversation_commands,
-                model_name=chat_model.name,
-                max_prompt_size=chat_model.max_prompt_size,
-                tokenizer_name=chat_model.tokenizer,
-                location_data=location_data,
-                user_name=user_name,
-                agent=agent,
-                query_files=query_files,
-                relevant_memories=matching_memories,
-                generated_files=raw_generated_files,
-                generated_asset_results=generated_asset_results,
-                tracer=tracer,
-            )
+        # Build shared conversation context and generate chatml messages
+        messages = build_conversation_context(
+            user_query=query_to_run,
+            references=compiled_references,
+            online_results=online_results,
+            code_results=code_results,
+            operator_results=operator_results,
+            query_files=query_files,
+            query_images=query_images,
+            relevant_memories=relevant_memories,
+            generated_asset_results=generated_asset_results,
+            program_execution_context=program_execution_context,
+            chat_history=chat_history,
+            location_data=location_data,
+            user_name=user_name,
+            agent=agent,
+            model_type=chat_model.model_type,
+            model_name=chat_model.name,
+            max_prompt_size=max_prompt_size,
+            tokenizer_name=chat_model.tokenizer,
+            vision_available=vision_available,
+        )
 
-        elif chat_model.model_type == ChatModel.ModelType.OPENAI:
+        if chat_model.model_type == ChatModel.ModelType.OPENAI:
             openai_chat_config = chat_model.ai_model_api
             api_key = openai_chat_config.api_key
             chat_model_name = chat_model.name
             chat_response_generator = converse_openai(
-                compiled_references,
-                query_to_run,
-                query_images=query_images,
-                online_results=online_results,
-                code_results=code_results,
-                conversation_log=meta_log,
+                # Query + Context Messages
+                messages,
+                # Model
                 model=chat_model_name,
                 api_key=api_key,
                 api_base_url=openai_chat_config.api_base_url,
-                completion_func=partial_completion,
-                conversation_commands=conversation_commands,
-                max_prompt_size=chat_model.max_prompt_size,
-                tokenizer_name=chat_model.tokenizer,
-                location_data=location_data,
-                user_name=user_name,
-                agent=agent,
-                vision_available=vision_available,
-                query_files=query_files,
-                relevant_memories=matching_memories,
-                generated_files=raw_generated_files,
-                generated_asset_results=generated_asset_results,
-                program_execution_context=program_execution_context,
                 deepthought=deepthought,
                 tracer=tracer,
             )
@@ -1633,28 +1892,12 @@ async def agenerate_chat_response(
             api_key = chat_model.ai_model_api.api_key
             api_base_url = chat_model.ai_model_api.api_base_url
             chat_response_generator = converse_anthropic(
-                compiled_references,
-                query_to_run,
-                query_images=query_images,
-                online_results=online_results,
-                code_results=code_results,
-                conversation_log=meta_log,
+                # Query + Context Messages
+                messages,
+                # Model
                 model=chat_model.name,
                 api_key=api_key,
                 api_base_url=api_base_url,
-                completion_func=partial_completion,
-                conversation_commands=conversation_commands,
-                max_prompt_size=chat_model.max_prompt_size,
-                tokenizer_name=chat_model.tokenizer,
-                location_data=location_data,
-                user_name=user_name,
-                agent=agent,
-                vision_available=vision_available,
-                query_files=query_files,
-                relevant_memories=matching_memories,
-                generated_files=raw_generated_files,
-                generated_asset_results=generated_asset_results,
-                program_execution_context=program_execution_context,
                 deepthought=deepthought,
                 tracer=tracer,
             )
@@ -1662,28 +1905,12 @@ async def agenerate_chat_response(
             api_key = chat_model.ai_model_api.api_key
             api_base_url = chat_model.ai_model_api.api_base_url
             chat_response_generator = converse_gemini(
-                compiled_references,
-                query_to_run,
-                online_results,
-                code_results,
-                meta_log,
+                # Query + Context Messages
+                messages,
+                # Model
                 model=chat_model.name,
                 api_key=api_key,
                 api_base_url=api_base_url,
-                completion_func=partial_completion,
-                conversation_commands=conversation_commands,
-                max_prompt_size=chat_model.max_prompt_size,
-                tokenizer_name=chat_model.tokenizer,
-                location_data=location_data,
-                user_name=user_name,
-                agent=agent,
-                query_images=query_images,
-                vision_available=vision_available,
-                query_files=query_files,
-                relevant_memories=matching_memories,
-                generated_files=raw_generated_files,
-                generated_asset_results=generated_asset_results,
-                program_execution_context=program_execution_context,
                 deepthought=deepthought,
                 tracer=tracer,
             )
@@ -1803,7 +2030,7 @@ class ApiUserRateLimiter:
         # Check if the user has exceeded the rate limit
         if subscribed and count_requests >= self.subscribed_requests:
             logger.info(
-                f"Rate limit: {count_requests}/{self.subscribed_requests} requests not allowed in {self.window} seconds for subscribed user: {user}."
+                f"Rate limit ({self.slug}): {count_requests}/{self.subscribed_requests} requests not allowed in {self.window} seconds for subscribed user: {user}."
             )
             raise HTTPException(
                 status_code=429,
@@ -1812,7 +2039,7 @@ class ApiUserRateLimiter:
         if not subscribed and count_requests >= self.requests:
             if self.requests >= self.subscribed_requests:
                 logger.info(
-                    f"Rate limit: {count_requests}/{self.subscribed_requests} requests not allowed in {self.window} seconds for user: {user}."
+                    f"Rate limit ({self.slug}): {count_requests}/{self.subscribed_requests} requests not allowed in {self.window} seconds for user: {user}."
                 )
                 raise HTTPException(
                     status_code=429,
@@ -1820,7 +2047,7 @@ class ApiUserRateLimiter:
                 )
 
             logger.info(
-                f"Rate limit: {count_requests}/{self.requests} requests not allowed in {self.window} seconds for user: {user}."
+                f"Rate limit ({self.slug}): {count_requests}/{self.requests} requests not allowed in {self.window} seconds for user: {user}."
             )
             raise HTTPException(
                 status_code=429,
@@ -1829,6 +2056,56 @@ class ApiUserRateLimiter:
 
         # Add the current request to the cache
         UserRequests.objects.create(user=user, slug=self.slug)
+
+    async def check_websocket(self, websocket: WebSocket):
+        """WebSocket-specific rate limiting method"""
+        # Rate limiting disabled if billing is disabled
+        if state.billing_enabled is False:
+            return
+
+        # Rate limiting is disabled if user unauthenticated.
+        if not websocket.scope.get("user") or not websocket.scope["user"].is_authenticated:
+            return
+
+        user: KhojUser = websocket.scope["user"].object
+        subscribed = has_required_scope(websocket, ["premium"])
+        current_window = "today" if self.window == 60 * 60 * 24 else "now"
+        next_window = "tomorrow" if self.window == 60 * 60 * 24 else "in a bit"
+        common_message_prefix = f"I'm glad you're enjoying interacting with me! You've unfortunately exceeded your usage limit for {current_window}."
+
+        # Remove requests outside of the time window
+        cutoff = django_timezone.now() - timedelta(seconds=self.window)
+        count_requests = await UserRequests.objects.filter(user=user, created_at__gte=cutoff, slug=self.slug).acount()
+
+        # Check if the user has exceeded the rate limit
+        if subscribed and count_requests >= self.subscribed_requests:
+            logger.info(
+                f"Rate limit ({self.slug}): {count_requests}/{self.subscribed_requests} requests not allowed in {self.window} seconds for subscribed user: {user}."
+            )
+            raise HTTPException(
+                status_code=429,
+                detail=f"{common_message_prefix} But let's chat more {next_window}?",
+            )
+        if not subscribed and count_requests >= self.requests:
+            if self.requests >= self.subscribed_requests:
+                logger.info(
+                    f"Rate limit ({self.slug}): {count_requests}/{self.subscribed_requests} requests not allowed in {self.window} seconds for user: {user}."
+                )
+                raise HTTPException(
+                    status_code=429,
+                    detail=f"{common_message_prefix} But let's chat more {next_window}?",
+                )
+
+            logger.info(
+                f"Rate limit ({self.slug}): {count_requests}/{self.requests} requests not allowed in {self.window} seconds for user: {user}."
+            )
+            raise HTTPException(
+                status_code=429,
+                detail=f"{common_message_prefix} You can subscribe to increase your usage limit via [your settings](https://app.khoj.dev/settings) or we can continue our conversation {next_window}.",
+            )
+
+        # Add the current request to the cache
+        await UserRequests.objects.acreate(user=user, slug=self.slug)
 
 
 class ApiImageRateLimiter:
@@ -1877,6 +2154,90 @@ class ApiImageRateLimiter:
                 detail=f"Those images are way too large for me! I can handle up to {self.max_combined_size_mb}MB of images per message.",
             )
 
+    def check_websocket(self, websocket: WebSocket, body: ChatRequestBody):
+        """WebSocket-specific image rate limiting method"""
+        if state.billing_enabled is False:
+            return
+
+        # Rate limiting is disabled if user unauthenticated.
+        if not websocket.scope.get("user") or not websocket.scope["user"].is_authenticated:
+            return
+
+        if not body.images:
+            return
+
+        # Check number of images
+        if len(body.images) > self.max_images:
+            logger.info(f"Rate limit: {len(body.images)}/{self.max_images} images not allowed per message.")
+            raise HTTPException(
+                status_code=429,
+                detail=f"Those are way too many images for me! I can handle up to {self.max_images} images per message.",
+            )
+
+        # Check total size of images
+        total_size_mb = 0.0
+        for image in body.images:
+            # Unquote the image in case it's URL encoded
+            image = unquote(image)
+            # Assuming the image is a base64 encoded string
+            # Remove the data:image/jpeg;base64, part if present
+            if "," in image:
+                image = image.split(",", 1)[1]
+
+            # Decode base64 to get the actual size
+            image_bytes = base64.b64decode(image)
+            total_size_mb += len(image_bytes) / (1024 * 1024)  # Convert bytes to MB
+
+        if total_size_mb > self.max_combined_size_mb:
+            logger.info(f"Data limit: {total_size_mb}MB/{self.max_combined_size_mb}MB size not allowed per message.")
+            raise HTTPException(
+                status_code=429,
+                detail=f"Those images are way too large for me! I can handle up to {self.max_combined_size_mb}MB of images per message.",
+            )
+
+
+class WebSocketConnectionManager:
+    """Limit max open websockets per user."""
+
+    def __init__(self, trial_user_max_connections: int = 10, subscribed_user_max_connections: int = 10):
+        self.trial_user_max_connections = trial_user_max_connections
+        self.subscribed_user_max_connections = subscribed_user_max_connections
+        self.connection_slug_prefix = "ws_connection_"
+        # Set cleanup window to 24 hours for truly stale connections (e.g., server crashes)
+        self.cleanup_window = 86400  # 24 hours
+
+    async def can_connect(self, websocket: WebSocket) -> bool:
+        """Check if user can establish a new WebSocket connection."""
+        # Cleanup very old connections (likely from server crashes)
+        user: KhojUser = websocket.scope["user"].object
+        subscribed = has_required_scope(websocket, ["premium"])
+        max_connections = self.subscribed_user_max_connections if subscribed else self.trial_user_max_connections
+
+        await self._cleanup_stale_connections(user)
+
+        # Count ALL connections for this user (not filtered by time)
+        active_connections = await UserRequests.objects.filter(
+            user=user, slug__startswith=self.connection_slug_prefix
+        ).acount()
+
+        # Restrict max active connections per user in production
+        return active_connections < max_connections or state.anonymous_mode or in_debug_mode()
+
+    async def register_connection(self, user: KhojUser, connection_id: str) -> None:
+        """Register a new WebSocket connection."""
+        await UserRequests.objects.acreate(user=user, slug=f"{self.connection_slug_prefix}{connection_id}")
+
+    async def unregister_connection(self, user: KhojUser, connection_id: str) -> None:
+        """Remove a WebSocket connection record."""
+        await UserRequests.objects.filter(user=user, slug=f"{self.connection_slug_prefix}{connection_id}").adelete()
+
+    async def _cleanup_stale_connections(self, user: KhojUser) -> None:
+        """Remove connection records older than cleanup window."""
+        cutoff = django_timezone.now() - timedelta(seconds=self.cleanup_window)
+        await UserRequests.objects.filter(
+            user=user, slug__startswith=self.connection_slug_prefix, created_at__lt=cutoff
+        ).adelete()
+
 
 class ConversationCommandRateLimiter:
     def __init__(self, trial_rate_limit: int, subscribed_rate_limit: int, slug: str):
@@ -1885,7 +2246,7 @@ class ConversationCommandRateLimiter:
         self.subscribed_rate_limit = subscribed_rate_limit
         self.restricted_commands = [ConversationCommand.Research]
 
-    async def update_and_check_if_valid(self, request: Request, conversation_command: ConversationCommand):
+    async def update_and_check_if_valid(self, request: Request | WebSocket, conversation_command: ConversationCommand):
         if state.billing_enabled is False:
             return
 
@@ -2024,7 +2385,8 @@ def format_automation_response(scheduling_request: str, executed_query: str, ai_
     )
 
     with timer("Chat actor: Format automation response", logger):
-        return send_message_to_model_wrapper_sync(automation_format_prompt, user=user)
+        raw_response = send_message_to_model_wrapper_sync(automation_format_prompt, user=user)
+        return raw_response.text if raw_response else None
 
 
 def should_notify(original_query: str, executed_query: str, ai_response: str, user: KhojUser) -> bool:
@@ -2044,12 +2406,14 @@ def should_notify(original_query: str, executed_query: str, ai_response: str, us
     with timer("Chat actor: Decide to notify user of automation response", logger):
         try:
             # TODO Replace with async call so we don't have to maintain a sync version
-            raw_response = send_message_to_model_wrapper_sync(to_notify_or_not, user=user, response_type="json_object")
-            response = json.loads(clean_json(raw_response))
+            raw_response: ResponseWithThought = send_message_to_model_wrapper_sync(
+                to_notify_or_not, user=user, response_type="json_object"
+            )
+            response = json.loads(clean_json(raw_response.text))
             should_notify_result = response["decision"] == "Yes"
             reason = response.get("reason", "unknown")
             logger.info(
-                f'Decided to {"not " if not should_notify_result else ""}notify user of automation response because of reason: {reason}.'
+                f"Decided to {'not ' if not should_notify_result else ''}notify user of automation response because of reason: {reason}."
             )
             return should_notify_result
         except Exception as e:
@@ -2065,7 +2429,7 @@ def scheduled_chat(
     scheduling_request: str,
     subject: str,
     user: KhojUser,
-    calling_url: URL,
+    calling_url: str | URL,
     job_id: str = None,
     conversation_id: str = None,
 ):
@@ -2085,8 +2449,9 @@ def scheduled_chat(
                 return
 
     # Extract relevant params from the original URL
-    scheme = "http" if not calling_url.is_secure else "https"
-    query_dict = parse_qs(calling_url.query)
+    parsed_url = URL(calling_url) if isinstance(calling_url, str) else calling_url
+    scheme = "http" if not parsed_url.is_secure else "https"
+    query_dict = parse_qs(parsed_url.query)
 
     # Pop the stream value from query_dict if it exists
     query_dict.pop("stream", None)
@@ -2108,7 +2473,7 @@ def scheduled_chat(
     json_payload = {key: values[0] for key, values in query_dict.items()}
 
     # Construct the URL to call the chat API with the scheduled query string
-    url = f"{scheme}://{calling_url.netloc}/api/chat?client=khoj"
+    url = f"{scheme}://{parsed_url.netloc}/api/chat?client=khoj"
 
     # Construct the Headers for the chat API
     headers = {"User-Agent": "Khoj", "Content-Type": "application/json"}
@@ -2142,7 +2507,7 @@ def scheduled_chat(
         response_map = raw_response.json()
         ai_response = response_map.get("response") or response_map.get("image")
         is_image = False
-        if type(ai_response) == dict:
+        if isinstance(ai_response, dict):
             is_image = ai_response.get("image") is not None
     else:
         ai_response = raw_response.text
@@ -2164,11 +2529,11 @@ async def create_automation(
     timezone: str,
     user: KhojUser,
     calling_url: URL,
-    meta_log: dict = {},
+    chat_history: List[ChatMessageModel] = [],
     conversation_id: str = None,
     tracer: dict = {},
 ):
-    crontime, query_to_run, subject = await aschedule_query(q, meta_log, user, tracer=tracer)
+    crontime, query_to_run, subject = await aschedule_query(q, chat_history, user, tracer=tracer)
     job = await aschedule_automation(query_to_run, subject, crontime, timezone, q, user, calling_url, conversation_id)
     return job, crontime, query_to_run, subject
 
@@ -2289,12 +2654,12 @@ async def aschedule_automation(
 
 def construct_automation_created_message(automation: Job, crontime: str, query_to_run: str, subject: str):
     # Display next run time in user timezone instead of UTC
-    schedule = f'{cron_descriptor.get_description(crontime)} {automation.next_run_time.strftime("%Z")}'
+    schedule = f"{cron_descriptor.get_description(crontime)} {automation.next_run_time.strftime('%Z')}"
     next_run_time = automation.next_run_time.strftime("%Y-%m-%d %I:%M %p %Z")
     # Remove /automated_task prefix from inferred_query
     unprefixed_query_to_run = re.sub(r"^\/automated_task\s*", "", query_to_run)
     # Create the automation response
-    automation_icon_url = f"/static/assets/icons/automation.svg"
+    automation_icon_url = "/static/assets/icons/automation.svg"
     return f"""
     ### ![]({automation_icon_url}) Created Automation
 - Subject: **{subject}**
@@ -2373,7 +2738,6 @@ class MessageProcessor:
 
 async def read_chat_stream(response_iterator: AsyncGenerator[str, None]) -> Dict[str, Any]:
     processor = MessageProcessor()
-    event_delimiter = "␃🔚␗"
     buffer = ""
 
     async for chunk in response_iterator:
@@ -2381,9 +2745,9 @@ async def read_chat_stream(response_iterator: AsyncGenerator[str, None]) -> Dict
         buffer += chunk
 
         # Once the buffer contains a complete event
-        while event_delimiter in buffer:
+        while ChatEvent.END_EVENT.value in buffer:
             # Extract the event from the buffer
-            event, buffer = buffer.split(event_delimiter, 1)
+            event, buffer = buffer.split(ChatEvent.END_EVENT.value, 1)
             # Process the event
             if event:
                 processor.process_message_chunk(event)
@@ -2400,6 +2764,17 @@ async def read_chat_stream(response_iterator: AsyncGenerator[str, None]) -> Dict
         "files": processor.generated_files,
         "mermaidjsDiagram": processor.generated_mermaidjs_diagram,
     }
+
+
+def get_message_from_queue(queue: asyncio.Queue) -> Optional[str]:
+    """Get any message in queue if available."""
+    if not queue:
+        return None
+    try:
+        # Non-blocking check for message in the queue
+        return queue.get_nowait()
+    except asyncio.QueueEmpty:
+        return None
 
 
 def get_user_config(user: KhojUser, request: Request, is_detailed: bool = False):
@@ -2451,7 +2826,7 @@ def get_user_config(user: KhojUser, request: Request, is_detailed: bool = False)
     for chat_model in chat_models:
         chat_model_options.append(
             {
-                "name": chat_model.name,
+                "name": chat_model.friendly_name,
                 "id": chat_model.id,
                 "strengths": chat_model.strengths,
                 "description": chat_model.description,
@@ -2465,7 +2840,7 @@ def get_user_config(user: KhojUser, request: Request, is_detailed: bool = False)
     for paint_model in paint_model_options:
         all_paint_model_options.append(
             {
-                "name": paint_model.model_name,
+                "name": paint_model.friendly_name,
                 "id": paint_model.id,
                 "tier": paint_model.price_tier,
             }
@@ -2532,19 +2907,20 @@ def configure_content(
     t: Optional[state.SearchType] = state.SearchType.All,
 ) -> bool:
     success = True
-    if t == None:
+    if t is None:
         t = state.SearchType.All
 
     if t is not None and t in [type.value for type in state.SearchType]:
         t = state.SearchType(t)
 
-    if t is not None and not t.value in [type.value for type in state.SearchType]:
+    if t is not None and t.value not in [type.value for type in state.SearchType]:
         logger.warning(f"🚨 Invalid search type: {t}")
         return False
 
     search_type = t.value if t else None
 
-    no_documents = all([not files.get(file_type) for file_type in files])
+    # Check if client sent any documents of the supported types
+    no_client_sent_documents = all([not files.get(file_type) for file_type in files])
 
     if files is None:
         logger.warning(f"🚨 No files to process for {search_type} search.")
@@ -2552,7 +2928,9 @@ def configure_content(
 
     try:
         # Initialize Org Notes Search
-        if (search_type == state.SearchType.All.value or search_type == state.SearchType.Org.value) and files["org"]:
+        if (search_type == state.SearchType.All.value or search_type == state.SearchType.Org.value) and files.get(
+            "org"
+        ):
             logger.info("🦄 Setting up search for orgmode notes")
             # Extract Entries, Generate Notes Embeddings
             text_search.setup(
@@ -2567,9 +2945,9 @@ def configure_content(
 
     try:
         # Initialize Markdown Search
-        if (search_type == state.SearchType.All.value or search_type == state.SearchType.Markdown.value) and files[
+        if (search_type == state.SearchType.All.value or search_type == state.SearchType.Markdown.value) and files.get(
             "markdown"
-        ]:
+        ):
             logger.info("💎 Setting up search for markdown notes")
             # Extract Entries, Generate Markdown Embeddings
             text_search.setup(
@@ -2585,7 +2963,9 @@ def configure_content(
 
     try:
         # Initialize PDF Search
-        if (search_type == state.SearchType.All.value or search_type == state.SearchType.Pdf.value) and files["pdf"]:
+        if (search_type == state.SearchType.All.value or search_type == state.SearchType.Pdf.value) and files.get(
+            "pdf"
+        ):
             logger.info("🖨️ Setting up search for pdf")
             # Extract Entries, Generate PDF Embeddings
             text_search.setup(
@@ -2601,9 +2981,9 @@ def configure_content(
 
     try:
         # Initialize Plaintext Search
-        if (search_type == state.SearchType.All.value or search_type == state.SearchType.Plaintext.value) and files[
+        if (search_type == state.SearchType.All.value or search_type == state.SearchType.Plaintext.value) and files.get(
             "plaintext"
-        ]:
+        ):
             logger.info("📄 Setting up search for plaintext")
             # Extract Entries, Generate Plaintext Embeddings
             text_search.setup(
@@ -2618,7 +2998,8 @@ def configure_content(
         success = False
 
     try:
-        if no_documents:
+        # Run server side indexing of user Github docs if no client sent documents
+        if no_client_sent_documents:
             github_config = GithubConfig.objects.filter(user=user).prefetch_related("githubrepoconfig").first()
             if (
                 search_type == state.SearchType.All.value or search_type == state.SearchType.Github.value
@@ -2638,7 +3019,8 @@ def configure_content(
         success = False
 
     try:
-        if no_documents:
+        # Run server side indexing of user Notion docs if no client sent documents
+        if no_client_sent_documents:
             # Initialize Notion Search
             notion_config = NotionConfig.objects.filter(user=user).first()
             if (
@@ -2697,3 +3079,274 @@ def get_notion_auth_url(user: KhojUser):
     if not NOTION_OAUTH_CLIENT_ID or not NOTION_OAUTH_CLIENT_SECRET or not NOTION_REDIRECT_URI:
         return None
     return f"https://api.notion.com/v1/oauth/authorize?client_id={NOTION_OAUTH_CLIENT_ID}&redirect_uri={NOTION_REDIRECT_URI}&response_type=code&state={user.uuid}"
+
+
+async def view_file_content(
+    path: str,
+    start_line: Optional[int] = None,
+    end_line: Optional[int] = None,
+    user: KhojUser = None,
+):
+    """
+    View the contents of a file from the user's document database with optional line range specification.
+    """
+    query = f"View file: {path}"
+    if start_line and end_line:
+        query += f" (lines {start_line}-{end_line})"
+
+    try:
+        # Get the file object from the database by name
+        file_objects = await FileObjectAdapters.aget_file_objects_by_name(user, path)
+
+        if not file_objects:
+            error_msg = f"File '{path}' not found in user documents"
+            logger.warning(error_msg)
+            yield [{"query": query, "file": path, "compiled": error_msg}]
+            return
+
+        # Use the first file object if multiple exist
+        file_object = file_objects[0]
+        raw_text = file_object.raw_text
+
+        # Apply line range filtering if specified
+        lines = raw_text.split("\n")
+        start_line = start_line or 1
+        end_line = end_line or len(lines)
+
+        # Validate line range
+        if start_line < 1 or end_line < 1 or start_line > end_line:
+            error_msg = f"Invalid line range: {start_line}-{end_line}"
+            logger.warning(error_msg)
+            yield [{"query": query, "file": path, "compiled": error_msg}]
+            return
+        if start_line > len(lines):
+            error_msg = f"Start line {start_line} exceeds total number of lines {len(lines)}"
+            logger.warning(error_msg)
+            yield [{"query": query, "file": path, "compiled": error_msg}]
+            return
+
+        # Convert from 1-based to 0-based indexing and ensure bounds
+        start_idx = max(0, start_line - 1)
+        end_idx = min(len(lines), end_line)
+
+        # Limit to first 50 lines if more than 50 lines are requested
+        truncation_message = ""
+        if end_idx - start_idx > 50:
+            truncation_message = "\n\n[Truncated after 50 lines! Use narrower line range to view complete section.]"
+            end_idx = start_idx + 50
+
+        selected_lines = lines[start_idx:end_idx]
+        filtered_text = "\n".join(selected_lines) + truncation_message
+
+        # Format the result as a document reference
+        document_results = [
+            {
+                "query": query,
+                "file": path,
+                "uri": path,
+                "compiled": filtered_text,
+            }
+        ]
+
+        yield document_results
+
+    except Exception as e:
+        error_msg = f"Error viewing file {path}: {str(e)}"
+        logger.error(error_msg, exc_info=True)
+
+        # Return an error result in the expected format
+        yield [{"query": query, "file": path, "uri": path, "compiled": error_msg}]
+
+
+async def grep_files(
+    regex_pattern: str,
+    path_prefix: Optional[str] = None,
+    lines_before: Optional[int] = None,
+    lines_after: Optional[int] = None,
+    user: KhojUser = None,
+):
+    """
+    Search for a regex pattern in files with an optional path prefix and context lines.
+    """
+
+    # Construct the query string based on provided parameters
+    def _generate_query(line_count, doc_count, path, pattern, lines_before, lines_after, max_results=1000):
+        query = f"**Found {line_count} matches for '{pattern}' in {doc_count} documents**"
+        if path:
+            query += f" in {path}"
+        if lines_before or lines_after or line_count > max_results:
+            query += " Showing"
+        if lines_before or lines_after:
+            context_info = []
+            if lines_before:
+                context_info.append(f"{lines_before} lines before")
+            if lines_after:
+                context_info.append(f"{lines_after} lines after")
+            query += f" {' and '.join(context_info)}"
+        if line_count > max_results:
+            if lines_before or lines_after:
+                query += " for"
+            query += f" first {max_results} results"
+        return query
+
+    # Validate regex pattern
+    path_prefix = path_prefix or ""
+    lines_before = lines_before or 0
+    lines_after = lines_after or 0
+
+    try:
+        regex = re.compile(regex_pattern, re.IGNORECASE | re.MULTILINE)
+    except re.error as e:
+        yield {
+            "query": _generate_query(0, 0, path_prefix, regex_pattern, lines_before, lines_after),
+            "file": path_prefix,
+            "compiled": f"Invalid regex pattern: {e}",
+        }
+        return
+
+    try:
+        # Make db pushdown filters more permissive by removing line anchors
+        # The precise line-anchored matching will be done in Python stage
+        db_pattern = regex_pattern
+        db_pattern = re.sub(r"\(\?\w*\)", "", db_pattern)  # Remove inline flags like (?i), (?m), (?im)
+        db_pattern = re.sub(r"^\^", "", db_pattern)  # Remove ^ at regex pattern start
+        db_pattern = re.sub(r"\$$", "", db_pattern)  # Remove $ at regex pattern end
+
+        file_matches = await FileObjectAdapters.aget_file_objects_by_regex(user, db_pattern, path_prefix)
+
+        line_matches = []
+        line_matches_count = 0
+        for file_object in file_matches:
+            lines = file_object.raw_text.split("\n")
+            matched_line_numbers = []
+
+            # Find all matching line numbers first
+            for i, line in enumerate(lines, 1):
+                if regex.search(line):
+                    matched_line_numbers.append(i)
+            line_matches_count += len(matched_line_numbers)
+
+            # Build context for each match
+            for line_num in matched_line_numbers:
+                context_lines = []
+
+                # Calculate start and end indices for context (0-based)
+                start_idx = max(0, line_num - 1 - lines_before)
+                end_idx = min(len(lines), line_num + lines_after)
+
+                # Add context lines with line numbers
+                for idx in range(start_idx, end_idx):
+                    current_line_num = idx + 1
+                    line_content = lines[idx]
+
+                    if current_line_num == line_num:
+                        # This is the matching line, mark it
+                        context_lines.append(f"{file_object.file_name}:{current_line_num}: {line_content}")
+                    else:
+                        # This is a context line
+                        context_lines.append(f"{file_object.file_name}-{current_line_num}-  {line_content}")
+
+                # Add separator between matches if showing context
+                if lines_before > 0 or lines_after > 0:
+                    context_lines.append("--")
+
+                line_matches.extend(context_lines)
+
+        # Remove the last separator if it exists
+        if line_matches and line_matches[-1] == "--":
+            line_matches.pop()
+
+        # Check if no results found
+        max_results = 1000
+        query = _generate_query(
+            line_matches_count,
+            len(file_matches),
+            path_prefix,
+            regex_pattern,
+            lines_before,
+            lines_after,
+            max_results,
+        )
+        if not line_matches:
+            yield {"query": query, "file": path_prefix, "uri": path_prefix, "compiled": "No matches found."}
+            return
+
+        # Truncate matched lines list if too long
+        if len(line_matches) > max_results:
+            line_matches = line_matches[:max_results] + [
+                f"... {len(line_matches) - max_results} more results found. Use stricter regex or path to narrow down results."
+            ]
+
+        yield {"query": query, "file": path_prefix, "uri": path_prefix, "compiled": "\n".join(line_matches)}
+
+    except Exception as e:
+        error_msg = f"Error using grep files tool: {str(e)}"
+        logger.error(error_msg, exc_info=True)
+        yield [
+            {
+                "query": _generate_query(0, 0, path_prefix or "", regex_pattern, lines_before, lines_after),
+                "file": path_prefix,
+                "uri": path_prefix,
+                "compiled": error_msg,
+            }
+        ]
+
+
+async def list_files(
+    path: Optional[str] = None,
+    pattern: Optional[str] = None,
+    user: KhojUser = None,
+):
+    """
+    List files under a given path or glob pattern from the user's document database.
+    """
+
+    # Construct the query string based on provided parameters
+    def _generate_query(doc_count, path, pattern):
+        query = f"**Found {doc_count} files**"
+        if path:
+            query += f" in {path}"
+        if pattern:
+            query += f" filtered by {pattern}"
+        return query
+
+    try:
+        # Get user files by path prefix when specified
+        path = path or ""
+        if path in ["", "/", ".", "./", "~", "~/"]:
+            file_objects = await FileObjectAdapters.aget_all_file_objects(user, limit=10000)
+        else:
+            file_objects = await FileObjectAdapters.aget_file_objects_by_path_prefix(user, path)
+
+        if not file_objects:
+            yield {"query": _generate_query(0, path, pattern), "file": path, "uri": path, "compiled": "No files found."}
+            return
+
+        # Extract file names from file objects
+        files = [f.file_name for f in file_objects]
+        # Convert to relative file path (similar to ls)
+        if path:
+            files = [f[len(path) :] for f in files]
+
+        # Apply glob pattern filtering if specified
+        if pattern:
+            files = [f for f in files if fnmatch.fnmatch(f, pattern)]
+
+        query = _generate_query(len(files), path, pattern)
+        if not files:
+            yield {"query": query, "file": path, "uri": path, "compiled": "No files found."}
+            return
+
+        # Truncate the list if it's too long
+        max_files = 100
+        if len(files) > max_files:
+            files = files[:max_files] + [
+                f"... {len(files) - max_files} more files found. Use glob pattern to narrow down results."
+            ]
+
+        yield {"query": query, "file": path, "uri": path, "compiled": "\n- ".join(files)}
+
+    except Exception as e:
+        error_msg = f"Error listing files in {path}: {str(e)}"
+        logger.error(error_msg, exc_info=True)
+        yield {"query": query, "file": path, "uri": path, "compiled": error_msg}

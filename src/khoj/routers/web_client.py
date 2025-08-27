@@ -139,3 +139,8 @@ def automations_config_page(
 @web_client.get("/.well-known/assetlinks.json", response_class=FileResponse)
 def assetlinks(request: Request):
     return FileResponse(constants.assetlinks_file_path)
+
+
+@web_client.get("/server/error", response_class=HTMLResponse)
+def server_error_page(request: Request):
+    return templates.TemplateResponse("error.html", context={"request": request})

@@ -1,6 +1,7 @@
 import base64
 import io
 import logging
+import os
 import time
 from typing import Any, Callable, Dict, List, Optional
 
@@ -8,10 +9,26 @@ import openai
 import requests
 from google import genai
 from google.genai import types as gtypes
+from tenacity import (
+    retry,
+    retry_if_exception,
+    retry_if_exception_type,
+    stop_after_attempt,
+    wait_random_exponential,
+)
+from tenacity.before_sleep import before_sleep_log
 
 from khoj.database.adapters import ConversationAdapters
-from khoj.database.models import Agent, KhojUser, TextToImageModelConfig, UserMemory
-from khoj.routers.helpers import ChatEvent, generate_better_image_prompt
+from khoj.database.models import (
+    Agent,
+    ChatMessageModel,
+    Intent,
+    KhojUser,
+    TextToImageModelConfig,
+    UserMemory,
+)
+from khoj.processor.conversation.google.utils import _is_retryable_error
+from khoj.routers.helpers import ChatEvent, ImageShape, generate_better_image_prompt
 from khoj.routers.storage import upload_generated_image_to_bucket
 from khoj.utils import state
 from khoj.utils.helpers import convert_image_to_webp, timer
@@ -23,7 +40,7 @@ logger = logging.getLogger(__name__)
 async def text_to_image(
     message: str,
     user: KhojUser,
-    conversation_log: dict,
+    chat_history: List[ChatMessageModel],
     location_data: LocationData,
     references: List[Dict[str, Any]],
     online_results: Dict[str, Any],
@@ -47,14 +64,17 @@ async def text_to_image(
         return
 
     text2image_model = text_to_image_config.model_name
-    chat_history = ""
-    for chat in conversation_log.get("chat", [])[-4:]:
-        if chat["by"] == "khoj" and chat["intent"].get("type") in ["remember", "reminder"]:
-            chat_history += f"Q: {chat['intent']['query']}\n"
-            chat_history += f"A: {chat['message']}\n"
-        elif chat["by"] == "khoj" and chat.get("images"):
-            chat_history += f"Q: {chat['intent']['query']}\n"
-            chat_history += f"A: Improved Prompt: {chat['intent']['inferred-queries'][0]}\n"
+    image_chat_history: List[ChatMessageModel] = []
+    default_intent = Intent(type="remember")
+    for chat in chat_history[-4:]:
+        if chat.by == "you":
+            image_chat_history += [ChatMessageModel(by=chat.by, message=chat.message, intent=default_intent)]
+        elif chat.by == "khoj" and chat.images and chat.intent and chat.intent.inferred_queries:
+            image_chat_history += [
+                ChatMessageModel(by=chat.by, message=chat.intent.inferred_queries[0], intent=default_intent)
+            ]
+        elif chat.by == "khoj" and chat.intent and chat.intent.type in ["remember", "reminder"]:
+            image_chat_history += [ChatMessageModel(by=chat.by, message=chat.message, intent=default_intent)]
 
     if send_status_func:
         async for event in send_status_func("**Enhancing the Painting Prompt**"):
@@ -62,9 +82,9 @@ async def text_to_image(
 
     # Generate a better image prompt
     # Use the user's message, chat history, and other context
-    image_prompt = await generate_better_image_prompt(
+    image_prompt_response = await generate_better_image_prompt(
         message,
-        chat_history,
+        image_chat_history,
         location_data=location_data,
         note_references=references,
         online_results=online_results,
@@ -76,6 +96,8 @@ async def text_to_image(
         relevant_memories=relevant_memories,
         tracer=tracer,
     )
+    image_prompt = image_prompt_response["description"]
+    image_shape = image_prompt_response["shape"]
 
     if send_status_func:
         async for event in send_status_func(f"**Painting to Imagine**:\n{image_prompt}"):
@@ -85,23 +107,29 @@ async def text_to_image(
     with timer(f"Generate image with {text_to_image_config.model_type}", logger):
         try:
             if text_to_image_config.model_type == TextToImageModelConfig.ModelType.OPENAI:
-                webp_image_bytes = generate_image_with_openai(image_prompt, text_to_image_config, text2image_model)
+                webp_image_bytes = generate_image_with_openai(
+                    image_prompt, text_to_image_config, text2image_model, image_shape
+                )
             elif text_to_image_config.model_type == TextToImageModelConfig.ModelType.STABILITYAI:
                 webp_image_bytes = generate_image_with_stability(image_prompt, text_to_image_config, text2image_model)
             elif text_to_image_config.model_type == TextToImageModelConfig.ModelType.REPLICATE:
-                webp_image_bytes = generate_image_with_replicate(image_prompt, text_to_image_config, text2image_model)
+                webp_image_bytes = generate_image_with_replicate(
+                    image_prompt, text_to_image_config, text2image_model, image_shape
+                )
             elif text_to_image_config.model_type == TextToImageModelConfig.ModelType.GOOGLE:
-                webp_image_bytes = generate_image_with_google(image_prompt, text_to_image_config, text2image_model)
+                webp_image_bytes = generate_image_with_google(
+                    image_prompt, text_to_image_config, text2image_model, image_shape
+                )
         except openai.OpenAIError or openai.BadRequestError or openai.APIConnectionError as e:
             if "content_policy_violation" in e.message:
                 logger.error(f"Image Generation blocked by OpenAI: {e}")
                 status_code = e.status_code  # type: ignore
-                message = f"Image generation blocked by OpenAI due to policy violation"  # type: ignore
+                message = "Image generation blocked by OpenAI due to policy violation"  # type: ignore
                 yield image_url or image, status_code, message
                 return
             else:
                 logger.error(f"Image Generation failed with {e}", exc_info=True)
-                message = f"Image generation failed using OpenAI"  # type: ignore
+                message = "Image generation failed using OpenAI"  # type: ignore
                 status_code = e.status_code  # type: ignore
                 yield image_url or image, status_code, message
                 return
@@ -128,8 +156,24 @@ async def text_to_image(
     yield image_url or image, status_code, image_prompt
 
 
+@retry(
+    retry=(
+        retry_if_exception_type(openai.APITimeoutError)
+        | retry_if_exception_type(openai.APIError)
+        | retry_if_exception_type(openai.APIConnectionError)
+        | retry_if_exception_type(openai.RateLimitError)
+        | retry_if_exception_type(openai.APIStatusError)
+    ),
+    wait=wait_random_exponential(min=1, max=10),
+    stop=stop_after_attempt(3),
+    before_sleep=before_sleep_log(logger, logging.DEBUG),
+    reraise=True,
+)
 def generate_image_with_openai(
-    improved_image_prompt: str, text_to_image_config: TextToImageModelConfig, text2image_model: str
+    improved_image_prompt: str,
+    text_to_image_config: TextToImageModelConfig,
+    text2image_model: str,
+    shape: ImageShape = ImageShape.SQUARE,
 ):
     "Generate image using OpenAI (compatible) API"
 
@@ -145,12 +189,21 @@ def generate_image_with_openai(
     elif state.openai_client:
         openai_client = state.openai_client
 
+    # Convert shape to size for OpenAI
+    if shape == ImageShape.PORTRAIT:
+        size = "1024x1536"
+    elif shape == ImageShape.LANDSCAPE:
+        size = "1536x1024"
+    else:  # Square
+        size = "1024x1024"
+
     # Generate image using OpenAI API
     OPENAI_IMAGE_GEN_STYLE = "vivid"
     response = openai_client.images.generate(
         prompt=improved_image_prompt,
         model=text2image_model,
         style=OPENAI_IMAGE_GEN_STYLE,
+        size=size,
         response_format="b64_json",
     )
 
@@ -160,6 +213,13 @@ def generate_image_with_openai(
     return convert_image_to_webp(base64.b64decode(image))
 
 
+@retry(
+    retry=retry_if_exception_type(requests.RequestException),
+    wait=wait_random_exponential(min=1, max=10),
+    stop=stop_after_attempt(3),
+    before_sleep=before_sleep_log(logger, logging.DEBUG),
+    reraise=True,
+)
 def generate_image_with_stability(
     improved_image_prompt: str, text_to_image_config: TextToImageModelConfig, text2image_model: str
 ):
@@ -167,7 +227,7 @@ def generate_image_with_stability(
 
     # Call Stability AI API to generate image
     response = requests.post(
-        f"https://api.stability.ai/v2beta/stable-image/generate/sd3",
+        "https://api.stability.ai/v2beta/stable-image/generate/sd3",
         headers={"authorization": f"Bearer {text_to_image_config.api_key}", "accept": "image/*"},
         files={"none": ""},
         data={
@@ -182,10 +242,29 @@ def generate_image_with_stability(
     return convert_image_to_webp(response.content)
 
 
+@retry(
+    retry=retry_if_exception_type(requests.RequestException),
+    wait=wait_random_exponential(min=1, max=10),
+    stop=stop_after_attempt(3),
+    before_sleep=before_sleep_log(logger, logging.DEBUG),
+    reraise=True,
+)
 def generate_image_with_replicate(
-    improved_image_prompt: str, text_to_image_config: TextToImageModelConfig, text2image_model: str
+    improved_image_prompt: str,
+    text_to_image_config: TextToImageModelConfig,
+    text2image_model: str,
+    shape: ImageShape = ImageShape.SQUARE,
 ):
     "Generate image using Replicate API"
+
+    # Convert shape to aspect ratio for Replicate
+    # Replicate supports only 1:1, 3:4, and 4:3 aspect ratios
+    if shape == ImageShape.PORTRAIT:
+        aspect_ratio = "3:4"
+    elif shape == ImageShape.LANDSCAPE:
+        aspect_ratio = "4:3"
+    else:  # Square
+        aspect_ratio = "1:1"
 
     # Create image generation task on Replicate
     replicate_create_prediction_url = f"https://api.replicate.com/v1/models/{text2image_model}/predictions"
@@ -197,11 +276,16 @@ def generate_image_with_replicate(
         "input": {
             "prompt": improved_image_prompt,
             "num_outputs": 1,
-            "aspect_ratio": "1:1",
+            "aspect_ratio": aspect_ratio,
             "output_format": "webp",
             "output_quality": 100,
         }
     }
+
+    seed = int(os.getenv("KHOJ_LLM_SEED")) if os.getenv("KHOJ_LLM_SEED") else None
+    if seed:
+        json["input"]["seed"] = seed
+
     create_prediction = requests.post(replicate_create_prediction_url, headers=headers, json=json).json()
 
     # Get status of image generation task
@@ -229,8 +313,18 @@ def generate_image_with_replicate(
     return io.BytesIO(requests.get(image_url).content).getvalue()
 
 
+@retry(
+    retry=retry_if_exception(_is_retryable_error),
+    wait=wait_random_exponential(min=1, max=10),
+    stop=stop_after_attempt(3),
+    before_sleep=before_sleep_log(logger, logging.DEBUG),
+    reraise=True,
+)
 def generate_image_with_google(
-    improved_image_prompt: str, text_to_image_config: TextToImageModelConfig, text2image_model: str
+    improved_image_prompt: str,
+    text_to_image_config: TextToImageModelConfig,
+    text2image_model: str,
+    shape: ImageShape = ImageShape.SQUARE,
 ):
     """Generate image using Google's AI over API"""
 
@@ -238,8 +332,23 @@ def generate_image_with_google(
     api_key = text_to_image_config.api_key or text_to_image_config.ai_model_api.api_key
     client = genai.Client(api_key=api_key)
 
+    # Convert shape to aspect ratio for Google
+    if shape == ImageShape.PORTRAIT:
+        aspect_ratio = "3:4"
+    elif shape == ImageShape.LANDSCAPE:
+        aspect_ratio = "4:3"
+    else:  # Square
+        aspect_ratio = "1:1"
+
     # Configure image generation settings
-    config = gtypes.GenerateImagesConfig(number_of_images=1)
+    config = gtypes.GenerateImagesConfig(
+        number_of_images=1,
+        safety_filter_level=gtypes.SafetyFilterLevel.BLOCK_LOW_AND_ABOVE,
+        person_generation=gtypes.PersonGeneration.ALLOW_ADULT,
+        include_rai_reason=True,
+        output_mime_type="image/png",
+        aspect_ratio=aspect_ratio,
+    )
 
     # Call the Gemini API to generate the image
     response = client.models.generate_images(model=text2image_model, prompt=improved_image_prompt, config=config)

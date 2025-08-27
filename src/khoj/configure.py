@@ -11,9 +11,15 @@ import requests
 import schedule
 from asgiref.sync import sync_to_async
 from django.conf import settings
-from django.db import close_old_connections, connections
+from django.db import (
+    DatabaseError,
+    OperationalError,
+    close_old_connections,
+    connections,
+)
 from django.utils.timezone import make_aware
-from fastapi import Request, Response
+from fastapi import HTTPException, Request, Response
+from fastapi.responses import RedirectResponse
 from starlette.authentication import (
     AuthCredentials,
     AuthenticationBackend,
@@ -44,13 +50,11 @@ from khoj.database.adapters import (
 )
 from khoj.database.models import ClientApplication, KhojUser, ProcessLock, Subscription
 from khoj.processor.embeddings import CrossEncoderModel, EmbeddingsModel
-from khoj.routers.api_content import configure_content, configure_search
+from khoj.routers.api_content import configure_content
 from khoj.routers.twilio import is_twilio_enabled
 from khoj.utils import constants, state
 from khoj.utils.config import SearchType
-from khoj.utils.fs_syncer import collect_files
-from khoj.utils.helpers import is_none_or_empty, telemetry_disabled
-from khoj.utils.rawconfig import FullConfig
+from khoj.utils.helpers import is_none_or_empty
 
 logger = logging.getLogger(__name__)
 
@@ -113,13 +117,24 @@ class UserAuthenticationBackend(AuthenticationBackend):
             Subscription.objects.create(user=default_user, type=Subscription.Type.STANDARD, renewal_date=renewal_date)
 
     async def authenticate(self, request: HTTPConnection):
+        # Skip authentication for error pages to avoid infinite recursion
+        if request.url.path == "/server/error":
+            return AuthCredentials(), UnauthenticatedUser()
+
         current_user = request.session.get("user")
         if current_user and current_user.get("email"):
-            user = (
-                await self.khojuser_manager.filter(email=current_user.get("email"))
-                .prefetch_related("subscription")
-                .afirst()
-            )
+            try:
+                user = (
+                    await self.khojuser_manager.filter(email=current_user.get("email"))
+                    .prefetch_related("subscription")
+                    .afirst()
+                )
+            except (DatabaseError, OperationalError):
+                logger.error("DB Exception: Failed to authenticate user", exc_info=True)
+                raise HTTPException(
+                    status_code=503,
+                    detail="Please report this issue on Github, Discord or email team@khoj.dev and try again later.",
+                )
             if user:
                 subscribed = await ais_user_subscribed(user)
                 if subscribed:
@@ -131,12 +146,19 @@ class UserAuthenticationBackend(AuthenticationBackend):
             # Get bearer token from header
             bearer_token = request.headers["Authorization"].split("Bearer ")[1]
             # Get user owning token
-            user_with_token = (
-                await self.khojapiuser_manager.filter(token=bearer_token)
-                .select_related("user")
-                .prefetch_related("user__subscription")
-                .afirst()
-            )
+            try:
+                user_with_token = (
+                    await self.khojapiuser_manager.filter(token=bearer_token)
+                    .select_related("user")
+                    .prefetch_related("user__subscription")
+                    .afirst()
+                )
+            except (DatabaseError, OperationalError):
+                logger.error("DB Exception: Failed to authenticate user applications", exc_info=True)
+                raise HTTPException(
+                    status_code=503,
+                    detail="Please report this issue on Github, Discord or email team@khoj.dev and try again later.",
+                )
             if user_with_token:
                 subscribed = await ais_user_subscribed(user_with_token.user)
                 if subscribed:
@@ -155,7 +177,16 @@ class UserAuthenticationBackend(AuthenticationBackend):
                 )
 
             # Get the client application
-            client_application = await ClientApplicationAdapters.aget_client_application_by_id(client_id, client_secret)
+            try:
+                client_application = await ClientApplicationAdapters.aget_client_application_by_id(
+                    client_id, client_secret
+                )
+            except (DatabaseError, OperationalError):
+                logger.error("DB Exception: Failed to authenticate first party application", exc_info=True)
+                raise HTTPException(
+                    status_code=503,
+                    detail="Please report this issue on Github, Discord or email team@khoj.dev and try again later.",
+                )
             if client_application is None:
                 return AuthCredentials(), UnauthenticatedUser()
             # Get the identifier used for the user
@@ -185,19 +216,18 @@ class UserAuthenticationBackend(AuthenticationBackend):
 
         # No auth required if server in anonymous mode
         if state.anonymous_mode:
-            user = await self.khojuser_manager.filter(username="default").prefetch_related("subscription").afirst()
+            try:
+                user = await self.khojuser_manager.filter(username="default").prefetch_related("subscription").afirst()
+            except (DatabaseError, OperationalError):
+                logger.error("DB Exception: Failed to fetch default user from DB", exc_info=True)
+                raise HTTPException(
+                    status_code=503,
+                    detail="Please report this issue on Github, Discord or email team@khoj.dev and try again later.",
+                )
             if user:
                 return AuthCredentials(["authenticated", "premium"]), AuthenticatedKhojUser(user)
 
         return AuthCredentials(), UnauthenticatedUser()
-
-
-def initialize_server(config: Optional[FullConfig]):
-    try:
-        configure_server(config, init=True)
-    except Exception as e:
-        logger.error(f"🚨 Failed to configure server on app load: {e}", exc_info=True)
-        raise e
 
 
 def clean_connections(func):
@@ -220,19 +250,7 @@ def clean_connections(func):
     return func_wrapper
 
 
-def configure_server(
-    config: FullConfig,
-    regenerate: bool = False,
-    search_type: Optional[SearchType] = None,
-    init=False,
-    user: KhojUser = None,
-):
-    # Update Config
-    if config == None:
-        logger.info(f"Initializing with default config.")
-        config = FullConfig()
-    state.config = config
-
+def initialize_server():
     if ConversationAdapters.has_valid_ai_model_api():
         ai_model_api = ConversationAdapters.get_ai_model_api()
         state.openai_client = openai.OpenAI(api_key=ai_model_api.api_key, base_url=ai_model_api.api_base_url)
@@ -269,49 +287,40 @@ def configure_server(
             )
 
         state.SearchType = configure_search_types()
-        state.search_models = configure_search(state.search_models, state.config.search_type)
-        setup_default_agent(user)
+        setup_default_agent()
 
-        message = (
-            "📡 Telemetry disabled"
-            if telemetry_disabled(state.config.app, state.telemetry_disabled)
-            else "📡 Telemetry enabled"
-        )
+        message = "📡 Telemetry disabled" if state.telemetry_disabled else "📡 Telemetry enabled"
         logger.info(message)
-
-        if not init:
-            initialize_content(user, regenerate, search_type)
 
     except Exception as e:
         logger.error(f"Failed to load some search models: {e}", exc_info=True)
 
 
-def setup_default_agent(user: KhojUser):
-    AgentAdapters.create_default_agent(user)
+def setup_default_agent():
+    AgentAdapters.create_default_agent()
 
 
 def initialize_content(user: KhojUser, regenerate: bool, search_type: Optional[SearchType] = None):
     # Initialize Content from Config
-    if state.search_models:
-        try:
-            logger.info("📬 Updating content index...")
-            all_files = collect_files(user=user)
-            status = configure_content(
-                user,
-                all_files,
-                regenerate,
-                search_type,
-            )
-            if not status:
-                raise RuntimeError("Failed to update content index")
-        except Exception as e:
-            raise e
+    try:
+        logger.info("📬 Updating content index...")
+        status = configure_content(
+            user,
+            {},
+            regenerate,
+            search_type,
+        )
+        if not status:
+            raise RuntimeError("Failed to update content index")
+    except Exception as e:
+        raise e
 
 
 def configure_routes(app):
     # Import APIs here to setup search types before while configuring server
     from khoj.routers.api import api
     from khoj.routers.api_agents import api_agents
+    from khoj.routers.api_automation import api_automation
     from khoj.routers.api_chat import api_chat
     from khoj.routers.api_content import api_content
     from khoj.routers.api_memories import api_memories
@@ -322,6 +331,7 @@ def configure_routes(app):
     app.include_router(api, prefix="/api")
     app.include_router(api_chat, prefix="/api/chat")
     app.include_router(api_agents, prefix="/api/agents")
+    app.include_router(api_automation, prefix="/api/automation")
     app.include_router(api_model, prefix="/api/model")
     app.include_router(api_memories, prefix="/api/memories")
     app.include_router(api_content, prefix="/api/content")
@@ -368,19 +378,37 @@ def configure_middleware(app, ssl_enabled: bool = False):
                 # and prevent further error logging.
                 return Response(status_code=499)
 
+    class ServerErrorMiddleware(BaseHTTPMiddleware):
+        async def dispatch(self, request: Request, call_next):
+            try:
+                return await call_next(request)
+            except HTTPException as e:
+                # Check if this is a server error (5xx) that we want to handle
+                if e.status_code >= 500 and e.status_code < 600:
+                    # Check if this is a web route (not API route)
+                    path = request.url.path
+                    is_api_route = path.startswith("/api/") or path.startswith("/server/")
+
+                    # Redirect web routes to error page, let API routes get the raw error
+                    if not is_api_route:
+                        return RedirectResponse(url="/server/error", status_code=302)
+
+                # Re-raise for API routes and non-5xx errors
+                raise e
+
     if ssl_enabled:
         app.add_middleware(HTTPSRedirectMiddleware)
     app.add_middleware(SuppressClientDisconnectMiddleware)
     app.add_middleware(AsyncCloseConnectionsMiddleware)
     app.add_middleware(AuthenticationMiddleware, backend=UserAuthenticationBackend())
+    app.add_middleware(ServerErrorMiddleware)  # Add after AuthenticationMiddleware to catch its exceptions
     app.add_middleware(NextJsMiddleware)
     app.add_middleware(SessionMiddleware, secret_key=os.environ.get("KHOJ_DJANGO_SECRET_KEY", "!secret"))
 
 
 def update_content_index():
     for user in get_all_users():
-        all_files = collect_files(user=user)
-        success = configure_content(user, all_files)
+        success = configure_content(user, {})
     if not success:
         raise RuntimeError("Failed to update content index")
     logger.info("📪 Content index updated via Scheduler")
@@ -405,7 +433,7 @@ def configure_search_types():
 @schedule.repeat(schedule.every(2).minutes)
 @clean_connections
 def upload_telemetry():
-    if telemetry_disabled(state.config.app, state.telemetry_disabled) or not state.telemetry:
+    if state.telemetry_disabled or not state.telemetry:
         return
 
     try:

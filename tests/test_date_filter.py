@@ -162,15 +162,15 @@ def test_date_extraction():
     assert extracted_dates == [datetime(1984, 4, 1, 0, 0, 0)], "Expected d.m.Y structured date to be extracted"
 
     extracted_dates = DateFilter().extract_dates("CLOCK: [1984-04-01 Sun 09:50]--[1984-04-01 Sun 10:10] => 24:20")
-    assert extracted_dates == [
-        datetime(1984, 4, 1, 0, 0, 0)
-    ], "Expected single deduplicated date extracted from logbook entry"
+    assert extracted_dates == [datetime(1984, 4, 1, 0, 0, 0)], (
+        "Expected single deduplicated date extracted from logbook entry"
+    )
 
     extracted_dates = DateFilter().extract_dates("CLOCK: [1984/03/31 mer 09:50]--[1984/04/01 mer 10:10] => 24:20")
     expected_dates = [datetime(1984, 4, 1, 0, 0, 0), datetime(1984, 3, 31, 0, 0, 0)]
-    assert all(
-        [dt in extracted_dates for dt in expected_dates]
-    ), "Expected multiple different dates extracted from logbook entry"
+    assert all([dt in extracted_dates for dt in expected_dates]), (
+        "Expected multiple different dates extracted from logbook entry"
+    )
 
 
 def test_natual_date_extraction():
@@ -187,9 +187,9 @@ def test_natual_date_extraction():
     assert datetime(1984, 4, 4, 0, 0, 0) in extracted_dates, "Expected natural date to be extracted"
 
     extracted_dates = DateFilter().extract_dates("head 11th april 1984 tail")
-    assert (
-        datetime(1984, 4, 11, 0, 0, 0) in extracted_dates
-    ), "Expected natural date with lowercase month to be extracted"
+    assert datetime(1984, 4, 11, 0, 0, 0) in extracted_dates, (
+        "Expected natural date with lowercase month to be extracted"
+    )
 
     extracted_dates = DateFilter().extract_dates("head 23rd april 84 tail")
     assert datetime(1984, 4, 23, 0, 0, 0) in extracted_dates, "Expected natural date with 2-digit year to be extracted"
@@ -201,16 +201,16 @@ def test_natual_date_extraction():
     assert extracted_dates == [datetime(1984, 4, 1, 0, 0, 0)], "Expected partial natural date to be extracted"
 
     extracted_dates = DateFilter().extract_dates("head Apr 1984 tail")
-    assert extracted_dates == [
-        datetime(1984, 4, 1, 0, 0, 0)
-    ], "Expected partial natural date with short month to be extracted"
+    assert extracted_dates == [datetime(1984, 4, 1, 0, 0, 0)], (
+        "Expected partial natural date with short month to be extracted"
+    )
 
     extracted_dates = DateFilter().extract_dates("head apr 1984 tail")
-    assert extracted_dates == [
-        datetime(1984, 4, 1, 0, 0, 0)
-    ], "Expected partial natural date with lowercase month to be extracted"
+    assert extracted_dates == [datetime(1984, 4, 1, 0, 0, 0)], (
+        "Expected partial natural date with lowercase month to be extracted"
+    )
 
     extracted_dates = DateFilter().extract_dates("head apr 84 tail")
-    assert extracted_dates == [
-        datetime(1984, 4, 1, 0, 0, 0)
-    ], "Expected partial natural date with 2-digit year to be extracted"
+    assert extracted_dates == [datetime(1984, 4, 1, 0, 0, 0)], (
+        "Expected partial natural date with 2-digit year to be extracted"
+    )

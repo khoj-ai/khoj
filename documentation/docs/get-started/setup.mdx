@@ -18,10 +18,6 @@ import TabItem from '@theme/TabItem';
 These are the general setup instructions for self-hosted Khoj.
 You can install the Khoj server using either [Docker](?server=docker) or [Pip](?server=pip).
 
-:::info[Offline Model + GPU]
-To use the offline chat model with your GPU, we recommend using the Docker setup with Ollama . You can also use the local Khoj setup via the Python package directly.
-:::
-
 :::info[First Run]
 Restart your Khoj server after the first run to ensure all settings are applied correctly.
 :::
@@ -225,10 +221,6 @@ To start Khoj automatically in the background use [Task scheduler](https://www.w
 You can now open the web app at http://localhost:42110 and start interacting!<br />
 Nothing else is necessary, but you can customize your setup further by following the steps below.
 
-:::info[First Message to Offline Chat Model]
-The offline chat model gets downloaded when you first send a message to it. The download can take a few minutes! Subsequent messages should be faster.
-:::
-
 ### Add Chat Models
 <h4>Login to the Khoj Admin Panel</h4>
 Go to http://localhost:42110/server/admin and login with the admin credentials you setup during installation.
@@ -287,7 +279,7 @@ Using Ollama? See the [Ollama Integration](/advanced/ollama) section for more cu
    - Add your [Gemini API key](https://aistudio.google.com/app/apikey)
    - Give the configuration a friendly name like `Gemini`. Do not configure the API base url.
 2. Create a new [chat model](http://localhost:42110/server/admin/database/chatmodel/add)
-    - Set the `chat-model` field to a [Google Gemini chat model](https://cloud.google.com/vertex-ai/generative-ai/docs/learn/models#gemini-models). Example: `gemini-2.0-flash`.
+    - Set the `chat-model` field to a [Google Gemini chat model](https://cloud.google.com/vertex-ai/generative-ai/docs/learn/models#gemini-models). Example: `gemini-2.5-flash`.
     - Set the `model-type` field to `Google`.
     - Set the `ai model api` field to the Gemini AI Model API you created in step 1.
 
@@ -301,13 +293,14 @@ Offline chat stays completely private and can work without internet using any op
 - A Nvidia, AMD GPU or a Mac M1+ machine would significantly speed up chat responses
 :::
 
-1. Get the name of your preferred chat model from [HuggingFace](https://huggingface.co/models?pipeline_tag=text-generation&library=gguf). *Most GGUF format chat models are supported*.
-2. Open the [create chat model page](http://localhost:42110/server/admin/database/chatmodel/add/) on the admin panel
-3. Set the `chat-model` field to the name of your preferred chat model
-   - Make sure the `model-type` is set to `Offline`
-4. Set the newly added chat model as your preferred model in your [User chat settings](http://localhost:42110/settings) and [Server chat settings](http://localhost:42110/server/admin/database/serverchatsettings/).
-5. Restart the Khoj server and [start chatting](http://localhost:42110) with your new offline model!
-  </TabItem>
+1. Install any Openai API compatible local ai model server like [llama-cpp-server](https://github.com/ggml-org/llama.cpp/tree/master/tools/server), Ollama, vLLM etc.
+2. Add an [ai model api](http://localhost:42110/server/admin/database/aimodelapi/add/) on the admin panel
+   - Set the `api url` field to the url of your local ai model provider like `http://localhost:11434/v1/` for Ollama
+3. Restart the Khoj server to load models available on your local ai model provider
+   - If that doesn't work, you'll need to manually add available [chat model](http://localhost:42110/server/admin/database/chatmodel/add) in the admin panel.
+4. Set the newly added chat model as your preferred model in your [User chat settings](http://localhost:42110/settings)
+5. [Start chatting](http://localhost:42110) with your local AI!
+</TabItem>
 </Tabs>
 
 :::tip[Multiple Chat Models]

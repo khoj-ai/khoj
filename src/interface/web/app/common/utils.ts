@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import useSWR from "swr";
-import * as React from "react"
+import * as React from "react";
 
 export interface LocationData {
     city?: string;
@@ -78,16 +78,16 @@ export const useMutationObserver = (
         characterData: true,
         childList: true,
         subtree: true,
-    }
+    },
 ) => {
     React.useEffect(() => {
         if (ref.current) {
-            const observer = new MutationObserver(callback)
-            observer.observe(ref.current, options)
-            return () => observer.disconnect()
+            const observer = new MutationObserver(callback);
+            observer.observe(ref.current, options);
+            return () => observer.disconnect();
         }
-    }, [ref, callback, options])
-}
+    }, [ref, callback, options]);
+};
 
 export function useIsDarkMode() {
     const [darkMode, setDarkMode] = useState(false);

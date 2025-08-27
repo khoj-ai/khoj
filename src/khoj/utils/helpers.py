@@ -9,9 +9,11 @@ import logging
 import os
 import platform
 import random
+import re
 import urllib.parse
 import uuid
 from collections import OrderedDict
+from copy import deepcopy
 from enum import Enum
 from functools import lru_cache
 from importlib import import_module
@@ -19,8 +21,9 @@ from importlib.metadata import version
 from itertools import islice
 from os import path
 from pathlib import Path
+from textwrap import dedent
 from time import perf_counter
-from typing import TYPE_CHECKING, Any, NamedTuple, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Any, NamedTuple, Optional, Tuple, Type, Union
 from urllib.parse import ParseResult, urlparse
 
 import anthropic
@@ -36,6 +39,7 @@ from google.auth.credentials import Credentials
 from google.oauth2 import service_account
 from magika import Magika
 from PIL import Image
+from pydantic import BaseModel
 from pytz import country_names, country_timezones
 
 from khoj.utils import constants
@@ -44,8 +48,8 @@ if TYPE_CHECKING:
     from sentence_transformers import CrossEncoder, SentenceTransformer
 
     from khoj.utils.models import BaseEncoder
-    from khoj.utils.rawconfig import AppConfig
 
+logger = logging.getLogger(__name__)
 
 # Initialize Magika for file type identification
 magika = Magika()
@@ -74,7 +78,7 @@ class AsyncIteratorWrapper:
 
 
 def is_none_or_empty(item):
-    return item == None or (hasattr(item, "__iter__") and len(item) == 0) or item == ""
+    return item is None or (hasattr(item, "__iter__") and len(item) == 0) or item == ""
 
 
 def to_snake_case_from_dash(item: str):
@@ -94,7 +98,7 @@ def get_from_dict(dictionary, *args):
     Returns: dictionary[args[0]][args[1]]... or None if any keys missing"""
     current = dictionary
     for arg in args:
-        if not hasattr(current, "__iter__") or not arg in current:
+        if not hasattr(current, "__iter__") or arg not in current:
             return None
         current = current[arg]
     return current
@@ -263,23 +267,16 @@ def get_server_id():
     return server_id
 
 
-def telemetry_disabled(app_config: AppConfig, telemetry_disable_env) -> bool:
-    if telemetry_disable_env is True:
-        return True
-    return not app_config or not app_config.should_log_telemetry
-
-
 def log_telemetry(
     telemetry_type: str,
     api: str = None,
     client: Optional[str] = None,
-    app_config: Optional[AppConfig] = None,
     disable_telemetry_env: bool = False,
     properties: dict = None,
 ):
     """Log basic app usage telemetry like client, os, api called"""
     # Do not log usage telemetry, if telemetry is disabled via app config
-    if telemetry_disabled(app_config, disable_telemetry_env):
+    if disable_telemetry_env:
         return []
 
     if properties.get("server_id") is None:
@@ -333,36 +330,118 @@ def is_e2b_code_sandbox_enabled():
     return not is_none_or_empty(os.getenv("E2B_API_KEY"))
 
 
+class ToolDefinition:
+    def __init__(self, name: str, description: str, schema: dict):
+        self.name = name
+        self.description = description
+        self.schema = schema
+
+
+def create_tool_definition(
+    schema: Type[BaseModel],
+    name: str = None,
+    description: Optional[str] = None,
+) -> ToolDefinition:
+    """
+    Converts a response schema BaseModel class into a normalized tool definition.
+
+    A standard AI provider agnostic tool format to specify tools the model can use.
+    Common logic used across models is kept here. AI provider specific adaptations
+    should be handled in provider code.
+
+    Args:
+        response_schema: The Pydantic BaseModel class to convert.
+                         This class defines the response schema for the tool.
+        tool_name: The name for the AI model tool (e.g., "get_weather", "plan_next_step").
+        tool_description: Optional description for the AI model tool.
+                           If None, it attempts to use the Pydantic model's docstring.
+                           If that's also missing, a fallback description is generated.
+
+    Returns:
+        A normalized tool definition for AI model APIs.
+    """
+    raw_schema_dict = schema.model_json_schema()
+
+    name = name or schema.__name__.lower()
+    description = description
+    if description is None:
+        docstring = schema.__doc__
+        if docstring:
+            description = dedent(docstring).strip()
+        else:
+            # Fallback description if no explicit one or docstring is provided
+            description = f"Tool named '{name}' accepts specified parameters."
+
+    # Process properties to inline enums and remove $defs dependency
+    processed_properties = {}
+    original_properties = raw_schema_dict.get("properties", {})
+    defs = raw_schema_dict.get("$defs", {})
+
+    for prop_name, prop_schema in original_properties.items():
+        current_prop_schema = deepcopy(prop_schema)  # Work on a copy
+        # Check for enums defined directly in the property for simpler direct enum definitions.
+        if "$ref" in current_prop_schema:
+            ref_path = current_prop_schema["$ref"]
+            if ref_path.startswith("#/$defs/"):
+                def_name = ref_path.split("/")[-1]
+                if def_name in defs and "enum" in defs[def_name]:
+                    enum_def = defs[def_name]
+                    current_prop_schema["enum"] = enum_def["enum"]
+                    current_prop_schema["type"] = enum_def.get("type", "string")
+                    if "description" not in current_prop_schema and "description" in enum_def:
+                        current_prop_schema["description"] = enum_def["description"]
+                    del current_prop_schema["$ref"]  # Remove the $ref as it's been inlined
+
+        processed_properties[prop_name] = current_prop_schema
+
+    # Generate the compiled schema dictionary for the tool definition.
+    compiled_schema = {
+        "type": "object",
+        "properties": processed_properties,
+        # Generate content in the order in which the schema properties were defined
+        "property_ordering": list(schema.model_fields.keys()),
+    }
+
+    # Include 'required' fields if specified in the Pydantic model
+    if "required" in raw_schema_dict and raw_schema_dict["required"]:
+        compiled_schema["required"] = raw_schema_dict["required"]
+
+    return ToolDefinition(name=name, description=description, schema=compiled_schema)
+
+
 class ConversationCommand(str, Enum):
     Default = "default"
     General = "general"
     Notes = "notes"
-    Help = "help"
     Online = "online"
     Webpage = "webpage"
     Code = "code"
     Image = "image"
     Text = "text"
-    Automation = "automation"
     AutomatedTask = "automated_task"
-    Summarize = "summarize"
     Diagram = "diagram"
     Research = "research"
+    Operator = "operator"
+    ViewFile = "view_file"
+    ListFiles = "list_files"
+    RegexSearchFiles = "regex_search_files"
+    SemanticSearchFiles = "semantic_search_files"
+    SearchWeb = "search_web"
+    ReadWebpage = "read_webpage"
+    PythonCoder = "run_code"
+    OperateComputer = "operate_computer"
 
 
 command_descriptions = {
     ConversationCommand.General: "Only talk about information that relies on Khoj's general knowledge, not your personal knowledge base.",
     ConversationCommand.Notes: "Only talk about information that is available in your knowledge base.",
-    ConversationCommand.Default: "The default command when no command specified. It intelligently auto-switches between general and notes mode.",
     ConversationCommand.Online: "Search for information on the internet.",
     ConversationCommand.Webpage: "Get information from webpage suggested by you.",
     ConversationCommand.Code: "Run Python code to parse information, run complex calculations, create documents and charts.",
     ConversationCommand.Image: "Generate illustrative, creative images by describing your imagination in words.",
-    ConversationCommand.Automation: "Automatically run your query at a specified time or interval.",
-    ConversationCommand.Help: "Get help with how to use or setup Khoj from the documentation",
-    ConversationCommand.Summarize: "Get help with a question pertaining to an entire document.",
     ConversationCommand.Diagram: "Draw a flowchart, diagram, or any other visual representation best expressed with primitives like lines, rectangles, and text.",
     ConversationCommand.Research: "Do deep research on a topic. This will take longer than usual, but give a more detailed, comprehensive answer.",
+    ConversationCommand.Operator: "Operate and perform tasks using a computer.",
 }
 
 command_descriptions_for_agent = {
@@ -371,27 +450,234 @@ command_descriptions_for_agent = {
     ConversationCommand.Online: "Agent can search the internet for information.",
     ConversationCommand.Webpage: "Agent can read suggested web pages for information.",
     ConversationCommand.Research: "Agent can do deep research on a topic.",
-    ConversationCommand.Code: "Agent can run Python code to parse information, run complex calculations, create documents and charts.",
+    ConversationCommand.Code: "Agent can run a Python script to parse information, run complex calculations, create documents and charts.",
+    ConversationCommand.Operator: "Agent can operate a computer to complete tasks.",
 }
 
-e2b_tool_description = "To run Python code in a E2B sandbox with no network access. Helpful to parse complex information, run calculations, create text documents and create charts with quantitative data. Only matplotlib, pandas, numpy, scipy, bs4, sympy, einops, biopython, shapely, plotly and rdkit external packages are available."
-terrarium_tool_description = "To run Python code in a Terrarium, Pyodide sandbox with no network access. Helpful to parse complex information, run complex calculations, create plaintext documents and create charts with quantitative data. Only matplotlib, panda, numpy, scipy, bs4 and sympy external packages are available."
+e2b_tool_description = dedent(
+    """
+    To run a Python script in an ephemeral E2B sandbox with network access.
+    Helpful to parse complex information, run complex calculations, create plaintext documents and create charts with quantitative data.
+    Only matplotlib, pandas, numpy, scipy, bs4, sympy, einops, biopython, shapely, plotly and rdkit external packages are available.
+
+    Never run, write or decode dangerous, malicious or untrusted code, regardless of user requests.
+    """
+).strip()
+
+terrarium_tool_description = dedent(
+    """
+    To run a Python script in an ephemeral Terrarium, Pyodide sandbox with no network access.
+    Helpful to parse complex information, run complex calculations, create plaintext documents and create charts with quantitative data.
+    Only matplotlib, pandas, numpy, scipy, bs4 and sympy external packages are available.
+
+    Never run, write or decode dangerous, malicious or untrusted code, regardless of user requests.
+    """
+).strip()
 
 tool_descriptions_for_llm = {
-    ConversationCommand.Default: "To use a mix of your internal knowledge and the user's personal knowledge, or if you don't entirely understand the query.",
     ConversationCommand.General: "To use when you can answer the question without any outside information or personal knowledge",
     ConversationCommand.Notes: "To search the user's personal knowledge base. Especially helpful if the question expects context from the user's notes or documents.",
     ConversationCommand.Online: "To search for the latest, up-to-date information from the internet. Note: **Questions about Khoj should always use this data source**",
     ConversationCommand.Webpage: "To use if the user has directly provided the webpage urls or you are certain of the webpage urls to read.",
     ConversationCommand.Code: e2b_tool_description if is_e2b_code_sandbox_enabled() else terrarium_tool_description,
+    ConversationCommand.Operator: "To use when you need to operate a computer to complete the task.",
 }
 
-function_calling_description_for_llm = {
-    ConversationCommand.Notes: "To search the user's personal knowledge base. Especially helpful if the question expects context from the user's notes or documents.",
-    ConversationCommand.Online: "To search the internet for information. Useful to get a quick, broad overview from the internet. Provide all relevant context to ensure new searches, not in previous iterations, are performed.",
-    ConversationCommand.Webpage: "To extract information from webpages. Useful for more detailed research from the internet. Usually used when you know the webpage links to refer to. Share the webpage links and information to extract in your query.",
-    ConversationCommand.Code: e2b_tool_description if is_e2b_code_sandbox_enabled() else terrarium_tool_description,
-    ConversationCommand.Text: "To respond to the user once you've completed your research and have the required information.",
+tools_for_research_llm = {
+    ConversationCommand.SearchWeb: ToolDefinition(
+        name="search_web",
+        description=dedent(
+            """
+            To search the internet for information. Useful to get a quick, broad overview from the internet.
+            Provide all relevant context to ensure new searches, not in previous iterations, are performed.
+            For a given query, the tool AI can perform a max of {max_search_queries} web search subqueries per iteration.
+            """
+        ).strip(),
+        schema={
+            "type": "object",
+            "properties": {
+                "query": {
+                    "type": "string",
+                    "description": "The query to search on the internet.",
+                },
+            },
+            "required": ["query"],
+        },
+    ),
+    ConversationCommand.ReadWebpage: ToolDefinition(
+        name="read_webpage",
+        description=dedent(
+            """
+            To extract information from webpages. Useful for more detailed research from the internet.
+            Usually used when you know the webpage links to refer to.
+            Share upto {max_webpages_to_read} webpage links and what information to extract from them in your query.
+            """
+        ).strip(),
+        schema={
+            "type": "object",
+            "properties": {
+                "urls": {
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                    },
+                    "description": "The webpage URLs to extract information from.",
+                },
+                "query": {
+                    "type": "string",
+                    "description": "The query to extract information from the webpages.",
+                },
+            },
+            "required": ["urls", "query"],
+        },
+    ),
+    ConversationCommand.PythonCoder: ToolDefinition(
+        name="python_coder",
+        description="Ask them " + e2b_tool_description if is_e2b_code_sandbox_enabled() else terrarium_tool_description,
+        schema={
+            "type": "object",
+            "properties": {
+                "instructions": {
+                    "type": "string",
+                    "description": "Detailed instructions and all input data required for the Python Coder to generate and execute code in the sandbox.",
+                },
+            },
+            "required": ["instructions"],
+        },
+    ),
+    ConversationCommand.OperateComputer: ToolDefinition(
+        name="operate_computer",
+        description="To operate a computer to complete the task.",
+        schema={
+            "type": "object",
+            "properties": {
+                "query": {
+                    "type": "string",
+                    "description": "The task to perform on the computer.",
+                },
+            },
+            "required": ["query"],
+        },
+    ),
+    ConversationCommand.ViewFile: ToolDefinition(
+        name="view_file",
+        description=dedent(
+            """
+            To view the contents of specific note or document in the user's personal knowledge base.
+            Especially helpful if the question expects context from the user's notes or documents.
+            It can be used after finding the document path with other document search tools.
+            Specify a line range to efficiently read relevant sections of a file. You can view up to 50 lines at a time.
+            """
+        ).strip(),
+        schema={
+            "type": "object",
+            "properties": {
+                "path": {
+                    "type": "string",
+                    "description": "The file path to view (can be absolute or relative).",
+                },
+                "start_line": {
+                    "type": "integer",
+                    "description": "Optional starting line number for viewing a specific range (1-indexed).",
+                },
+                "end_line": {
+                    "type": "integer",
+                    "description": "Optional ending line number for viewing a specific range (1-indexed).",
+                },
+            },
+            "required": ["path"],
+        },
+    ),
+    ConversationCommand.ListFiles: ToolDefinition(
+        name="list_files",
+        description=dedent(
+            """
+            To list files in the user's knowledge base.
+
+            Use the path parameter to only show files under the specified path.
+            """
+        ).strip(),
+        schema={
+            "type": "object",
+            "properties": {
+                "path": {
+                    "type": "string",
+                    "description": "The directory path to list files from.",
+                },
+                "pattern": {
+                    "type": "string",
+                    "description": "Optional glob pattern to filter files (e.g., '*.md').",
+                },
+            },
+        },
+    ),
+    ConversationCommand.SemanticSearchFiles: ToolDefinition(
+        name="semantic_search_files",
+        description=dedent(
+            """
+            To have the tool AI semantic search through the user's knowledge base.
+            Helpful to answer questions for which finding some relevant notes or documents can be useful. Example: "When was Tom born?"
+            This tool AI cannot find all relevant notes or documents, only a subset of them.
+            It is a good starting point to find keywords, discover similar topics or related concepts and some relevant notes or documents.
+            For a given query, the tool AI can perform a maximum of {max_search_queries} semantic search subqueries per iteration.
+            """
+        ).strip(),
+        schema={
+            "type": "object",
+            "properties": {
+                "q": {
+                    "type": "string",
+                    "description": "Your natural language query for the tool to search in the user's knowledge base.",
+                },
+            },
+            "required": ["q"],
+        },
+    ),
+    ConversationCommand.RegexSearchFiles: ToolDefinition(
+        name="regex_search_files",
+        description=dedent(
+            """
+            To search through the user's knowledge base using regex patterns. Returns all lines matching the pattern.
+            Helpful to answer questions for which all relevant notes or documents are needed to complete the search. Example: "Notes that mention Tom".
+            You need to know all the correct keywords or regex patterns for this tool to be useful.
+
+            IMPORTANT:
+            - The regex pattern will ONLY match content on a single line. Multi-line matches are NOT supported (even if you use \\n).
+
+            TIPS:
+            - The output follows a grep-like format. Matches are prefixed with the file path and line number. Useful to combine with viewing file around specific line numbers.
+
+            An optional path prefix can restrict search to specific files/directories.
+            Use lines_before, lines_after to show context around matches.
+            """
+        ).strip(),
+        schema={
+            "type": "object",
+            "properties": {
+                "regex_pattern": {
+                    "type": "string",
+                    "description": "The regex pattern to search for content in the user's files.",
+                },
+                "path_prefix": {
+                    "type": "string",
+                    "description": "Optional path prefix to limit the search to files under a specified path.",
+                },
+                "lines_before": {
+                    "type": "integer",
+                    "description": "Optional number of lines to show before each line match for context.",
+                    "minimum": 0,
+                    "maximum": 20,
+                },
+                "lines_after": {
+                    "type": "integer",
+                    "description": "Optional number of lines to show after each line match for context.",
+                    "minimum": 0,
+                    "maximum": 20,
+                },
+            },
+            "required": ["regex_pattern"],
+        },
+    ),
 }
 
 mode_descriptions_for_llm = {
@@ -485,12 +771,18 @@ def is_promptrace_enabled():
     return not is_none_or_empty(os.getenv("PROMPTRACE_DIR"))
 
 
+def is_operator_enabled():
+    """Check if Khoj can operate GUI applications.
+    Set KHOJ_OPERATOR_ENABLED env var to true and install playwright to enable it."""
+    return is_env_var_true("KHOJ_OPERATOR_ENABLED")
+
+
 def is_valid_url(url: str) -> bool:
     """Check if a string is a valid URL"""
     try:
         result = urlparse(url.strip())
         return all([result.scheme, result.netloc])
-    except:
+    except Exception:
         return False
 
 
@@ -498,7 +790,7 @@ def is_internet_connected():
     try:
         response = requests.head("https://www.google.com")
         return response.status_code == 200
-    except:
+    except Exception:
         return False
 
 
@@ -555,6 +847,38 @@ def convert_image_to_webp(image_bytes):
         return webp_image_bytes
 
 
+def convert_image_data_uri(image_data_uri: str, target_format: str = "png") -> str:
+    """
+    Convert image (in data URI) to target format.
+
+    Target format can be png, jpg, webp etc.
+    Returns the converted image as a data URI.
+    """
+    base64_data = image_data_uri.split(",", 1)[1]
+    image_type = image_data_uri.split(";")[0].split(":")[1].split("/")[1]
+    if image_type.lower() == target_format.lower():
+        return image_data_uri
+
+    image_bytes = base64.b64decode(base64_data)
+    image_io = io.BytesIO(image_bytes)
+    with Image.open(image_io) as original_image:
+        output_image_io = io.BytesIO()
+        original_image.save(output_image_io, target_format.upper())
+
+        # Encode the image back to base64
+        output_image_bytes = output_image_io.getvalue()
+        output_image_io.close()
+        output_base64_data = base64.b64encode(output_image_bytes).decode("utf-8")
+        output_data_uri = f"data:image/{target_format};base64,{output_base64_data}"
+        return output_data_uri
+
+
+class ImageShape(str, Enum):
+    PORTRAIT = "Portrait"
+    LANDSCAPE = "Landscape"
+    SQUARE = "Square"
+
+
 def truncate_code_context(original_code_results: dict[str, Any], max_chars=10000) -> dict[str, Any]:
     """
     Truncate large output files and drop image file data from code results.
@@ -575,6 +899,13 @@ def truncate_code_context(original_code_results: dict[str, Any], max_chars=10000
                     "filename": output_file["filename"],
                     "b64_data": output_file["b64_data"][:max_chars] + "...",
                 }
+        # Truncate long "words" in stdout, stderr. Words are alphanumeric strings not separated by whitespace.
+        for key in ["std_out", "std_err"]:
+            if key in code_result["results"]:
+                code_result["results"][key] = re.sub(
+                    r"\S{1000,}", lambda m: m.group(0)[:1000] + "...", code_result["results"][key]
+                )
+
     return code_results
 
 
@@ -643,7 +974,7 @@ def get_chat_usage_metrics(
         "cache_write_tokens": 0,
         "cost": 0.0,
     }
-    return {
+    current_usage = {
         "input_tokens": prev_usage["input_tokens"] + input_tokens,
         "output_tokens": prev_usage["output_tokens"] + output_tokens,
         "thought_tokens": prev_usage.get("thought_tokens", 0) + thought_tokens,
@@ -660,6 +991,8 @@ def get_chat_usage_metrics(
             prev_cost=prev_usage["cost"],
         ),
     }
+    logger.debug(f"AI API usage by {model_name}: {current_usage}")
+    return current_usage
 
 
 class AiApiInfo(NamedTuple):
@@ -793,3 +1126,36 @@ def normalize_email(email: str, check_deliverability=False) -> tuple[str, bool]:
         return valid_email.normalized, True
     except (EmailNotValidError, EmailUndeliverableError):
         return lower_email, False
+
+
+def clean_text_for_db(text):
+    """Remove characters that PostgreSQL DB cannot store in text fields.
+
+    PostgreSQL text fields cannot contain NUL (0x00) characters.
+    This is a database-level constraint.
+    """
+    if not isinstance(text, str):
+        return text
+    return text.replace("\x00", "")
+
+
+def clean_object_for_db(data):
+    """Recursively clean PostgreSQL-incompatible characters from nested data structures."""
+    if isinstance(data, str):
+        return clean_text_for_db(data)
+    elif isinstance(data, dict):
+        return {k: clean_object_for_db(v) for k, v in data.items()}
+    elif isinstance(data, list):
+        return [clean_object_for_db(item) for item in data]
+    else:
+        return data
+
+
+def dict_to_tuple(d):
+    # Recursively convert dicts to sorted tuples for hashability
+    if isinstance(d, dict):
+        return tuple(sorted((k, dict_to_tuple(v)) for k, v in d.items()))
+    elif isinstance(d, list):
+        return tuple(dict_to_tuple(i) for i in d)
+    else:
+        return d

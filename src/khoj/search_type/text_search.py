@@ -9,9 +9,8 @@ from asgiref.sync import sync_to_async
 from sentence_transformers import util
 
 from khoj.database.adapters import EntryAdapters, get_default_search_model
-from khoj.database.models import Agent
+from khoj.database.models import Agent, KhojUser
 from khoj.database.models import Entry as DbEntry
-from khoj.database.models import KhojUser
 from khoj.processor.content.text_to_entries import TextToEntries
 from khoj.utils import state
 from khoj.utils.helpers import get_absolute_path, timer
@@ -157,6 +156,7 @@ def collate_results(hits, dedupe=True):
                     "additional": {
                         "source": hit.file_source,
                         "file": hit.file_path,
+                        "uri": hit.url,
                         "compiled": hit.compiled,
                         "heading": hit.heading,
                     },
@@ -167,11 +167,11 @@ def collate_results(hits, dedupe=True):
 def deduplicated_search_responses(hits: List[SearchResponse]):
     hit_ids = set()
     for hit in hits:
-        if hit.corpus_id in hit_ids:
+        if hit.additional["compiled"] in hit_ids:
             continue
 
         else:
-            hit_ids.add(hit.corpus_id)
+            hit_ids.add(hit.additional["compiled"])
             yield SearchResponse.model_validate(
                 {
                     "entry": hit.entry,
@@ -180,6 +180,8 @@ def deduplicated_search_responses(hits: List[SearchResponse]):
                     "additional": {
                         "source": hit.additional["source"],
                         "file": hit.additional["file"],
+                        "uri": hit.additional["uri"],
+                        "query": hit.additional["query"],
                         "compiled": hit.additional["compiled"],
                         "heading": hit.additional["heading"],
                     },

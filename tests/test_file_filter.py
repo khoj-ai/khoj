@@ -1,6 +1,13 @@
 # Application Packages
 from khoj.search_filter.file_filter import FileFilter
-from khoj.utils.rawconfig import Entry
+
+
+# Mock Entry class for testing
+class Entry:
+    def __init__(self, compiled="", raw="", file=""):
+        self.compiled = compiled
+        self.raw = raw
+        self.file = file
 
 
 def test_can_filter_no_file_filter():

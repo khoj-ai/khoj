@@ -3,7 +3,6 @@ import logging
 from typing import Dict, Optional, Union
 
 from fastapi import APIRouter, Request
-from fastapi.requests import Request
 from fastapi.responses import Response
 from starlette.authentication import has_required_scope, requires
 
@@ -31,7 +30,7 @@ def get_chat_model_options(
     for chat_model in chat_models:
         chat_model_options.append(
             {
-                "name": chat_model.name,
+                "name": chat_model.friendly_name,
                 "id": chat_model.id,
                 "strengths": chat_model.strengths,
                 "description": chat_model.description,
@@ -54,7 +53,7 @@ def get_user_chat_model(
     if chat_model is None:
         chat_model = ConversationAdapters.get_default_chat_model(user)
 
-    return Response(status_code=200, content=json.dumps({"id": chat_model.id, "chat_model": chat_model.name}))
+    return Response(status_code=200, content=json.dumps({"id": chat_model.id, "chat_model": chat_model.friendly_name}))
 
 
 @api_model.post("/chat", status_code=200)
@@ -72,7 +71,7 @@ async def update_chat_model(
     if chat_model is None:
         return Response(status_code=404, content=json.dumps({"status": "error", "message": "Chat model not found"}))
     if not subscribed and chat_model.price_tier != PriceTier.FREE:
-        raise Response(
+        return Response(
             status_code=403,
             content=json.dumps({"status": "error", "message": "Subscribe to switch to this chat model"}),
         )
@@ -104,11 +103,11 @@ async def update_voice_model(
     subscribed = has_required_scope(request, ["premium"])
 
     # Validate if model can be switched
-    voice_model = await VoiceModelOption.objects.filter(id=int(id)).afirst()
+    voice_model = await VoiceModelOption.objects.filter(model_id=id).afirst()
     if voice_model is None:
         return Response(status_code=404, content=json.dumps({"status": "error", "message": "Voice model not found"}))
     if not subscribed and voice_model.price_tier != PriceTier.FREE:
-        raise Response(
+        return Response(
             status_code=403,
             content=json.dumps({"status": "error", "message": "Subscribe to switch to this voice model"}),
         )
@@ -143,7 +142,7 @@ async def update_paint_model(
     if image_model is None:
         return Response(status_code=404, content=json.dumps({"status": "error", "message": "Image model not found"}))
     if not subscribed and image_model.price_tier != PriceTier.FREE:
-        raise Response(
+        return Response(
             status_code=403,
             content=json.dumps({"status": "error", "message": "Subscribe to switch to this image model"}),
         )

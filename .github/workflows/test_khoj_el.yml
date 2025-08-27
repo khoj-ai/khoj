@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - 'master'
+      - 'release/1.x'
     paths:
       - src/interface/emacs/*.el
       - src/interface/emacs/tests/*.el
@@ -11,6 +12,7 @@ on:
   pull_request:
     branches:
       - 'master'
+      - 'release/1.x'
     paths:
       - src/interface/emacs/*.el
       - src/interface/emacs/tests/*.el

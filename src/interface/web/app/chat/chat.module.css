@@ -124,3 +124,50 @@ div.chatTitleWrapper {
         grid-template-columns: 1fr;
     }
 }
+
+/* Print-specific styles for chat layout */
+@media print {
+    /* Chat container adjustments */
+    div.main {
+        height: auto !important;
+        max-height: none !important;
+        width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        overflow: visible !important;
+    }
+
+    div.chatBox,
+    div.chatBoxBody,
+    div.chatLayout {
+        height: auto !important;
+        max-height: none !important;
+        width: 100% !important;
+        display: block !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        overflow: visible !important;
+        position: static !important;
+    }
+
+    div.chatBodyFull,
+    div.chatBody {
+        display: block !important;
+        width: 100% !important;
+        height: auto !important;
+        max-height: none !important;
+        grid-template-columns: none !important;
+        overflow: visible !important;
+        position: static !important;
+    }
+
+    div.inputBox {
+        display: none !important;
+    }
+
+    /* Make chat content use full width in print */
+    .chatHistory {
+        width: 100% !important;
+        max-width: none !important;
+    }
+}

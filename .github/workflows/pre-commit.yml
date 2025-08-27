@@ -2,6 +2,9 @@ name: pre-commit
 
 on:
   pull_request:
+    branches:
+      - master
+      - release/1.x
     paths:
       - src/**
       - tests/**
@@ -12,6 +15,7 @@ on:
   push:
     branches:
       - master
+      - release/1.x
     paths:
       - src/khoj/**
       - tests/**
@@ -31,18 +35,24 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Set up Python 3.11
-        uses: actions/setup-python@v4
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
         with:
-          python-version: 3.11
+          version: "latest"
+
+      - name: Set up Python 3.11
+        run: uv python install 3.11
 
       - name: ⏬️ Install Dependencies
         run: |
           sudo apt update && sudo apt install -y libegl1
-          python -m pip install --upgrade pip
 
       - name: ⬇️ Install Application
-        run: pip install --no-cache-dir --upgrade .[dev]
+        env:
+          UV_INDEX: "https://download.pytorch.org/whl/cpu"
+          UV_INDEX_STRATEGY: "unsafe-best-match"
+          CUDA_VISIBLE_DEVICES: ""
+        run: uv sync --all-extras
 
       - name: 🌡️ Validate Application
-        run: pre-commit run --hook-stage manual --all
+        run: uv run pre-commit run --hook-stage manual --all

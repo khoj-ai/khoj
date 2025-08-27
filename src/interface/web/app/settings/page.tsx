@@ -32,7 +32,7 @@ import {
     AlertDialogFooter,
     AlertDialogHeader,
     AlertDialogTitle,
-    AlertDialogTrigger
+    AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 
 import {
@@ -90,7 +90,7 @@ import { KhojLogoType } from "../components/logo/khojLogo";
 import { Progress } from "@/components/ui/progress";
 
 import JSZip from "jszip";
-import { saveAs } from 'file-saver';
+import { saveAs } from "file-saver";
 
 interface DropdownComponentProps {
     items: ModelOptions[];
@@ -99,7 +99,12 @@ interface DropdownComponentProps {
     callbackFunc: (value: string) => Promise<void>;
 }
 
-const DropdownComponent: React.FC<DropdownComponentProps> = ({ items, selected, isActive, callbackFunc }) => {
+const DropdownComponent: React.FC<DropdownComponentProps> = ({
+    items,
+    selected,
+    isActive,
+    callbackFunc,
+}) => {
     const [position, setPosition] = useState(selected?.toString() ?? "0");
 
     return (
@@ -132,7 +137,10 @@ const DropdownComponent: React.FC<DropdownComponentProps> = ({ items, selected, 
                                     value={item.id.toString()}
                                     disabled={!isActive && item.tier !== "free"}
                                 >
-                                    {item.name} {item.tier === "standard" && <span className="text-green-500 ml-2">(Futurist)</span>}
+                                    {item.name}{" "}
+                                    {item.tier === "standard" && (
+                                        <span className="text-green-500 ml-2">(Futurist)</span>
+                                    )}
                                 </DropdownMenuRadioItem>
                             ))}
                         </DropdownMenuRadioGroup>
@@ -346,8 +354,8 @@ export default function SettingsView() {
             initialUserConfig?.is_phone_number_verified
                 ? PhoneNumberValidationState.Verified
                 : initialUserConfig?.phone_number
-                    ? PhoneNumberValidationState.SendOTP
-                    : PhoneNumberValidationState.Setup,
+                  ? PhoneNumberValidationState.SendOTP
+                  : PhoneNumberValidationState.Setup,
         );
         setName(initialUserConfig?.given_name);
         setNotionToken(initialUserConfig?.notion_token ?? null);
@@ -543,13 +551,14 @@ export default function SettingsView() {
 
     const updateModel = (modelType: string) => async (id: string) => {
         // Get the selected model from the options
-        const modelOptions = modelType === "chat"
-            ? userConfig?.chat_model_options
-            : modelType === "paint"
-                ? userConfig?.paint_model_options
-                : userConfig?.voice_model_options;
+        const modelOptions =
+            modelType === "chat"
+                ? userConfig?.chat_model_options
+                : modelType === "paint"
+                  ? userConfig?.paint_model_options
+                  : userConfig?.voice_model_options;
 
-        const selectedModel = modelOptions?.find(model => model.id.toString() === id);
+        const selectedModel = modelOptions?.find((model) => model.id.toString() === id);
         const modelName = selectedModel?.name;
 
         // Check if the model is free tier or if the user is active
@@ -570,7 +579,8 @@ export default function SettingsView() {
                 },
             });
 
-            if (!response.ok) throw new Error(`Failed to switch ${modelType} model to ${modelName}`);
+            if (!response.ok)
+                throw new Error(`Failed to switch ${modelType} model to ${modelName}`);
 
             toast({
                 title: `✅ Switched ${modelType} model to ${modelName}`,
@@ -589,7 +599,7 @@ export default function SettingsView() {
             setIsExporting(true);
 
             // Get total conversation count
-            const statsResponse = await fetch('/api/chat/stats');
+            const statsResponse = await fetch("/api/chat/stats");
             const stats = await statsResponse.json();
             const total = stats.num_conversations;
             setTotalConversations(total);
@@ -605,7 +615,7 @@ export default function SettingsView() {
                 conversations.push(...data);
 
                 setExportedConversations((page + 1) * 10);
-                setExportProgress(((page + 1) * 10 / total) * 100);
+                setExportProgress((((page + 1) * 10) / total) * 100);
             }
 
             // Add conversations to zip
@@ -624,7 +634,7 @@ export default function SettingsView() {
             toast({
                 title: "Export Failed",
                 description: "Failed to export chats. Please try again.",
-                variant: "destructive"
+                variant: "destructive",
             });
         } finally {
             setIsExporting(false);
@@ -886,93 +896,93 @@ export default function SettingsView() {
                                                     )) ||
                                                         (userConfig.subscription_state ===
                                                             "subscribed" && (
-                                                                <>
-                                                                    <p className="text-xl text-primary/80">
-                                                                        Futurist
-                                                                    </p>
-                                                                    <p className="text-gray-400">
-                                                                        Subscription <b>renews</b> on{" "}
-                                                                        <b>
-                                                                            {
-                                                                                userConfig.subscription_renewal_date
-                                                                            }
-                                                                        </b>
-                                                                    </p>
-                                                                </>
-                                                            )) ||
+                                                            <>
+                                                                <p className="text-xl text-primary/80">
+                                                                    Futurist
+                                                                </p>
+                                                                <p className="text-gray-400">
+                                                                    Subscription <b>renews</b> on{" "}
+                                                                    <b>
+                                                                        {
+                                                                            userConfig.subscription_renewal_date
+                                                                        }
+                                                                    </b>
+                                                                </p>
+                                                            </>
+                                                        )) ||
                                                         (userConfig.subscription_state ===
                                                             "unsubscribed" && (
-                                                                <>
-                                                                    <p className="text-xl">Futurist</p>
+                                                            <>
+                                                                <p className="text-xl">Futurist</p>
+                                                                <p className="text-gray-400">
+                                                                    Subscription <b>ends</b> on{" "}
+                                                                    <b>
+                                                                        {
+                                                                            userConfig.subscription_renewal_date
+                                                                        }
+                                                                    </b>
+                                                                </p>
+                                                            </>
+                                                        )) ||
+                                                        (userConfig.subscription_state ===
+                                                            "expired" && (
+                                                            <>
+                                                                <p className="text-xl">Humanist</p>
+                                                                {(userConfig.subscription_renewal_date && (
                                                                     <p className="text-gray-400">
-                                                                        Subscription <b>ends</b> on{" "}
+                                                                        Subscription <b>expired</b>{" "}
+                                                                        on{" "}
                                                                         <b>
                                                                             {
                                                                                 userConfig.subscription_renewal_date
                                                                             }
                                                                         </b>
                                                                     </p>
-                                                                </>
-                                                            )) ||
-                                                        (userConfig.subscription_state ===
-                                                            "expired" && (
-                                                                <>
-                                                                    <p className="text-xl">Humanist</p>
-                                                                    {(userConfig.subscription_renewal_date && (
-                                                                        <p className="text-gray-400">
-                                                                            Subscription <b>expired</b>{" "}
-                                                                            on{" "}
-                                                                            <b>
-                                                                                {
-                                                                                    userConfig.subscription_renewal_date
-                                                                                }
-                                                                            </b>
-                                                                        </p>
-                                                                    )) || (
-                                                                            <p className="text-gray-400">
-                                                                                Check{" "}
-                                                                                <a
-                                                                                    href="https://khoj.dev/#pricing"
-                                                                                    target="_blank"
-                                                                                >
-                                                                                    pricing page
-                                                                                </a>{" "}
-                                                                                to compare plans.
-                                                                            </p>
-                                                                        )}
-                                                                </>
-                                                            ))}
+                                                                )) || (
+                                                                    <p className="text-gray-400">
+                                                                        Check{" "}
+                                                                        <a
+                                                                            href="https://khoj.dev/#pricing"
+                                                                            target="_blank"
+                                                                        >
+                                                                            pricing page
+                                                                        </a>{" "}
+                                                                        to compare plans.
+                                                                    </p>
+                                                                )}
+                                                            </>
+                                                        ))}
                                                 </CardContent>
                                                 <CardFooter className="flex flex-wrap gap-4">
                                                     {(userConfig.subscription_state ==
                                                         "subscribed" && (
-                                                            <Button
-                                                                variant="outline"
-                                                                className="hover:text-red-400"
-                                                                onClick={() =>
-                                                                    setSubscription("cancel")
-                                                                }
-                                                            >
-                                                                <ArrowCircleDown className="h-5 w-5 mr-2" />
-                                                                Unsubscribe
-                                                            </Button>
-                                                        )) ||
+                                                        <Button
+                                                            variant="outline"
+                                                            className="hover:text-red-400"
+                                                            onClick={() =>
+                                                                setSubscription("cancel")
+                                                            }
+                                                        >
+                                                            <ArrowCircleDown className="h-5 w-5 mr-2" />
+                                                            Unsubscribe
+                                                        </Button>
+                                                    )) ||
                                                         (userConfig.subscription_state ==
                                                             "unsubscribed" && (
-                                                                <Button
-                                                                    variant="outline"
-                                                                    className="text-primary/80 hover:text-primary"
-                                                                    onClick={() =>
-                                                                        setSubscription("resubscribe")
-                                                                    }
-                                                                >
-                                                                    <ArrowCircleUp
-                                                                        weight="bold"
-                                                                        className="h-5 w-5 mr-2"
-                                                                    />
-                                                                    Resubscribe
-                                                                </Button>
-                                                            )) ||
+                                                            <Button
+                                                                variant="outline"
+                                                                className="text-primary/80 hover:text-primary"
+                                                                onClick={() =>
+                                                                    setSubscription("resubscribe")
+                                                                }
+                                                            >
+                                                                <ArrowCircleUp
+                                                                    weight="bold"
+                                                                    className="h-5 w-5 mr-2"
+                                                                />
+                                                                Resubscribe
+                                                            </Button>
+                                                        )) ||
                                                         (userConfig.subscription_enabled_trial_at && (
                                                             <Button
                                                                 variant="outline"
@@ -1062,16 +1072,16 @@ export default function SettingsView() {
                                                     <Button variant="outline" size="sm">
                                                         {(userConfig.enabled_content_source
                                                             .github && (
-                                                                <>
-                                                                    <Files className="h-5 w-5 inline mr-1" />
-                                                                    Manage
-                                                                </>
-                                                            )) || (
-                                                                <>
-                                                                    <Plugs className="h-5 w-5 inline mr-1" />
-                                                                    Connect
-                                                                </>
-                                                            )}
+                                                            <>
+                                                                <Files className="h-5 w-5 inline mr-1" />
+                                                                Manage
+                                                            </>
+                                                        )) || (
+                                                            <>
+                                                                <Plugs className="h-5 w-5 inline mr-1" />
+                                                                Connect
+                                                            </>
+                                                        )}
                                                     </Button>
                                                     <Button
                                                         variant="outline"
@@ -1113,8 +1123,8 @@ export default function SettingsView() {
                                                     {
                                                         /* Show connect to notion button if notion oauth url setup and user disconnected*/
                                                         userConfig.notion_oauth_url &&
-                                                            !userConfig.enabled_content_source
-                                                                .notion ? (
+                                                        !userConfig.enabled_content_source
+                                                            .notion ? (
                                                             <Button
                                                                 variant="outline"
                                                                 size="sm"
@@ -1128,39 +1138,39 @@ export default function SettingsView() {
                                                                 Connect
                                                             </Button>
                                                         ) : /* Show sync button if user connected to notion and API key unchanged */
-                                                            userConfig.enabled_content_source.notion &&
-                                                                notionToken ===
-                                                                userConfig.notion_token ? (
-                                                                <Button
-                                                                    variant="outline"
-                                                                    size="sm"
-                                                                    onClick={() =>
-                                                                        syncContent("notion")
-                                                                    }
-                                                                >
-                                                                    <ArrowsClockwise className="h-5 w-5 inline mr-1" />
-                                                                    Sync
-                                                                </Button>
-                                                            ) : /* Show set API key button notion oauth url not set setup */
-                                                                !userConfig.notion_oauth_url ? (
-                                                                    <Button
-                                                                        variant="outline"
-                                                                        size="sm"
-                                                                        onClick={saveNotionToken}
-                                                                        disabled={
-                                                                            notionToken ===
-                                                                            userConfig.notion_token
-                                                                        }
-                                                                    >
-                                                                        <FloppyDisk className="h-5 w-5 inline mr-1" />
-                                                                        {(userConfig.enabled_content_source
-                                                                            .notion &&
-                                                                            "Update API Key") ||
-                                                                            "Set API Key"}
-                                                                    </Button>
-                                                                ) : (
-                                                                    <></>
-                                                                )
+                                                        userConfig.enabled_content_source.notion &&
+                                                          notionToken ===
+                                                              userConfig.notion_token ? (
+                                                            <Button
+                                                                variant="outline"
+                                                                size="sm"
+                                                                onClick={() =>
+                                                                    syncContent("notion")
+                                                                }
+                                                            >
+                                                                <ArrowsClockwise className="h-5 w-5 inline mr-1" />
+                                                                Sync
+                                                            </Button>
+                                                        ) : /* Show set API key button notion oauth url not set setup */
+                                                        !userConfig.notion_oauth_url ? (
+                                                            <Button
+                                                                variant="outline"
+                                                                size="sm"
+                                                                onClick={saveNotionToken}
+                                                                disabled={
+                                                                    notionToken ===
+                                                                    userConfig.notion_token
+                                                                }
+                                                            >
+                                                                <FloppyDisk className="h-5 w-5 inline mr-1" />
+                                                                {(userConfig.enabled_content_source
+                                                                    .notion &&
+                                                                    "Update API Key") ||
+                                                                    "Set API Key"}
+                                                            </Button>
+                                                        ) : (
+                                                            <></>
+                                                        )
                                                     }
                                                     <Button
                                                         variant="outline"
@@ -1201,7 +1211,10 @@ export default function SettingsView() {
                                                     <CardFooter className="flex flex-wrap gap-4">
                                                         {!userConfig.is_active && (
                                                             <p className="text-gray-400">
-                                                                {userConfig.chat_model_options.some(model => model.tier === "free")
+                                                                {userConfig.chat_model_options.some(
+                                                                    (model) =>
+                                                                        model.tier === "free",
+                                                                )
                                                                     ? "Free models available"
                                                                     : "Subscribe to switch model"}
                                                             </p>
@@ -1232,7 +1245,10 @@ export default function SettingsView() {
                                                     <CardFooter className="flex flex-wrap gap-4">
                                                         {!userConfig.is_active && (
                                                             <p className="text-gray-400">
-                                                                {userConfig.paint_model_options.some(model => model.tier === "free")
+                                                                {userConfig.paint_model_options.some(
+                                                                    (model) =>
+                                                                        model.tier === "free",
+                                                                )
                                                                     ? "Free models available"
                                                                     : "Subscribe to switch model"}
                                                             </p>
@@ -1263,7 +1279,10 @@ export default function SettingsView() {
                                                     <CardFooter className="flex flex-wrap gap-4">
                                                         {!userConfig.is_active && (
                                                             <p className="text-gray-400">
-                                                                {userConfig.voice_model_options.some(model => model.tier === "free")
+                                                                {userConfig.voice_model_options.some(
+                                                                    (model) =>
+                                                                        model.tier === "free",
+                                                                )
                                                                     ? "Free models available"
                                                                     : "Subscribe to switch model"}
                                                             </p>
@@ -1297,9 +1316,13 @@ export default function SettingsView() {
                                                     </p>
                                                     {exportProgress > 0 && (
                                                         <div className="w-full mt-4">
-                                                            <Progress value={exportProgress} className="w-full" />
+                                                            <Progress
+                                                                value={exportProgress}
+                                                                className="w-full"
+                                                            />
                                                             <p className="text-sm text-gray-500 mt-2">
-                                                                Exported {exportedConversations} of {totalConversations} conversations
+                                                                Exported {exportedConversations} of{" "}
+                                                                {totalConversations} conversations
                                                             </p>
                                                         </div>
                                                     )}
@@ -1311,7 +1334,9 @@ export default function SettingsView() {
                                                         disabled={isExporting}
                                                     >
                                                         <Download className="h-5 w-5 mr-2" />
-                                                        {isExporting ? "Exporting..." : "Export Chats"}
+                                                        {isExporting
+                                                            ? "Exporting..."
+                                                            : "Export Chats"}
                                                     </Button>
                                                 </CardFooter>
                                             </Card>
@@ -1361,7 +1386,11 @@ export default function SettingsView() {
                                                 </CardHeader>
                                                 <CardContent className="overflow-hidden">
                                                     <p className="pb-4 text-gray-400">
-                                                        This will delete all your account data, including conversations, agents, and any assets you{"'"}ve generated. Be sure to export before you do this if you want to keep your information.
+                                                        This will delete all your account data,
+                                                        including conversations, agents, and any
+                                                        assets you{"'"}ve generated. Be sure to
+                                                        export before you do this if you want to
+                                                        keep your information.
                                                     </p>
                                                 </CardContent>
                                                 <CardFooter className="flex flex-wrap gap-4">
@@ -1377,36 +1406,56 @@ export default function SettingsView() {
                                                         </AlertDialogTrigger>
                                                         <AlertDialogContent>
                                                             <AlertDialogHeader>
-                                                                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                                                                <AlertDialogTitle>
+                                                                    Are you absolutely sure?
+                                                                </AlertDialogTitle>
                                                                 <AlertDialogDescription>
-                                                                    This action is irreversible. This will permanently delete your account
-                                                                    and remove all your data from our servers.
+                                                                    This action is irreversible.
+                                                                    This will permanently delete
+                                                                    your account and remove all your
+                                                                    data from our servers.
                                                                 </AlertDialogDescription>
                                                             </AlertDialogHeader>
                                                             <AlertDialogFooter>
-                                                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                                                <AlertDialogCancel>
+                                                                    Cancel
+                                                                </AlertDialogCancel>
                                                                 <AlertDialogAction
                                                                     className="bg-red-500 hover:bg-red-600"
                                                                     onClick={async () => {
                                                                         try {
-                                                                            const response = await fetch('/api/self', {
-                                                                                method: 'DELETE'
-                                                                            });
-                                                                            if (!response.ok) throw new Error('Failed to delete account');
+                                                                            const response =
+                                                                                await fetch(
+                                                                                    "/api/self",
+                                                                                    {
+                                                                                        method: "DELETE",
+                                                                                    },
+                                                                                );
+                                                                            if (!response.ok)
+                                                                                throw new Error(
+                                                                                    "Failed to delete account",
+                                                                                );
 
                                                                             toast({
                                                                                 title: "Account Deleted",
-                                                                                description: "Your account has been successfully deleted.",
+                                                                                description:
+                                                                                    "Your account has been successfully deleted.",
                                                                             });
 
                                                                             // Redirect to home page after successful deletion
-                                                                            window.location.href = "/";
+                                                                            window.location.href =
+                                                                                "/";
                                                                         } catch (error) {
-                                                                            console.error('Error deleting account:', error);
+                                                                            console.error(
+                                                                                "Error deleting account:",
+                                                                                error,
+                                                                            );
                                                                             toast({
                                                                                 title: "Error",
-                                                                                description: "Failed to delete account. Please try again or contact support.",
-                                                                                variant: "destructive"
+                                                                                description:
+                                                                                    "Failed to delete account. Please try again or contact support.",
+                                                                                variant:
+                                                                                    "destructive",
                                                                             });
                                                                         }
                                                                     }}

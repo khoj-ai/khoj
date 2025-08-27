@@ -4,16 +4,15 @@ import time
 
 from khoj.processor.content.org_mode.org_to_entries import OrgToEntries
 from khoj.processor.content.text_to_entries import TextToEntries
-from khoj.utils.fs_syncer import get_org_files
 from khoj.utils.helpers import is_none_or_empty
-from khoj.utils.rawconfig import Entry, TextContentConfig
+from khoj.utils.rawconfig import Entry
 
 
 def test_configure_indexing_heading_only_entries(tmp_path):
     """Ensure entries with empty body are ignored, unless explicitly configured to index heading entries.
     Property drawers not considered Body. Ignore control characters for evaluating if Body empty."""
     # Arrange
-    entry = f"""*** Heading
+    entry = """*** Heading
     :PROPERTIES:
     :ID:       42-42-42
     :END:
@@ -75,7 +74,7 @@ def test_entry_split_when_exceeds_max_tokens():
     "Ensure entries with compiled words exceeding max_tokens are split."
     # Arrange
     tmp_path = "/tmp/test.org"
-    entry = f"""*** Heading
+    entry = """*** Heading
     \t\r
     Body Line
     """
@@ -100,7 +99,7 @@ def test_entry_split_when_exceeds_max_tokens():
 def test_entry_split_drops_large_words():
     "Ensure entries drops words larger than specified max word length from compiled version."
     # Arrange
-    entry_text = f"""First Line
+    entry_text = """First Line
 dog=1\n\r\t
 cat=10
 car=4
@@ -125,7 +124,7 @@ book=2
 def test_parse_org_file_into_single_entry_if_small(tmp_path):
     "Parse org file into single entry if it fits within the token limits."
     # Arrange
-    original_entry = f"""
+    original_entry = """
 * Heading 1
 body line 1
 ** Subheading 1.1
@@ -134,7 +133,7 @@ body line 1.1
     data = {
         f"{tmp_path}": original_entry,
     }
-    expected_entry = f"""
+    expected_entry = """
 * Heading 1
 body line 1
 
@@ -147,18 +146,16 @@ body line 1.1
     # Extract Entries from specified Org files
     extracted_entries = OrgToEntries.extract_org_entries(org_files=data, max_tokens=12)
     assert len(extracted_entries) == 2
-    for entry in extracted_entries[1]:
-        entry.raw = clean(entry.raw)
 
     # Assert
     assert len(extracted_entries[1]) == 1
-    assert entry.raw == expected_entry
+    assert extracted_entries[1][-1].raw == expected_entry
 
 
 def test_parse_org_entry_with_children_as_single_entry_if_small(tmp_path):
     "Parse org entry with child headings as single entry only if it fits within the tokens limits."
     # Arrange
-    entry = f"""
+    entry = """
 * Heading 1
 body line 1
 ** Subheading 1.1
@@ -208,7 +205,7 @@ longer body line 2.1
 def test_separate_sibling_org_entries_if_all_cannot_fit_in_token_limit(tmp_path):
     "Parse org sibling entries as separate entries only if it fits within the tokens limits."
     # Arrange
-    entry = f"""
+    entry = """
 * Heading 1
 body line 1
 ** Subheading 1.1
@@ -270,7 +267,7 @@ body line 3.1
 def test_entry_with_body_to_entry(tmp_path):
     "Ensure entries with valid body text are loaded."
     # Arrange
-    entry = f"""*** Heading
+    entry = """*** Heading
     :PROPERTIES:
     :ID:       42-42-42
     :END:
@@ -293,7 +290,7 @@ def test_entry_with_body_to_entry(tmp_path):
 def test_file_with_entry_after_intro_text_to_entry(tmp_path):
     "Ensure intro text before any headings is indexed."
     # Arrange
-    entry = f"""
+    entry = """
 Intro text
 
 * Entry Heading
@@ -315,7 +312,7 @@ Intro text
 def test_file_with_no_headings_to_entry(tmp_path):
     "Ensure files with no heading, only body text are loaded."
     # Arrange
-    entry = f"""
+    entry = """
     - Bullet point 1
     - Bullet point 2
     """
@@ -332,50 +329,10 @@ def test_file_with_no_headings_to_entry(tmp_path):
     assert len(entries[1]) == 1
 
 
-def test_get_org_files(tmp_path):
-    "Ensure Org files specified via input-filter, input-files extracted"
-    # Arrange
-    # Include via input-filter globs
-    group1_file1 = create_file(tmp_path, filename="group1-file1.org")
-    group1_file2 = create_file(tmp_path, filename="group1-file2.org")
-    group2_file1 = create_file(tmp_path, filename="group2-file1.org")
-    group2_file2 = create_file(tmp_path, filename="group2-file2.org")
-    # Include via input-file field
-    orgfile1 = create_file(tmp_path, filename="orgfile1.org")
-    # Not included by any filter
-    create_file(tmp_path, filename="orgfile2.org")
-    create_file(tmp_path, filename="text1.txt")
-
-    expected_files = set(
-        [
-            os.path.join(tmp_path, file.name)
-            for file in [group1_file1, group1_file2, group2_file1, group2_file2, orgfile1]
-        ]
-    )
-
-    # Setup input-files, input-filters
-    input_files = [tmp_path / "orgfile1.org"]
-    input_filter = [tmp_path / "group1*.org", tmp_path / "group2*.org"]
-
-    org_config = TextContentConfig(
-        input_files=input_files,
-        input_filter=[str(filter) for filter in input_filter],
-        compressed_jsonl=tmp_path / "test.jsonl",
-        embeddings_file=tmp_path / "test_embeddings.jsonl",
-    )
-
-    # Act
-    extracted_org_files = get_org_files(org_config)
-
-    # Assert
-    assert len(extracted_org_files) == 5
-    assert set(extracted_org_files.keys()) == expected_files
-
-
 def test_extract_entries_with_different_level_headings(tmp_path):
     "Extract org entries with different level headings."
     # Arrange
-    entry = f"""
+    entry = """
 * Heading 1
 ** Sub-Heading 1.1
 * Heading 2
@@ -388,13 +345,67 @@ def test_extract_entries_with_different_level_headings(tmp_path):
     # Extract Entries from specified Org files
     entries = OrgToEntries.extract_org_entries(org_files=data, index_heading_entries=True, max_tokens=3)
     assert len(entries) == 2
-    for entry in entries[1]:
-        entry.raw = clean(f"{entry.raw}")
 
     # Assert
     assert len(entries[1]) == 2
     assert entries[1][0].raw == "* Heading 1\n** Sub-Heading 1.1\n", "Ensure entry includes heading ancestory"
     assert entries[1][1].raw == "* Heading 2\n"
+
+
+def test_line_number_tracking_in_recursive_split():
+    "Ensure line numbers in URIs are correct after recursive splitting by checking against the actual file."
+    # Arrange
+    org_file_path = os.path.abspath("tests/data/org/main_readme.org")
+
+    with open(org_file_path, "r") as f:
+        org_content = f.read()
+    lines = org_content.splitlines()
+    data = {org_file_path: org_content}
+
+    # Act
+    # Using a small max_tokens to force recursive splitting
+    _, entries = OrgToEntries.extract_org_entries(org_files=data, max_tokens=10, index_heading_entries=True)
+
+    # Assert
+    assert len(entries) > 0, "No entries were extracted."
+
+    for entry in entries:
+        # Extract file path and line number from the entry URI
+        # for files uri is expected in format: file:///path/to/file.org#line=5
+        match = re.search(r"file://(.*?)#line=(\d+)", entry.uri)
+        if not match:
+            continue
+        filepath_from_uri = match.group(1)
+        line_number_from_uri = int(match.group(2))
+
+        # line_number is 1-based, list index is 0-based
+        line_in_file = clean(lines[line_number_from_uri - 1])
+        next_line_in_file = clean(lines[line_number_from_uri]) if line_number_from_uri < len(lines) else ""
+
+        # Remove ancestor heading lines inserted during post-processing
+        first_entry_line = ""
+        for line in entry.raw.splitlines():
+            if line.startswith("*"):
+                first_entry_line = line
+            else:
+                break  # Stop at the first non-heading line
+        # Remove heading prefix from entry.compiled as level changed during post-processing
+        cleaned_first_entry_line = first_entry_line.strip()
+        # Remove multiple consecutive spaces
+        cleaned_first_entry_line = clean(cleaned_first_entry_line)
+
+        assert entry.uri is not None, f"Entry '{entry}' has a None URI."
+        assert match is not None, f"URI format is incorrect: {entry.uri}"
+        assert filepath_from_uri == org_file_path, (
+            f"File path in URI '{filepath_from_uri}' does not match expected '{org_file_path}'"
+        )
+
+        # Ensure the first non-heading line in the compiled entry matches the line in the file
+        assert (
+            cleaned_first_entry_line in line_in_file.strip() or cleaned_first_entry_line in next_line_in_file.strip()
+        ), (
+            f"First non-heading line '{cleaned_first_entry_line}' in {entry.raw} does not match line {line_number_from_uri} in file: '{line_in_file}' or next line '{next_line_in_file}'"
+        )
 
 
 # Helper Functions
@@ -406,6 +417,6 @@ def create_file(tmp_path, entry=None, filename="test.org"):
     return org_file
 
 
-def clean(entry):
-    "Remove properties from entry for easier comparison."
-    return re.sub(r"\n:PROPERTIES:(.*?):END:", "", entry, flags=re.DOTALL)
+def clean(text):
+    "Normalize spaces in text for easier comparison."
+    return re.sub(r"\s+", " ", text)

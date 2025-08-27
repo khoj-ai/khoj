@@ -3,7 +3,7 @@
 
   All data is processed locally. User can interface with khoj app via [[./interface/emacs/khoj.el][Emacs]], API or Commandline
 
-** Dependencies
+** Dependencies [[id:123-421-121-12]]  :TAG1:@TAG1_1:
    - Python3
    - [[https://docs.conda.io/en/latest/miniconda.html#latest-miniconda-installer-links][Miniconda]]
 
@@ -22,7 +22,7 @@
    #+end_src
 
 ** Use
-*** *Khoj via Emacs*
+*** *Khoj via Emacs*  [[https://khoj.dev][link to khoj website]]  :@EMACS:CLIENT_1:KHOJ:
      - [[https://github.com/khoj-ai/khoj/tree/master/interface/emacs#installation][Install]] [[./interface/emacs/khoj.el][khoj.el]]
      - Run ~M-x khoj <user-query>~ or Call ~C-c C-s~
 

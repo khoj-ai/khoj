@@ -1,0 +1,37 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Launch Khoj",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "src.khoj.main",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "sudo": false,
+            "args": [
+                "-v",
+                "--anonymous-mode",
+                // "--non-interactive",
+                "--port=42110",
+                // "--host=example.com",
+                // "--sslcert=ssl.crt",
+                // "--sslkey=ssl.key",
+            ],
+            "envFile": "${workspaceFolder}/.env",
+            "env": {
+                "KHOJ_ADMIN_EMAIL": "admin",
+                "KHOJ_ADMIN_PASSWORD": "admin",
+                "USE_EMBEDDED_DB": "true",
+                "KHOJ_DEBUG": "true",
+                "KHOJ_TELEMETRY_DISABLED": "true",
+                // Configure Code Sandbox
+                // "KHOJ_TERRARIUM_URL": "http://localhost:8080",
+                // Enable Promptracer to debug prompt flows
+                // "PROMPTRACE_DIR": "\${workspaceFolder}/promptrace",
+                // Enable Khoj Operator
+                // "KHOJ_OPERATOR_ENABLED": "True",
+            }
+        },
+    ]
+}

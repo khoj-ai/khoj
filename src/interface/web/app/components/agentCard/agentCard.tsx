@@ -533,6 +533,7 @@ export function AgentModificationForm(props: AgentModificationFormProps) {
     const [uploadedFiles, setUploadedFiles] = useState<string[]>([]);
     const [allFileOptions, setAllFileOptions] = useState<string[]>([]);
     const [currentStep, setCurrentStep] = useState(0);
+    const [fileSearchValue, setFileSearchValue] = useState("");
 
     const [showSubscribeDialog, setShowSubscribeDialog] = useState(false);
 
@@ -1044,10 +1045,81 @@ export function AgentModificationForm(props: AgentModificationFormProps) {
                                                     </div>
                                                 </div>
                                             </div>
-                                            <CommandInput placeholder="Select files..." />
+                                            <CommandInput
+                                                placeholder="Select files..."
+                                                value={fileSearchValue}
+                                                onValueChange={setFileSearchValue}
+                                            />
                                             <CommandList>
                                                 <CommandEmpty>No files found.</CommandEmpty>
                                                 <CommandGroup>
+                                                    <div className="flex gap-2 px-2 py-1 border-b">
+                                                        <Button
+                                                            type="button"
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            className="h-6 px-2 text-xs"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                const filteredFiles =
+                                                                    allFileOptions.filter((file) =>
+                                                                        file
+                                                                            .toLowerCase()
+                                                                            .includes(
+                                                                                fileSearchValue.toLowerCase(),
+                                                                            ),
+                                                                    );
+                                                                const currentFiles =
+                                                                    props.form.getValues("files") ||
+                                                                    [];
+                                                                const newFiles = [
+                                                                    ...new Set([
+                                                                        ...currentFiles,
+                                                                        ...filteredFiles,
+                                                                    ]),
+                                                                ];
+                                                                props.form.setValue(
+                                                                    "files",
+                                                                    newFiles,
+                                                                );
+                                                            }}
+                                                        >
+                                                            Select All
+                                                        </Button>
+                                                        <Button
+                                                            type="button"
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            className="h-6 px-2 text-xs"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                const filteredFiles =
+                                                                    allFileOptions.filter((file) =>
+                                                                        file
+                                                                            .toLowerCase()
+                                                                            .includes(
+                                                                                fileSearchValue.toLowerCase(),
+                                                                            ),
+                                                                    );
+                                                                const currentFiles =
+                                                                    props.form.getValues("files") ||
+                                                                    [];
+                                                                const newFiles =
+                                                                    currentFiles.filter(
+                                                                        (file) =>
+                                                                            !filteredFiles.includes(
+                                                                                file,
+                                                                            ),
+                                                                    );
+                                                                props.form.setValue(
+                                                                    "files",
+                                                                    newFiles,
+                                                                );
+                                                            }}
+                                                        >
+                                                            Deselect All
+                                                        </Button>
+                                                    </div>
                                                     {allFileOptions.map((file) => (
                                                         <CommandItem
                                                             value={file}

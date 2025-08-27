@@ -8,12 +8,10 @@ from tqdm import trange
 
 class BaseEncoder(ABC):
     @abstractmethod
-    def __init__(self, model_name: str, device: torch.device = None, **kwargs):
-        ...
+    def __init__(self, model_name: str, device: torch.device = None, **kwargs): ...
 
     @abstractmethod
-    def encode(self, entries: List[str], device: torch.device = None, **kwargs) -> torch.Tensor:
-        ...
+    def encode(self, entries: List[str], device: torch.device = None, **kwargs) -> torch.Tensor: ...
 
 
 class OpenAI(BaseEncoder):
