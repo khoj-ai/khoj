@@ -875,6 +875,12 @@ def convert_image_data_uri(image_data_uri: str, target_format: str = "png") -> s
         return output_data_uri
 
 
+class ImageShape(str, Enum):
+    PORTRAIT = "Portrait"
+    LANDSCAPE = "Landscape"
+    SQUARE = "Square"
+
+
 def truncate_code_context(original_code_results: dict[str, Any], max_chars=10000) -> dict[str, Any]:
     """
     Truncate large output files and drop image file data from code results.

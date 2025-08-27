@@ -27,7 +27,7 @@ from khoj.database.models import (
     TextToImageModelConfig,
 )
 from khoj.processor.conversation.google.utils import _is_retryable_error
-from khoj.routers.helpers import ChatEvent, generate_better_image_prompt
+from khoj.routers.helpers import ChatEvent, ImageShape, generate_better_image_prompt
 from khoj.routers.storage import upload_generated_image_to_bucket
 from khoj.utils import state
 from khoj.utils.helpers import convert_image_to_webp, timer
@@ -80,7 +80,7 @@ async def text_to_image(
 
     # Generate a better image prompt
     # Use the user's message, chat history, and other context
-    image_prompt = await generate_better_image_prompt(
+    image_prompt_response = await generate_better_image_prompt(
         message,
         image_chat_history,
         location_data=location_data,
@@ -93,6 +93,8 @@ async def text_to_image(
         query_files=query_files,
         tracer=tracer,
     )
+    image_prompt = image_prompt_response["description"]
+    image_shape = image_prompt_response["shape"]
 
     if send_status_func:
         async for event in send_status_func(f"**Painting to Imagine**:\n{image_prompt}"):
@@ -102,13 +104,19 @@ async def text_to_image(
     with timer(f"Generate image with {text_to_image_config.model_type}", logger):
         try:
             if text_to_image_config.model_type == TextToImageModelConfig.ModelType.OPENAI:
-                webp_image_bytes = generate_image_with_openai(image_prompt, text_to_image_config, text2image_model)
+                webp_image_bytes = generate_image_with_openai(
+                    image_prompt, text_to_image_config, text2image_model, image_shape
+                )
             elif text_to_image_config.model_type == TextToImageModelConfig.ModelType.STABILITYAI:
                 webp_image_bytes = generate_image_with_stability(image_prompt, text_to_image_config, text2image_model)
             elif text_to_image_config.model_type == TextToImageModelConfig.ModelType.REPLICATE:
-                webp_image_bytes = generate_image_with_replicate(image_prompt, text_to_image_config, text2image_model)
+                webp_image_bytes = generate_image_with_replicate(
+                    image_prompt, text_to_image_config, text2image_model, image_shape
+                )
             elif text_to_image_config.model_type == TextToImageModelConfig.ModelType.GOOGLE:
-                webp_image_bytes = generate_image_with_google(image_prompt, text_to_image_config, text2image_model)
+                webp_image_bytes = generate_image_with_google(
+                    image_prompt, text_to_image_config, text2image_model, image_shape
+                )
         except openai.OpenAIError or openai.BadRequestError or openai.APIConnectionError as e:
             if "content_policy_violation" in e.message:
                 logger.error(f"Image Generation blocked by OpenAI: {e}")
@@ -159,7 +167,10 @@ async def text_to_image(
     reraise=True,
 )
 def generate_image_with_openai(
-    improved_image_prompt: str, text_to_image_config: TextToImageModelConfig, text2image_model: str
+    improved_image_prompt: str,
+    text_to_image_config: TextToImageModelConfig,
+    text2image_model: str,
+    shape: ImageShape = ImageShape.SQUARE,
 ):
     "Generate image using OpenAI (compatible) API"
 
@@ -175,12 +186,21 @@ def generate_image_with_openai(
     elif state.openai_client:
         openai_client = state.openai_client
 
+    # Convert shape to size for OpenAI
+    if shape == ImageShape.PORTRAIT:
+        size = "1024x1536"
+    elif shape == ImageShape.LANDSCAPE:
+        size = "1536x1024"
+    else:  # Square
+        size = "1024x1024"
+
     # Generate image using OpenAI API
     OPENAI_IMAGE_GEN_STYLE = "vivid"
     response = openai_client.images.generate(
         prompt=improved_image_prompt,
         model=text2image_model,
         style=OPENAI_IMAGE_GEN_STYLE,
+        size=size,
         response_format="b64_json",
     )
 
@@ -227,9 +247,21 @@ def generate_image_with_stability(
     reraise=True,
 )
 def generate_image_with_replicate(
-    improved_image_prompt: str, text_to_image_config: TextToImageModelConfig, text2image_model: str
+    improved_image_prompt: str,
+    text_to_image_config: TextToImageModelConfig,
+    text2image_model: str,
+    shape: ImageShape = ImageShape.SQUARE,
 ):
     "Generate image using Replicate API"
+
+    # Convert shape to aspect ratio for Replicate
+    # Replicate supports only 1:1, 3:4, and 4:3 aspect ratios
+    if shape == ImageShape.PORTRAIT:
+        aspect_ratio = "3:4"
+    elif shape == ImageShape.LANDSCAPE:
+        aspect_ratio = "4:3"
+    else:  # Square
+        aspect_ratio = "1:1"
 
     # Create image generation task on Replicate
     replicate_create_prediction_url = f"https://api.replicate.com/v1/models/{text2image_model}/predictions"
@@ -241,7 +273,7 @@ def generate_image_with_replicate(
         "input": {
             "prompt": improved_image_prompt,
             "num_outputs": 1,
-            "aspect_ratio": "1:1",
+            "aspect_ratio": aspect_ratio,
             "output_format": "webp",
             "output_quality": 100,
         }
@@ -286,13 +318,24 @@ def generate_image_with_replicate(
     reraise=True,
 )
 def generate_image_with_google(
-    improved_image_prompt: str, text_to_image_config: TextToImageModelConfig, text2image_model: str
+    improved_image_prompt: str,
+    text_to_image_config: TextToImageModelConfig,
+    text2image_model: str,
+    shape: ImageShape = ImageShape.SQUARE,
 ):
     """Generate image using Google's AI over API"""
 
     # Initialize the Google AI client
     api_key = text_to_image_config.api_key or text_to_image_config.ai_model_api.api_key
     client = genai.Client(api_key=api_key)
+
+    # Convert shape to aspect ratio for Google
+    if shape == ImageShape.PORTRAIT:
+        aspect_ratio = "3:4"
+    elif shape == ImageShape.LANDSCAPE:
+        aspect_ratio = "4:3"
+    else:  # Square
+        aspect_ratio = "1:1"
 
     # Configure image generation settings
     config = gtypes.GenerateImagesConfig(
@@ -301,6 +344,7 @@ def generate_image_with_google(
         person_generation=gtypes.PersonGeneration.ALLOW_ADULT,
         include_rai_reason=True,
         output_mime_type="image/png",
+        aspect_ratio=aspect_ratio,
     )
 
     # Call the Gemini API to generate the image

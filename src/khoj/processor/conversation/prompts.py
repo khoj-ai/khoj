@@ -122,7 +122,8 @@ Your image description will be transformed into an image by an AI model on your 
 # Instructions
 - Retain important information and follow instructions by the user when composing the image description.
 - Weave in the context provided below if it will enhance the image.
-- Specify desired elements, lighting, mood, and composition.
+- Specify desired elements, lighting, mood, and composition in the description.
+- Decide the shape best suited to render the image. It can be one of square, portrait or landscape.
 - Add specific, fine position details. Mention painting style, camera parameters to compose the image.
 - Transform any negations in user instructions into positive alternatives.
   Instead of saying what should NOT be in the image, describe what SHOULD be there instead.
@@ -142,9 +143,8 @@ Your image description will be transformed into an image by an AI model on your 
 ## Online References
 {online_results}
 
-Now generate a vivid description of the image to be rendered.
-
-Image Description:
+Now generate a vivid description of the image and image shape to be rendered.
+Your response should be a JSON object with 'description' and 'shape' fields specified.
 """.strip()
 )
 

@@ -113,6 +113,7 @@ from khoj.utils import state
 from khoj.utils.helpers import (
     LRU,
     ConversationCommand,
+    ImageShape,
     ToolDefinition,
     get_file_type,
     in_debug_mode,
@@ -1076,7 +1077,7 @@ async def generate_better_image_prompt(
     agent: Agent = None,
     query_files: str = "",
     tracer: dict = {},
-) -> str:
+) -> dict:
     """
     Generate a better image prompt from the given query
     """
@@ -1104,10 +1105,16 @@ async def generate_better_image_prompt(
         personality_context=personality_context,
     )
 
+    class ImagePromptResponse(BaseModel):
+        description: str = Field(description="Enhanced image description")
+        shape: ImageShape = Field(
+            description="Aspect ratio/shape best suited to render the image: Portrait, Landscape, or Square"
+        )
+
     agent_chat_model = AgentAdapters.get_agent_chat_model(agent, user) if agent else None
 
     with timer("Chat actor: Generate contextual image prompt", logger):
-        response = await send_message_to_model_wrapper(
+        raw_response = await send_message_to_model_wrapper(
             q,
             system_message=enhance_image_system_message,
             query_images=query_images,
@@ -1115,13 +1122,19 @@ async def generate_better_image_prompt(
             chat_history=conversation_history,
             agent_chat_model=agent_chat_model,
             user=user,
+            response_type="json_object",
+            response_schema=ImagePromptResponse,
             tracer=tracer,
         )
-        response_text = response.text.strip()
-        if response_text.startswith(('"', "'")) and response_text.endswith(('"', "'")):
-            response_text = response_text[1:-1]
 
-    return response_text
+        # Parse the structured response
+        try:
+            response = clean_json(raw_response.text)
+            parsed_response = pyjson5.loads(response)
+            return parsed_response
+        except Exception:
+            # Fallback to user query as image description
+            return {"description": q, "shape": ImageShape.SQUARE}
 
 
 async def search_documents(
