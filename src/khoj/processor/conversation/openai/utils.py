@@ -325,7 +325,7 @@ async def chat_completion_with_backoff(
     elif (
         model_name.startswith("deepseek-chat")
         or model_name.startswith("deepseek-reasoner")
-        or "deepseek-r1" in model_name
+        or "deepseek-r1" in model_name.lower()
     ):
         # Official Deepseek models and some inference APIs like vLLM return structured thinking output.
         # Others like DeepInfra return it in response stream.
