@@ -308,7 +308,7 @@ async def gemini_chat_completion_with_backoff(
     temperature: float,
     api_key: str,
     api_base_url: str,
-    system_prompt: str,
+    system_prompt: str = "",
     model_kwargs=None,
     deepthought=False,
     tracer: dict = {},

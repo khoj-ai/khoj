@@ -33,6 +33,7 @@ from apscheduler.triggers.cron import CronTrigger
 from asgiref.sync import sync_to_async
 from django.utils import timezone as django_timezone
 from fastapi import Depends, Header, HTTPException, Request, UploadFile, WebSocket
+from langchain_core.messages.chat import ChatMessage
 from pydantic import BaseModel, EmailStr, Field
 from starlette.authentication import has_required_scope
 from starlette.requests import URL
@@ -124,6 +125,7 @@ from khoj.utils.helpers import (
     mode_descriptions_for_llm,
     timer,
     tool_descriptions_for_llm,
+    truncate_code_context,
 )
 from khoj.utils.rawconfig import (
     ChatRequestBody,
@@ -132,6 +134,7 @@ from khoj.utils.rawconfig import (
     SearchResponse,
 )
 from khoj.utils.state import SearchType
+from khoj.utils.yaml import yaml_dump
 
 logger = logging.getLogger(__name__)
 
@@ -1598,6 +1601,105 @@ def send_message_to_model_wrapper_sync(
         raise HTTPException(status_code=500, detail="Invalid conversation config")
 
 
+def build_conversation_context(
+    # Query and Context
+    user_query: str,
+    references: List[Dict],
+    online_results: Dict[str, Dict],
+    code_results: Dict[str, Dict],
+    operator_results: List[OperatorRun],
+    query_files: str = None,
+    query_images: Optional[List[str]] = None,
+    generated_asset_results: Dict[str, Dict] = {},
+    program_execution_context: List[str] = None,
+    chat_history: List[ChatMessageModel] = [],
+    location_data: LocationData = None,
+    user_name: str = None,
+    # Model config
+    agent: Agent = None,
+    model_name: str = None,
+    model_type: ChatModel.ModelType = None,
+    max_prompt_size: int = None,
+    tokenizer_name: str = None,
+    vision_available: bool = False,
+) -> List[ChatMessage]:
+    """
+    Construct system, context and chatml messages for chat response.
+    Share common logic across different model types.
+
+    Returns:
+        List of ChatMessages with context
+    """
+    # Initialize Variables
+    current_date = datetime.now()
+
+    # Build system prompt
+    if agent and agent.personality:
+        system_prompt = prompts.custom_personality.format(
+            name=agent.name,
+            bio=agent.personality,
+            current_date=current_date.strftime("%Y-%m-%d"),
+            day_of_week=current_date.strftime("%A"),
+        )
+    else:
+        system_prompt = prompts.personality.format(
+            current_date=current_date.strftime("%Y-%m-%d"),
+            day_of_week=current_date.strftime("%A"),
+        )
+
+    # Add Gemini-specific personality enhancement
+    if model_type == ChatModel.ModelType.GOOGLE:
+        system_prompt += f"\n\n{prompts.gemini_verbose_language_personality}"
+
+    # Add location context if available
+    if location_data:
+        location_prompt = prompts.user_location.format(location=f"{location_data}")
+        system_prompt += f"\n{location_prompt}"
+
+    # Add user name context if available
+    if user_name:
+        user_name_prompt = prompts.user_name.format(name=user_name)
+        system_prompt += f"\n{user_name_prompt}"
+
+    # Build context message
+    context_message = ""
+    if not is_none_or_empty(references):
+        context_message = f"{prompts.notes_conversation.format(references=yaml_dump(references))}\n\n"
+    if not is_none_or_empty(online_results):
+        context_message += f"{prompts.online_search_conversation.format(online_results=yaml_dump(online_results))}\n\n"
+    if not is_none_or_empty(code_results):
+        context_message += (
+            f"{prompts.code_executed_context.format(code_results=truncate_code_context(code_results))}\n\n"
+        )
+    if not is_none_or_empty(operator_results):
+        operator_content = [
+            {"query": oc.query, "response": oc.response, "webpages": oc.webpages} for oc in operator_results
+        ]
+        context_message += (
+            f"{prompts.operator_execution_context.format(operator_results=yaml_dump(operator_content))}\n\n"
+        )
+    context_message = context_message.strip()
+
+    # Generate the chatml messages
+    messages = generate_chatml_messages_with_context(
+        user_message=user_query,
+        query_files=query_files,
+        query_images=query_images,
+        context_message=context_message,
+        generated_asset_results=generated_asset_results,
+        program_execution_context=program_execution_context,
+        chat_history=chat_history,
+        system_message=system_prompt,
+        model_name=model_name,
+        model_type=model_type,
+        max_prompt_size=max_prompt_size,
+        tokenizer_name=tokenizer_name,
+        vision_enabled=vision_available,
+    )
+
+    return messages
+
+
 async def agenerate_chat_response(
     q: str,
     chat_history: List[ChatMessageModel],
@@ -1645,33 +1747,39 @@ async def agenerate_chat_response(
                 chat_model = vision_enabled_config
                 vision_available = True
 
+        # Build shared conversation context and generate chatml messages
+        messages = build_conversation_context(
+            user_query=query_to_run,
+            references=compiled_references,
+            online_results=online_results,
+            code_results=code_results,
+            operator_results=operator_results,
+            query_files=query_files,
+            query_images=query_images,
+            generated_asset_results=generated_asset_results,
+            program_execution_context=program_execution_context,
+            chat_history=chat_history,
+            location_data=location_data,
+            user_name=user_name,
+            agent=agent,
+            model_type=chat_model.model_type,
+            model_name=chat_model.name,
+            max_prompt_size=max_prompt_size,
+            tokenizer_name=chat_model.tokenizer,
+            vision_available=vision_available,
+        )
+
         if chat_model.model_type == ChatModel.ModelType.OPENAI:
             openai_chat_config = chat_model.ai_model_api
             api_key = openai_chat_config.api_key
             chat_model_name = chat_model.name
             chat_response_generator = converse_openai(
-                # Query
-                query_to_run,
-                # Context
-                references=compiled_references,
-                online_results=online_results,
-                code_results=code_results,
-                operator_results=operator_results,
-                query_images=query_images,
-                query_files=query_files,
-                generated_asset_results=generated_asset_results,
-                program_execution_context=program_execution_context,
-                location_data=location_data,
-                user_name=user_name,
-                chat_history=chat_history,
+                # Query + Context Messages
+                messages,
                 # Model
                 model=chat_model_name,
                 api_key=api_key,
                 api_base_url=openai_chat_config.api_base_url,
-                max_prompt_size=max_prompt_size,
-                tokenizer_name=chat_model.tokenizer,
-                agent=agent,
-                vision_available=vision_available,
                 deepthought=deepthought,
                 tracer=tracer,
             )
@@ -1680,28 +1788,12 @@ async def agenerate_chat_response(
             api_key = chat_model.ai_model_api.api_key
             api_base_url = chat_model.ai_model_api.api_base_url
             chat_response_generator = converse_anthropic(
-                # Query
-                query_to_run,
-                # Context
-                references=compiled_references,
-                online_results=online_results,
-                code_results=code_results,
-                operator_results=operator_results,
-                query_images=query_images,
-                query_files=query_files,
-                generated_asset_results=generated_asset_results,
-                program_execution_context=program_execution_context,
-                location_data=location_data,
-                user_name=user_name,
-                chat_history=chat_history,
+                # Query + Context Messages
+                messages,
                 # Model
                 model=chat_model.name,
                 api_key=api_key,
                 api_base_url=api_base_url,
-                max_prompt_size=max_prompt_size,
-                tokenizer_name=chat_model.tokenizer,
-                agent=agent,
-                vision_available=vision_available,
                 deepthought=deepthought,
                 tracer=tracer,
             )
@@ -1709,28 +1801,12 @@ async def agenerate_chat_response(
             api_key = chat_model.ai_model_api.api_key
             api_base_url = chat_model.ai_model_api.api_base_url
             chat_response_generator = converse_gemini(
-                # Query
-                query_to_run,
-                # Context
-                references=compiled_references,
-                online_results=online_results,
-                code_results=code_results,
-                operator_results=operator_results,
-                query_images=query_images,
-                query_files=query_files,
-                generated_asset_results=generated_asset_results,
-                program_execution_context=program_execution_context,
-                location_data=location_data,
-                user_name=user_name,
-                chat_history=chat_history,
+                # Query + Context Messages
+                messages,
                 # Model
                 model=chat_model.name,
                 api_key=api_key,
                 api_base_url=api_base_url,
-                max_prompt_size=max_prompt_size,
-                tokenizer_name=chat_model.tokenizer,
-                agent=agent,
-                vision_available=vision_available,
                 deepthought=deepthought,
                 tracer=tracer,
             )
