@@ -1224,6 +1224,7 @@ async def search_documents(
             personality_context=personality_context,
             location_data=location_data,
             chat_history=chat_history,
+            agent=agent,
             tracer=tracer,
         )
 
@@ -1275,6 +1276,7 @@ async def extract_questions(
     location_data: LocationData = None,
     chat_history: List[ChatMessageModel] = [],
     max_queries: int = 5,
+    agent: Agent = None,
     tracer: dict = {},
 ):
     """
@@ -1319,6 +1321,8 @@ async def extract_questions(
             description="List of semantic search queries to run on user documents.",
         )
 
+    agent_chat_model = AgentAdapters.get_agent_chat_model(agent, user) if agent else None
+
     raw_response = await send_message_to_model_wrapper(
         query=prompt,
         query_files=query_files,
@@ -1327,6 +1331,7 @@ async def extract_questions(
         response_type="json_object",
         response_schema=DocumentQueries,
         fast_model=False,
+        agent_chat_model=agent_chat_model,
         user=user,
         tracer=tracer,
     )
