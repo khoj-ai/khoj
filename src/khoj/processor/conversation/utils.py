@@ -817,6 +817,8 @@ def truncate_messages(
             system_message.append(message)
         else:
             non_system_messages.append(message)
+
+    # New message list without system messages
     messages = non_system_messages
 
     # Drop older messages until under max supported prompt size by model
