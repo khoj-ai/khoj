@@ -52,6 +52,7 @@ div.chatMessageWrapper a span {
     border: 1px solid hsl(var(--border));
     padding: 8px 12px;
     text-align: left;
+    min-width: 120px;
 }
 
 .chatMessageWrapper table th {
@@ -246,6 +247,11 @@ div.trainOfThoughtElement ul {
     div.khoj div.imageWrapper img {
         width: 100%;
         height: auto;
+    }
+
+    .chatMessageWrapper table th,
+    .chatMessageWrapper table td {
+        min-width: 40px;
     }
 }
 
