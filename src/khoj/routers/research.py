@@ -373,7 +373,6 @@ async def research(
                     max_online_searches=max_online_searches,
                     max_webpages_to_read=0,
                     query_images=query_images,
-                    relevant_memories=relevant_memories,
                     previous_subqueries=previous_subqueries,
                     agent=agent,
                     tracer=tracer,
@@ -397,7 +396,6 @@ async def research(
                     send_status_func=send_status_func,
                     # max_webpages_to_read=max_webpages_to_read,
                     agent=agent,
-                    relevant_memories=relevant_memories,
                     tracer=tracer,
                 ):
                     if isinstance(result, dict) and ChatEvent.STATUS in result:
@@ -433,7 +431,6 @@ async def research(
                     query_images=query_images,
                     agent=agent,
                     query_files=query_files,
-                    relevant_memories=relevant_memories,
                     tracer=tracer,
                 ):
                     if isinstance(result, dict) and ChatEvent.STATUS in result:

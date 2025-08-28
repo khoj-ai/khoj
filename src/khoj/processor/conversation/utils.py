@@ -532,7 +532,6 @@ def construct_structured_message(
     model_type: str = None,
     vision_enabled: bool = True,
     attached_file_context: str = None,
-    relevant_memories_context: str = None,
 ):
     """
     Format messages into appropriate multimedia format for supported chat model types.
@@ -550,8 +549,6 @@ def construct_structured_message(
     if vision_enabled and images:
         for image in images:
             constructed_messages += [{"type": "image_url", "image_url": {"url": image}}]
-    if not is_none_or_empty(relevant_memories_context):
-        constructed_messages.append({"type": "text", "text": relevant_memories_context})
     return constructed_messages
 
 
