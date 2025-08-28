@@ -8,6 +8,7 @@ from khoj.processor.conversation.openai.utils import (
     clean_response_schema,
     completion_with_backoff,
     get_structured_output_support,
+    is_cerebras_api,
     responses_chat_completion_with_backoff,
     responses_completion_with_backoff,
     supports_responses_api,
@@ -40,8 +41,11 @@ def send_message_to_model(
 
     model_kwargs: Dict[str, Any] = {}
     json_support = get_structured_output_support(model, api_base_url)
+    strict = not is_cerebras_api(api_base_url)
     if tools and json_support == StructuredOutputSupport.TOOL:
-        model_kwargs["tools"] = to_openai_tools(tools, use_responses_api=supports_responses_api(model, api_base_url))
+        model_kwargs["tools"] = to_openai_tools(
+            tools, use_responses_api=supports_responses_api(model, api_base_url), strict=strict
+        )
     elif response_schema and json_support >= StructuredOutputSupport.SCHEMA:
         # Drop unsupported fields from schema passed to OpenAI APi
         cleaned_response_schema = clean_response_schema(response_schema)
@@ -49,7 +53,7 @@ def send_message_to_model(
             model_kwargs["text"] = {
                 "format": {
                     "type": "json_schema",
-                    "strict": True,
+                    "strict": strict,
                     "name": response_schema.__name__,
                     "schema": cleaned_response_schema,
                 }
@@ -60,7 +64,7 @@ def send_message_to_model(
                 "json_schema": {
                     "schema": cleaned_response_schema,
                     "name": response_schema.__name__,
-                    "strict": True,
+                    "strict": strict,
                 },
             }
     elif response_type == "json_object" and json_support == StructuredOutputSupport.OBJECT:

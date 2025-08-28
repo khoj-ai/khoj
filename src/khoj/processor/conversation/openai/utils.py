@@ -795,7 +795,7 @@ def format_message_for_api(raw_messages: List[ChatMessage], model_name: str, api
                 if (
                     part.get("type") == "text"
                     and message.role == "assistant"
-                    and api_base_url.startswith("https://api.deepinfra.com/v1")
+                    and (api_base_url.startswith("https://api.deepinfra.com/v1") or is_cerebras_api(api_base_url))
                 ):
                     assistant_texts += [part["text"]]
                     message.content.pop(idx)
@@ -874,6 +874,13 @@ def is_twitter_reasoning_model(model_name: str, api_base_url: str = None) -> boo
         and api_base_url is not None
         and api_base_url.startswith("https://api.x.ai/v1")
     )
+
+
+def is_cerebras_api(api_base_url: str = None) -> bool:
+    """
+    Check if the model is served over the Cerebras API
+    """
+    return api_base_url is not None and api_base_url.startswith("https://api.cerebras.ai/v1")
 
 
 def is_groq_api(api_base_url: str = None) -> bool:
@@ -1212,7 +1219,7 @@ def add_qwen_no_think_tag(formatted_messages: List[dict]) -> None:
                         break
 
 
-def to_openai_tools(tools: List[ToolDefinition], use_responses_api: bool) -> List[Dict] | None:
+def to_openai_tools(tools: List[ToolDefinition], use_responses_api: bool, strict: bool) -> List[Dict] | None:
     "Transform tool definitions from standard format to OpenAI format."
     if use_responses_api:
         openai_tools = [
@@ -1221,7 +1228,7 @@ def to_openai_tools(tools: List[ToolDefinition], use_responses_api: bool) -> Lis
                 "name": tool.name,
                 "description": tool.description,
                 "parameters": clean_response_schema(tool.schema),
-                "strict": True,
+                "strict": strict,
             }
             for tool in tools
         ]
@@ -1233,7 +1240,7 @@ def to_openai_tools(tools: List[ToolDefinition], use_responses_api: bool) -> Lis
                     "name": tool.name,
                     "description": tool.description,
                     "parameters": clean_response_schema(tool.schema),
-                    "strict": True,
+                    "strict": strict,
                 },
             }
             for tool in tools
