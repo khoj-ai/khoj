@@ -118,7 +118,9 @@ def completion_with_backoff(
         model_kwargs["temperature"] = 1
         reasoning_effort = "medium" if deepthought else "low"
         model_kwargs["reasoning_effort"] = reasoning_effort
+        # Remove unsupported params for reasoning models
         model_kwargs.pop("top_p", None)
+        model_kwargs.pop("stop", None)
     elif is_twitter_reasoning_model(model_name, api_base_url):
         model_kwargs.pop("temperature", None)
         reasoning_effort = "high" if deepthought else "low"
@@ -304,19 +306,6 @@ async def chat_completion_with_backoff(
         # Remove unsupported params for reasoning models
         model_kwargs.pop("top_p", None)
         model_kwargs.pop("stop", None)
-
-        # Get the first system message and add the string `Formatting re-enabled` to it.
-        # See https://platform.openai.com/docs/guides/reasoning-best-practices
-        if len(formatted_messages) > 0:
-            system_messages = [
-                (i, message) for i, message in enumerate(formatted_messages) if message["role"] == "system"
-            ]
-            if len(system_messages) > 0:
-                first_system_message_index, first_system_message = system_messages[0]
-                first_system_message_content = first_system_message["content"]
-                formatted_messages[first_system_message_index]["content"] = (
-                    f"{first_system_message_content}\nFormatting re-enabled"
-                )
     elif is_twitter_reasoning_model(model_name, api_base_url):
         reasoning_effort = "high" if deepthought else "low"
         # Grok-4 models do not support reasoning_effort parameter
@@ -851,7 +840,7 @@ def is_openai_reasoning_model(model_name: str, api_base_url: str = None) -> bool
     return (
         is_openai_api(api_base_url)
         and (model_name.lower().startswith("o") or model_name.lower().startswith("gpt-5"))
-        or model_name.lower().startswith("gpt-oss")
+        or "gpt-oss" in model_name.lower()
     )
 
 
