@@ -973,6 +973,7 @@ async def extract_facts_from_query(
     user: KhojUser,
     conversation_history: List[ChatMessageModel],
     existing_facts: List[UserMemory] = None,
+    agent: Agent = None,
     tracer: dict = {},
 ) -> ExtractedFacts:
     """
@@ -980,7 +981,7 @@ async def extract_facts_from_query(
     """
     chat_history = construct_chat_history(conversation_history, n=2)
 
-    formatted_memories = UserMemoryAdapters.convert_memories_to_dict(existing_facts) if existing_facts else []
+    formatted_memories = UserMemoryAdapters.to_dict(existing_facts) if existing_facts else []
 
     extract_facts_prompt = prompts.extract_facts_from_query.format(
         chat_history=chat_history,
@@ -988,7 +989,9 @@ async def extract_facts_from_query(
     )
 
     with timer("Chat actor: Extract facts from query", logger):
-        response = await send_message_to_model_wrapper(extract_facts_prompt, user=user, tracer=tracer)
+        response = await send_message_to_model_wrapper(
+            extract_facts_prompt, user=user, agent_chat_model=agent.chat_model, tracer=tracer
+        )
         response = response.text.strip()
         # JSON parse the list of strings
         try:
@@ -1006,13 +1009,17 @@ async def extract_facts_from_query(
 
 @require_valid_user
 async def ai_update_memories(
-    user: KhojUser, conversation_history: List[ChatMessageModel], memories: List[UserMemory], tracer: dict = {}
+    user: KhojUser,
+    conversation_history: List[ChatMessageModel],
+    memories: List[UserMemory],
+    agent: Agent,
+    tracer: dict = {},
 ):
     """
     Updates the memories for a given user, based on their latest input query.
     """
     new_data = await extract_facts_from_query(
-        user=user, conversation_history=conversation_history, existing_facts=memories, tracer=tracer
+        user=user, conversation_history=conversation_history, existing_facts=memories, agent=agent, tracer=tracer
     )
 
     if not new_data:
@@ -1022,13 +1029,13 @@ async def ai_update_memories(
     created_memories = new_data.create
     deleted_memories = new_data.delete
 
-    for m in created_memories:
-        logger.info(f"Creating memory: {m}")
-        await UserMemoryAdapters.save_memory(user, m)
+    for memory in created_memories:
+        logger.info(f"Creating memory: {memory}")
+        await UserMemoryAdapters.save_memory(user, memory, agent=agent)
 
-    for m in deleted_memories:
-        logger.info(f"Deleting memory: {m}")
-        await UserMemoryAdapters.delete_memory(user, m)
+    for memory in deleted_memories:
+        logger.info(f"Deleting memory: {memory}")
+        await UserMemoryAdapters.delete_memory(user, memory)
 
 
 async def generate_mermaidjs_diagram(

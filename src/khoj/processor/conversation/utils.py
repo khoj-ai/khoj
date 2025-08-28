@@ -510,6 +510,7 @@ async def save_to_conversation_log(
             user=user,
             conversation_history=new_messages or [],
             memories=relevant_memories,
+            agent=db_conversation.agent if db_conversation else None,
             tracer=tracer,
         )
 

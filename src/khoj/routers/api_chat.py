@@ -964,8 +964,8 @@ async def event_generator(
     chat_history = conversation.messages
 
     # Get most recent memories and long term relevant memories
-    recent_memories = await UserMemoryAdapters.pull_memories(user)
-    long_term_memories = await UserMemoryAdapters.search_memories(user=user, query=q)
+    recent_memories = await UserMemoryAdapters.pull_memories(user, agent=agent)
+    long_term_memories = await UserMemoryAdapters.search_memories(user=user, query=q, agent=agent)
 
     # Create a de-duped set of memories
     relevant_memories = list(set(recent_memories + long_term_memories))

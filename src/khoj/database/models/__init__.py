@@ -801,10 +801,11 @@ class RateLimitRecord(DbBaseModel):
 
 class UserMemory(DbBaseModel):
     """
-    A class to represent a memory storage model for longer term memories
+    Long term memory store derived from conversation between user and agent.
     """
 
     user = models.ForeignKey(KhojUser, on_delete=models.CASCADE)
+    agent = models.ForeignKey(Agent, on_delete=models.CASCADE, default=None, null=True, blank=True)
     embeddings = VectorField(dimensions=None)
     raw = models.TextField()
     search_model = models.ForeignKey(SearchModelConfig, on_delete=models.SET_NULL, default=None, null=True, blank=True)
