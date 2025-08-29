@@ -964,11 +964,11 @@ async def event_generator(
     chat_history = conversation.messages
 
     # Get most recent memories and long term relevant memories
-    recent_memories = await UserMemoryAdapters.pull_memories(user, agent=agent)
-    long_term_memories = await UserMemoryAdapters.search_memories(user=user, query=q, agent=agent)
+    recent_memories = await UserMemoryAdapters.pull_memories(user=user, agent=agent)
+    long_term_memories = await UserMemoryAdapters.search_memories(query=q, user=user, agent=agent)
 
     # Create a de-duped set of memories
-    relevant_memories = list(set(recent_memories + long_term_memories))
+    relevant_memories = list({m.id: m for m in recent_memories + long_term_memories}.values())
 
     # If interrupted message in DB
     if last_message := await conversation.pop_message(interrupted=True):

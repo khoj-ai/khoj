@@ -2149,7 +2149,7 @@ class AutomationAdapters:
 class UserMemoryAdapters:
     @staticmethod
     @require_valid_user
-    async def pull_memories(user: KhojUser, agent: Agent = None, window=10, limit=5) -> list[UserMemory]:
+    async def pull_memories(user: KhojUser, agent: Agent = None, limit=10, window=7) -> list[UserMemory]:
         """
         Pulls memories from the database for a given user. Medium term memory.
         """
@@ -2186,7 +2186,7 @@ class UserMemoryAdapters:
 
     @staticmethod
     @require_valid_user
-    async def search_memories(user: KhojUser, query: str, agent: Agent = None) -> list[UserMemory]:
+    async def search_memories(query: str, user: KhojUser, agent: Agent = None, limit: int = 10) -> list[UserMemory]:
         """
         Searches for memories in the database for a given user. Long term memory.
         """
@@ -2207,7 +2207,7 @@ class UserMemoryAdapters:
             .filter(distance__lte=max_distance)
         )
 
-        return await sync_to_async(list)(relevant_memories[:10])
+        return await sync_to_async(list)(relevant_memories[:limit])
 
     @staticmethod
     @require_valid_user
