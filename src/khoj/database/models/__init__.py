@@ -799,6 +799,13 @@ class RateLimitRecord(DbBaseModel):
         return f"{self.slug} - {self.identifier} at {self.created_at}"
 
 
+class DataStore(DbBaseModel):
+    key = models.CharField(max_length=200, unique=True)
+    value = models.JSONField(default=dict)
+    private = models.BooleanField(default=False)
+    owner = models.ForeignKey(KhojUser, on_delete=models.CASCADE, default=None, null=True, blank=True)
+
+
 class UserMemory(DbBaseModel):
     """
     Long term memory store derived from conversation between user and agent.
