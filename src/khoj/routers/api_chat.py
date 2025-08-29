@@ -1451,6 +1451,7 @@ async def event_generator(
             query_images=uploaded_images,
             train_of_thought=train_of_thought,
             raw_query_files=raw_query_files,
+            relevant_memories=relevant_memories,
             generated_images=generated_images,
             generated_mermaidjs_diagram=generated_mermaidjs_diagram,
             tracer=tracer,
