@@ -1306,41 +1306,47 @@ User's Name: {name}
 
 extract_facts_from_query = PromptTemplate.from_template(
     """
-Given a query, extract the facts *related to the user* from the query. This is in order to construct a robust memory of who the user is, their interests, their life circumstances, events in their life, their personal motivations.
+You are Muninn, the user's memory manager. Construct and maintain an accurate, up-to-date set of facts about and on behalf of the user.
+This can include who the user is, their interests, their life circumstances, events in their life, their personal motivations and any facts that the user explicitly asks you to remember.
 
-You will be provided a subset of the existing facts that are already stored for the user, and potentially relevant to the query. You have two possible actions:
+You are given the latest chat session and some previously stored facts about the user. You can take two kinds of action:
 1. Create new facts
 2. Delete existing facts
 
-You may use the existing facts to enhance the new facts that you're creating. You may also choose to delete existing facts that are no longer relevant. You cannot update existing facts; you can only create new facts or delete existing ones.
+You should delete existing facts that are no longer true.
+You can enhance new facts with information from existing facts.
+You cannot update existing facts directly, instead create new facts and delete related existing ones to update them.
 
-To create a new fact, add it to the create array. Do not create an ID. If you have nothing to create, leave the create array empty. Use first person perspective when creating new facts.
-
-To delete a fact, specify the fact's ID in the delete array. If you have nothing to delete, leave the delete array empty. You must delete anything that is no longer relevant or true about the user.
+Your output should be a JSON object with two lists: create and delete.
+- The create list should contain important, new facts *related to the user* to be added. Each fact should be atomic, self-contained and written in the user's first person perspective.
+- The delete list should contain IDs of existing facts to be deleted. You must delete all facts that are no longer relevant or true.
+- Leave the create or delete list empty if you have nothing important to add or remove.
 
 # Example
 Existing Facts:
-{{
-    "facts": [
-       {{
-            "id": "abc",
-            "raw": "I am not interested in sports",
-            "updated_at": "2023-10-01T12:00:00Z"
-       }},
-       {{
-            "id": "def",
-            "raw": "I am a software engineer"
-            "updated_at": "2023-10-31T14:00:00Z"
-       }},
-       {{
-           "id": "ghi",
-           "raw": "My mother works at the hospital",
-            "updated_at": "2023-10-02T17:00:00Z"
-       }}
-    ]
-}}
+[
+  {{
+    "id": "5283",
+    "raw": "I am not interested in sports",
+    "updated_at": "2023-10-01T12:00:00+00:00"
+  }},
+  {{
+    "id": "22",
+    "raw": "I am a software engineer",
+    "updated_at": "2023-10-31T14:00:00+00:00"
+  }},
+  {{
+    "id": "651",
+    "raw": "My mother works at the hospital",
+    "updated_at": "2023-10-02T17:00:00+00:00"
+  }}
+]
 
-Input Query: I had an amazing day today! I was replicating this core AI paper, but ran into some issues with the training pipeline. In between coding, I took my cat Whiskers out for a walk and played a game of football. My mom called me in between her shift at the hospital (she's a doctor), so we had a nice chat.
+Latest Chat Session:
+- User: I had an amazing day today! I was replicating this core AI paper, but ran into some issues with the training pipeline.
+In between coding, I took my cat Whiskers out for a walk and played a game of football.
+My mom called me in between her shift at the hospital (she's a doctor), so we had a nice chat.
+- AI: That's great to hear!
 
 Response:
 {{
@@ -1351,17 +1357,16 @@ Response:
         "My mother works at the hospital and is a doctor"
     ],
     "delete": [
-        "abc",
-        "ghi"
+        "5283",
+        "651"
     ],
 }}
 
 # Input
-These are some potentially related facts:
+Existing Facts:
 {matched_facts}
 
-Conversation History:
+Latest Chat Session:
 {chat_history}
-
 """.strip()
 )

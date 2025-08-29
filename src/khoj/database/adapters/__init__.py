@@ -2229,9 +2229,9 @@ class UserMemoryAdapters:
         """
         return [
             {
-                "id": memory.id,
+                "id": f"{memory.id}",
                 "raw": memory.raw,
-                "updated_at": memory.updated_at,
+                "updated_at": memory.updated_at.astimezone(timezone.utc).isoformat(timespec="seconds"),
             }
             for memory in memories
         ]

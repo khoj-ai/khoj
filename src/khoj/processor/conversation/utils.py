@@ -717,11 +717,11 @@ def generate_chatml_messages_with_context(
         )
 
     if not is_none_or_empty(relevant_memories):
-        memory_context = "Here are some relevant memories about me stored in the system context. You can ignore them if they are not relevant to the query:\n\n"
+        memory_context = "Your memory system retrieved the following memories about me based on our previous conversations. Ignore them if they are not relevant to the query.\n<retrieved_memories>\n"
         for memory in relevant_memories:
             friendly_dt = memory.created_at.strftime("%Y-%m-%d %H:%M:%S")
-            memory_context += f"- {memory.raw} ({friendly_dt})\n"
-        memory_context += "\n"
+            memory_context += f"- [{friendly_dt}]: {memory.raw}\n"
+        memory_context += "</retrieved_memories>"
         messages.append(ChatMessage(content=memory_context, role="user"))
 
     if not is_none_or_empty(user_message):

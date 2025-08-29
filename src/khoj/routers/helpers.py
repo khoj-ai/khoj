@@ -964,9 +964,11 @@ async def generate_excalidraw_diagram_from_description(
     return response
 
 
-class ExtractedFacts(BaseModel):
-    create: List[str] = Field(..., min_items=0)
-    delete: List[str] = Field(..., min_items=0)
+class MemoryUpdates(BaseModel):
+    """Facts to add or remove from memory."""
+
+    create: List[str] = Field(..., min_items=0, description="List of facts to add to memory.")
+    delete: List[str] = Field(..., min_items=0, description="List of facts to remove from memory.")
 
 
 async def extract_facts_from_query(
@@ -975,13 +977,13 @@ async def extract_facts_from_query(
     existing_facts: List[UserMemory] = None,
     agent: Agent = None,
     tracer: dict = {},
-) -> ExtractedFacts:
+) -> MemoryUpdates:
     """
     Extract facts from the given query
     """
     chat_history = construct_chat_history(conversation_history, n=2)
 
-    formatted_memories = UserMemoryAdapters.to_dict(existing_facts) if existing_facts else []
+    formatted_memories = json.dumps(UserMemoryAdapters.to_dict(existing_facts), indent=2) if existing_facts else []
 
     extract_facts_prompt = prompts.extract_facts_from_query.format(
         chat_history=chat_history,
@@ -990,21 +992,26 @@ async def extract_facts_from_query(
 
     with timer("Chat actor: Extract facts from query", logger):
         response = await send_message_to_model_wrapper(
-            extract_facts_prompt, user=user, agent_chat_model=agent.chat_model, tracer=tracer
+            extract_facts_prompt,
+            response_schema=MemoryUpdates,
+            user=user,
+            fast_model=False,
+            agent_chat_model=agent.chat_model,
+            tracer=tracer,
         )
         response = response.text.strip()
         # JSON parse the list of strings
         try:
             response = clean_json(response)
             response = json.loads(response)
-            parsed_response = ExtractedFacts(**response)
-            if not isinstance(parsed_response, ExtractedFacts):
+            parsed_response = MemoryUpdates(**response)
+            if not isinstance(parsed_response, MemoryUpdates):
                 raise ValueError(f"Invalid response for extracting facts: {response}")
             return parsed_response
 
         except Exception:
             logger.error(f"Invalid response for extracting facts: {response}")
-            return ExtractedFacts(create=[], delete=[])
+            return MemoryUpdates(create=[], delete=[])
 
 
 @require_valid_user
@@ -1018,22 +1025,19 @@ async def ai_update_memories(
     """
     Updates the memories for a given user, based on their latest input query.
     """
-    new_data = await extract_facts_from_query(
+    memory_update = await extract_facts_from_query(
         user=user, conversation_history=conversation_history, existing_facts=memories, agent=agent, tracer=tracer
     )
 
-    if not new_data:
+    if not memory_update:
         return
 
-    # Save the new data to the database
-    created_memories = new_data.create
-    deleted_memories = new_data.delete
-
-    for memory in created_memories:
+    # Save the memory updates to the database
+    for memory in memory_update.create:
         logger.info(f"Creating memory: {memory}")
         await UserMemoryAdapters.save_memory(user, memory, agent=agent)
 
-    for memory in deleted_memories:
+    for memory in memory_update.delete:
         logger.info(f"Deleting memory: {memory}")
         await UserMemoryAdapters.delete_memory(user, memory)
 
