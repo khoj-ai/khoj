@@ -645,7 +645,7 @@ def deduplicate_organic_results(online_results: dict) -> dict:
     for query, results in online_results.items():
         # Filter organic results keeping only first occurrence of each link
         filtered_organic = []
-        for result in results.get("organic", []):
+        for result in results.get("organic") or []:
             link = result.get("link")
             if link and link not in seen_links:
                 seen_links.add(link)
