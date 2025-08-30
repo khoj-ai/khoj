@@ -29,6 +29,7 @@ from khoj.database.adapters import (
     ConversationAdapters,
     EntryAdapters,
     PublicConversationAdapters,
+    UserMemoryAdapters,
     aget_user_name,
 )
 from khoj.database.models import Agent, KhojUser
@@ -100,7 +101,6 @@ logger = logging.getLogger(__name__)
 conversation_command_rate_limiter = ConversationCommandRateLimiter(
     trial_rate_limit=20, subscribed_rate_limit=75, slug="command"
 )
-
 
 api_chat = APIRouter()
 
@@ -963,6 +963,13 @@ async def event_generator(
         location = LocationData(city=city, region=region, country=country, country_code=country_code)
     chat_history = conversation.messages
 
+    # Get most recent memories and long term relevant memories
+    recent_memories = await UserMemoryAdapters.pull_memories(user=user, agent=agent)
+    long_term_memories = await UserMemoryAdapters.search_memories(query=q, user=user, agent=agent)
+
+    # Create a de-duped set of memories
+    relevant_memories = list({m.id: m for m in recent_memories + long_term_memories}.values())
+
     # If interrupted message in DB
     if last_message := await conversation.pop_message(interrupted=True):
         # Populate context from interrupted message
@@ -987,6 +994,7 @@ async def event_generator(
                 query_images=uploaded_images,
                 agent=agent,
                 query_files=attached_file_context,
+                relevant_memories=relevant_memories,
                 tracer=tracer,
             )
         except ValueError as e:
@@ -1027,6 +1035,7 @@ async def event_generator(
             send_status_func=partial(send_event, ChatEvent.STATUS),
             user_name=user_name,
             location=location,
+            relevant_memories=relevant_memories,
             query_files=attached_file_context,
             cancellation_event=cancellation_event,
             interrupt_queue=child_interrupt_queue,
@@ -1082,6 +1091,7 @@ async def event_generator(
                 query_images=uploaded_images,
                 agent=agent,
                 query_files=attached_file_context,
+                relevant_memories=relevant_memories,
                 tracer=tracer,
             ):
                 if isinstance(result, dict) and ChatEvent.STATUS in result:
@@ -1130,6 +1140,7 @@ async def event_generator(
                 max_online_searches=3,
                 query_images=uploaded_images,
                 query_files=attached_file_context,
+                relevant_memories=relevant_memories,
                 agent=agent,
                 tracer=tracer,
             ):
@@ -1158,6 +1169,7 @@ async def event_generator(
                 query_images=uploaded_images,
                 agent=agent,
                 query_files=attached_file_context,
+                relevant_memories=relevant_memories,
                 tracer=tracer,
             ):
                 if isinstance(result, dict) and ChatEvent.STATUS in result:
@@ -1199,6 +1211,7 @@ async def event_generator(
                 query_images=uploaded_images,
                 agent=agent,
                 query_files=attached_file_context,
+                relevant_memories=relevant_memories,
                 tracer=tracer,
             ):
                 if isinstance(result, dict) and ChatEvent.STATUS in result:
@@ -1223,6 +1236,7 @@ async def event_generator(
                 list(operator_results)[-1] if operator_results else None,
                 query_images=uploaded_images,
                 query_files=attached_file_context,
+                relevant_memories=relevant_memories,
                 send_status_func=partial(send_event, ChatEvent.STATUS),
                 agent=agent,
                 cancellation_event=cancellation_event,
@@ -1277,6 +1291,7 @@ async def event_generator(
             query_images=uploaded_images,
             agent=agent,
             query_files=attached_file_context,
+            relevant_memories=relevant_memories,
             tracer=tracer,
         ):
             if isinstance(result, dict) and ChatEvent.STATUS in result:
@@ -1320,6 +1335,7 @@ async def event_generator(
             agent=agent,
             send_status_func=partial(send_event, ChatEvent.STATUS),
             query_files=attached_file_context,
+            relevant_memories=relevant_memories,
             tracer=tracer,
         ):
             if isinstance(result, dict) and ChatEvent.STATUS in result:
@@ -1375,6 +1391,7 @@ async def event_generator(
         user_name,
         uploaded_images,
         attached_file_context,
+        relevant_memories,
         program_execution_context,
         generated_asset_results,
         is_subscribed,
@@ -1434,6 +1451,7 @@ async def event_generator(
             query_images=uploaded_images,
             train_of_thought=train_of_thought,
             raw_query_files=raw_query_files,
+            relevant_memories=relevant_memories,
             generated_images=generated_images,
             generated_mermaidjs_diagram=generated_mermaidjs_diagram,
             tracer=tracer,

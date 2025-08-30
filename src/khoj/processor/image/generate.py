@@ -25,6 +25,7 @@ from khoj.database.models import (
     Intent,
     KhojUser,
     TextToImageModelConfig,
+    UserMemory,
 )
 from khoj.processor.conversation.google.utils import _is_retryable_error
 from khoj.routers.helpers import ChatEvent, ImageShape, generate_better_image_prompt
@@ -47,6 +48,7 @@ async def text_to_image(
     query_images: Optional[List[str]] = None,
     agent: Agent = None,
     query_files: str = None,
+    relevant_memories: List[UserMemory] = None,
     tracer: dict = {},
 ):
     status_code = 200
@@ -91,6 +93,7 @@ async def text_to_image(
         user=user,
         agent=agent,
         query_files=query_files,
+        relevant_memories=relevant_memories,
         tracer=tracer,
     )
     image_prompt = image_prompt_response["description"]

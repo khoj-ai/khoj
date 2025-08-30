@@ -61,6 +61,7 @@ from khoj.database.models import (
     Subscription,
     TextToImageModelConfig,
     UserConversationConfig,
+    UserMemory,
     UserRequests,
     UserTextToImageModelConfig,
     UserVoiceModelConfig,
@@ -582,6 +583,16 @@ def get_default_search_model() -> SearchModelConfig:
     elif SearchModelConfig.objects.count() == 0:
         SearchModelConfig.objects.create()
     return SearchModelConfig.objects.first()
+
+
+async def aget_default_search_model() -> SearchModelConfig:
+    default_search_model = await SearchModelConfig.objects.filter(name="default").afirst()
+
+    if default_search_model:
+        return default_search_model
+    elif await SearchModelConfig.objects.count() == 0:
+        await SearchModelConfig.objects.acreate()
+    return await SearchModelConfig.objects.afirst()
 
 
 def get_or_create_search_models():
@@ -1510,12 +1521,17 @@ class ConversationAdapters:
     ):
         slug = user_message.strip()[:200] if user_message else None
         if conversation_id:
-            conversation = await Conversation.objects.filter(
-                user=user, client=client_application, id=conversation_id
-            ).afirst()
+            conversation = (
+                await Conversation.objects.filter(user=user, client=client_application, id=conversation_id)
+                .prefetch_related("agent", "agent__chat_model")
+                .afirst()
+            )
         else:
             conversation = (
-                await Conversation.objects.filter(user=user, client=client_application).order_by("-updated_at").afirst()
+                await Conversation.objects.filter(user=user, client=client_application)
+                .prefetch_related("agent", "agent__chat_model")
+                .order_by("-updated_at")
+                .afirst()
             )
 
         existing_messages = conversation.messages if conversation else []
@@ -2128,3 +2144,94 @@ class AutomationAdapters:
 
         automation.remove()
         return automation_metadata
+
+
+class UserMemoryAdapters:
+    @staticmethod
+    @require_valid_user
+    async def pull_memories(user: KhojUser, agent: Agent = None, limit=10, window=7) -> list[UserMemory]:
+        """
+        Pulls memories from the database for a given user. Medium term memory.
+        """
+        time_frame = datetime.now(timezone.utc) - timedelta(days=window)
+        default_agent = await AgentAdapters.aget_default_agent()
+        if agent and agent != default_agent:
+            memories = UserMemory.objects.filter(user=user, agent=agent, updated_at__gte=time_frame).order_by(
+                "-created_at"
+            )[:limit]
+        else:
+            memories = UserMemory.objects.filter(user=user, updated_at__gte=time_frame).order_by("-created_at")[:limit]
+        return await sync_to_async(list)(memories)
+
+    @staticmethod
+    @require_valid_user
+    async def save_memory(user: KhojUser, memory: str, agent: Agent = None) -> UserMemory:
+        """
+        Saves a memory to the database for a given user.
+        """
+        embeddings_model = state.embeddings_model
+        model = await aget_default_search_model()
+        embeddings = await sync_to_async(embeddings_model[model.name].embed_query)(memory)
+        default_agent = await AgentAdapters.aget_default_agent()
+        if agent and agent != default_agent:
+            memory_instance = await UserMemory.objects.acreate(
+                user=user, embeddings=embeddings, raw=memory, search_model=model, agent=agent
+            )
+        else:
+            memory_instance = await UserMemory.objects.acreate(
+                user=user, embeddings=embeddings, raw=memory, search_model=model
+            )
+
+        return memory_instance
+
+    @staticmethod
+    @require_valid_user
+    async def search_memories(query: str, user: KhojUser, agent: Agent = None, limit: int = 10) -> list[UserMemory]:
+        """
+        Searches for memories in the database for a given user. Long term memory.
+        """
+        embeddings_model = state.embeddings_model
+        model = await aget_default_search_model()
+        max_distance = model.bi_encoder_confidence_threshold or math.inf
+        embedded_query = await sync_to_async(embeddings_model[model.name].embed_query)(query)
+        default_agent = await AgentAdapters.aget_default_agent()
+
+        if agent and agent != default_agent:
+            relevant_memories = UserMemory.objects.filter(user=user, agent=agent)
+        else:
+            relevant_memories = UserMemory.objects.filter(user=user)
+
+        relevant_memories = (
+            relevant_memories.annotate(distance=CosineDistance("embeddings", embedded_query))
+            .order_by("distance")
+            .filter(distance__lte=max_distance)
+        )
+
+        return await sync_to_async(list)(relevant_memories[:limit])
+
+    @staticmethod
+    @require_valid_user
+    async def delete_memory(user: KhojUser, memory_id: str) -> bool:
+        """
+        Deletes a memory from the database for a given user.
+        """
+        try:
+            memory = await UserMemory.objects.aget(user=user, id=memory_id)
+            await memory.adelete()
+            return True
+        except UserMemory.DoesNotExist:
+            return False
+
+    @staticmethod
+    def to_dict(memories: List[UserMemory]) -> List[dict]:
+        """
+        Converts a list of Memory objects to a list of dictionaries.
+        """
+        return [
+            {
+                "id": f"{memory.id}",
+                "raw": memory.raw,
+                "updated_at": memory.updated_at.astimezone(timezone.utc).isoformat(timespec="seconds"),
+            }
+            for memory in memories
+        ]

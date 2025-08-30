@@ -46,6 +46,7 @@ from khoj.database.adapters import (
     ConversationAdapters,
     EntryAdapters,
     FileObjectAdapters,
+    UserMemoryAdapters,
     aget_user_by_email,
     create_khoj_token,
     get_default_search_model,
@@ -53,6 +54,7 @@ from khoj.database.adapters import (
     get_user_name,
     get_user_notion_config,
     get_user_subscription_state,
+    require_valid_user,
     run_with_process_lock,
 )
 from khoj.database.models import (
@@ -68,6 +70,7 @@ from khoj.database.models import (
     RateLimitRecord,
     Subscription,
     TextToImageModelConfig,
+    UserMemory,
     UserRequests,
 )
 from khoj.processor.content.docx.docx_to_entries import DocxToEntries
@@ -349,6 +352,7 @@ async def aget_data_sources_and_output_format(
     query_images: List[str] = None,
     agent: Agent = None,
     query_files: str = None,
+    relevant_memories: List[UserMemory] = None,
     tracer: dict = {},
 ) -> Dict[str, Any]:
     """
@@ -406,6 +410,7 @@ async def aget_data_sources_and_output_format(
             relevant_tools_prompt,
             query_files=query_files,
             query_images=query_images,
+            relevant_memories=relevant_memories,
             response_type="json_object",
             response_schema=PickTools,
             fast_model=False,
@@ -462,6 +467,7 @@ async def infer_webpage_urls(
     query_images: List[str] = None,
     agent: Agent = None,
     query_files: str = None,
+    relevant_memories: List[UserMemory] = None,
     tracer: dict = {},
 ) -> List[str]:
     """
@@ -496,6 +502,7 @@ async def infer_webpage_urls(
             online_queries_prompt,
             query_files=query_files,
             query_images=query_images,
+            relevant_memories=relevant_memories,
             response_type="json_object",
             response_schema=WebpageUrls,
             fast_model=False,
@@ -526,6 +533,7 @@ async def generate_online_subqueries(
     user: KhojUser,
     query_images: List[str] = None,
     query_files: str = None,
+    relevant_memories: List[UserMemory] = None,
     max_queries: int = 3,
     agent: Agent = None,
     tracer: dict = {},
@@ -562,6 +570,7 @@ async def generate_online_subqueries(
             online_queries_prompt,
             query_files=query_files,
             query_images=query_images,
+            relevant_memories=relevant_memories,
             response_type="json_object",
             response_schema=OnlineQueries,
             fast_model=False,
@@ -648,7 +657,12 @@ async def aschedule_query(
 
 
 async def extract_relevant_info(
-    qs: set[str], corpus: str, user: KhojUser = None, agent: Agent = None, tracer: dict = {}
+    qs: set[str],
+    corpus: str,
+    user: KhojUser = None,
+    agent: Agent = None,
+    relevant_memories: List[UserMemory] = None,
+    tracer: dict = {},
 ) -> Union[str, None]:
     """
     Extract relevant information for a given query from the target corpus
@@ -672,6 +686,7 @@ async def extract_relevant_info(
     response = await send_message_to_model_wrapper(
         extract_relevant_information,
         system_message=prompts.system_prompt_extract_relevant_information,
+        relevant_memories=relevant_memories,
         fast_model=True,
         agent_chat_model=agent_chat_model,
         user=user,
@@ -794,6 +809,7 @@ async def generate_excalidraw_diagram(
     agent: Agent = None,
     send_status_func: Optional[Callable] = None,
     query_files: str = None,
+    relevant_memories: List[UserMemory] = None,
     tracer: dict = {},
 ):
     if send_status_func:
@@ -810,6 +826,7 @@ async def generate_excalidraw_diagram(
         user=user,
         agent=agent,
         query_files=query_files,
+        relevant_memories=relevant_memories,
         tracer=tracer,
     )
 
@@ -845,6 +862,7 @@ async def generate_better_diagram_description(
     user: KhojUser = None,
     agent: Agent = None,
     query_files: str = None,
+    relevant_memories: List[UserMemory] = None,
     tracer: dict = {},
 ) -> str:
     """
@@ -888,6 +906,7 @@ async def generate_better_diagram_description(
             improve_diagram_description_prompt,
             query_images=query_images,
             query_files=query_files,
+            relevant_memories=relevant_memories,
             fast_model=False,
             agent_chat_model=agent_chat_model,
             user=user,
@@ -945,6 +964,84 @@ async def generate_excalidraw_diagram_from_description(
     return response
 
 
+class MemoryUpdates(BaseModel):
+    """Facts to add or remove from memory."""
+
+    create: List[str] = Field(..., min_items=0, description="List of facts to add to memory.")
+    delete: List[str] = Field(..., min_items=0, description="List of facts to remove from memory.")
+
+
+async def extract_facts_from_query(
+    user: KhojUser,
+    conversation_history: List[ChatMessageModel],
+    existing_facts: List[UserMemory] = None,
+    agent: Agent = None,
+    tracer: dict = {},
+) -> MemoryUpdates:
+    """
+    Extract facts from the given query
+    """
+    chat_history = construct_chat_history(conversation_history, n=2)
+
+    formatted_memories = json.dumps(UserMemoryAdapters.to_dict(existing_facts), indent=2) if existing_facts else []
+
+    extract_facts_prompt = prompts.extract_facts_from_query.format(
+        chat_history=chat_history,
+        matched_facts=formatted_memories,
+    )
+
+    with timer("Chat actor: Extract facts from query", logger):
+        response = await send_message_to_model_wrapper(
+            extract_facts_prompt,
+            response_schema=MemoryUpdates,
+            user=user,
+            fast_model=False,
+            agent_chat_model=agent.chat_model,
+            tracer=tracer,
+        )
+        response = response.text.strip()
+        # JSON parse the list of strings
+        try:
+            response = clean_json(response)
+            response = json.loads(response)
+            parsed_response = MemoryUpdates(**response)
+            if not isinstance(parsed_response, MemoryUpdates):
+                raise ValueError(f"Invalid response for extracting facts: {response}")
+            return parsed_response
+
+        except Exception:
+            logger.error(f"Invalid response for extracting facts: {response}")
+            return MemoryUpdates(create=[], delete=[])
+
+
+@require_valid_user
+async def ai_update_memories(
+    user: KhojUser,
+    conversation_history: List[ChatMessageModel],
+    memories: List[UserMemory],
+    agent: Agent,
+    tracer: dict = {},
+):
+    """
+    Updates the memories for a given user, based on their latest input query.
+    """
+    memory_update = await extract_facts_from_query(
+        user=user, conversation_history=conversation_history, existing_facts=memories, agent=agent, tracer=tracer
+    )
+
+    if not memory_update:
+        return
+
+    # Save the memory updates to the database
+    for memory in memory_update.create:
+        logger.info(f"Creating memory: {memory}")
+        await UserMemoryAdapters.save_memory(user, memory, agent=agent)
+
+    for memory in memory_update.delete:
+        logger.info(f"Deleting memory: {memory}")
+        await UserMemoryAdapters.delete_memory(user, memory)
+
+
 async def generate_mermaidjs_diagram(
     q: str,
     chat_history: List[ChatMessageModel],
@@ -956,6 +1053,7 @@ async def generate_mermaidjs_diagram(
     agent: Agent = None,
     send_status_func: Optional[Callable] = None,
     query_files: str = None,
+    relevant_memories: List[UserMemory] = None,
     tracer: dict = {},
 ):
     if send_status_func:
@@ -972,6 +1070,7 @@ async def generate_mermaidjs_diagram(
         user=user,
         agent=agent,
         query_files=query_files,
+        relevant_memories=relevant_memories,
         tracer=tracer,
     )
 
@@ -1001,6 +1100,7 @@ async def generate_better_mermaidjs_diagram_description(
     user: KhojUser = None,
     agent: Agent = None,
     query_files: str = None,
+    relevant_memories: List[UserMemory] = None,
     tracer: dict = {},
 ) -> str:
     """
@@ -1044,6 +1144,7 @@ async def generate_better_mermaidjs_diagram_description(
             improve_diagram_description_prompt,
             query_files=query_files,
             query_images=query_images,
+            relevant_memories=relevant_memories,
             fast_model=False,
             agent_chat_model=agent_chat_model,
             user=user,
@@ -1095,6 +1196,7 @@ async def generate_better_image_prompt(
     user: KhojUser = None,
     agent: Agent = None,
     query_files: str = "",
+    relevant_memories: List[UserMemory] = None,
     tracer: dict = {},
 ) -> dict:
     """
@@ -1137,6 +1239,7 @@ async def generate_better_image_prompt(
             q,
             query_files=query_files,
             query_images=query_images,
+            relevant_memories=relevant_memories,
             chat_history=conversation_history,
             system_message=enhance_image_system_message,
             response_type="json_object",
@@ -1171,6 +1274,7 @@ async def search_documents(
     previous_inferred_queries: Set = set(),
     agent: Agent = None,
     query_files: str = None,
+    relevant_memories: List[UserMemory] = None,
     tracer: dict = {},
 ):
     # Initialize Variables
@@ -1218,6 +1322,7 @@ async def search_documents(
             user=user,
             query_files=query_files,
             query_images=query_images,
+            relevant_memories=relevant_memories,
             personality_context=personality_context,
             location_data=location_data,
             chat_history=chat_history,
@@ -1270,6 +1375,7 @@ async def extract_questions(
     query_files: str = None,
     query_images: Optional[List[str]] = None,
     personality_context: str = "",
+    relevant_memories: List[UserMemory] = None,
     location_data: LocationData = None,
     chat_history: List[ChatMessageModel] = [],
     max_queries: int = 5,
@@ -1324,6 +1430,7 @@ async def extract_questions(
         query=prompt,
         query_files=query_files,
         query_images=query_images,
+        relevant_memories=relevant_memories,
         system_message=system_prompt,
         response_type="json_object",
         response_schema=DocumentQueries,
@@ -1446,6 +1553,7 @@ async def send_message_to_model_wrapper(
     query_files: str = None,
     query_images: List[str] = None,
     context: str = "",
+    relevant_memories: List[UserMemory] = None,
     chat_history: list[ChatMessageModel] = [],
     system_message: str = "",
     # Model Config
@@ -1484,6 +1592,7 @@ async def send_message_to_model_wrapper(
         query_files=query_files,
         query_images=query_images,
         context_message=context,
+        relevant_memories=relevant_memories,
         chat_history=chat_history,
         system_message=system_message,
         model_name=chat_model_name,
@@ -1612,6 +1721,7 @@ def build_conversation_context(
     operator_results: List[OperatorRun],
     query_files: str = None,
     query_images: Optional[List[str]] = None,
+    relevant_memories: List[UserMemory] = None,
     generated_asset_results: Dict[str, Dict] = {},
     program_execution_context: List[str] = None,
     chat_history: List[ChatMessageModel] = [],
@@ -1688,6 +1798,7 @@ def build_conversation_context(
         query_files=query_files,
         query_images=query_images,
         context_message=context_message,
+        relevant_memories=relevant_memories,
         generated_asset_results=generated_asset_results,
         program_execution_context=program_execution_context,
         chat_history=chat_history,
@@ -1716,6 +1827,7 @@ async def agenerate_chat_response(
     user_name: Optional[str] = None,
     query_images: Optional[List[str]] = None,
     query_files: str = None,
+    relevant_memories: List[UserMemory] = [],
     program_execution_context: List[str] = [],
     generated_asset_results: Dict[str, Dict] = {},
     is_subscribed: bool = False,
@@ -1758,6 +1870,7 @@ async def agenerate_chat_response(
             operator_results=operator_results,
             query_files=query_files,
             query_images=query_images,
+            relevant_memories=relevant_memories,
             generated_asset_results=generated_asset_results,
             program_execution_context=program_execution_context,
             chat_history=chat_history,
