@@ -794,6 +794,17 @@ def is_internet_connected():
         return False
 
 
+def is_web_search_enabled():
+    """
+    Check if web search tool is enabled.
+    Set API key via env var for a supported search engine to enable it.
+    """
+    return any(
+        not is_none_or_empty(os.getenv(api_key))
+        for api_key in ["GOOGLE_SEARCH_API_KEY", "SERPER_DEV_API_KEY", "JINA_API_KEY", "FIRECRAWL_API_KEY"]
+    )
+
+
 def is_internal_url(url: str) -> bool:
     """
     Check if a URL is likely to be internal/non-public.

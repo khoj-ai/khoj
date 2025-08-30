@@ -121,6 +121,7 @@ from khoj.utils.helpers import (
     is_none_or_empty,
     is_operator_enabled,
     is_valid_url,
+    is_web_search_enabled,
     log_telemetry,
     mode_descriptions_for_llm,
     timer,
@@ -366,6 +367,8 @@ async def aget_data_sources_and_output_format(
         if source == ConversationCommand.Notes and not user_has_entries:
             continue
         if source == ConversationCommand.Operator and not is_operator_enabled():
+            continue
+        if source in [ConversationCommand.Online, ConversationCommand.Webpage] and not is_web_search_enabled():
             continue
         source_options[source.value] = description
         if len(agent_sources) == 0 or source.value in agent_sources:

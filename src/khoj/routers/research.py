@@ -36,6 +36,7 @@ from khoj.utils.helpers import (
     dict_to_tuple,
     is_none_or_empty,
     is_operator_enabled,
+    is_web_search_enabled,
     timer,
     tools_for_research_llm,
     truncate_code_context,
@@ -96,6 +97,7 @@ async def apick_next_tool(
         ConversationCommand.ViewFile,
         ConversationCommand.ListFiles,
     ]
+    web_research_tools = [ConversationCommand.SearchWeb, ConversationCommand.ReadWebpage]
     input_tools_to_research_tools = {
         ConversationCommand.Notes.value: [tool.value for tool in document_research_tools],
         ConversationCommand.Webpage.value: [ConversationCommand.ReadWebpage.value],
@@ -114,6 +116,9 @@ async def apick_next_tool(
             continue
         # Skip showing document related tools if user has no documents
         if tool in document_research_tools and not user_has_entries:
+            continue
+        # Skip showing web search tool if agent has no access to internet
+        if tool in web_research_tools and not is_web_search_enabled():
             continue
         if tool == ConversationCommand.SemanticSearchFiles:
             description = tool_data.description.format(max_search_queries=max_document_searches)
