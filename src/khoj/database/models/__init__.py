@@ -804,3 +804,15 @@ class DataStore(DbBaseModel):
     value = models.JSONField(default=dict)
     private = models.BooleanField(default=False)
     owner = models.ForeignKey(KhojUser, on_delete=models.CASCADE, default=None, null=True, blank=True)
+
+
+class UserMemory(DbBaseModel):
+    """
+    Long term memory store derived from conversation between user and agent.
+    """
+
+    user = models.ForeignKey(KhojUser, on_delete=models.CASCADE)
+    agent = models.ForeignKey(Agent, on_delete=models.CASCADE, default=None, null=True, blank=True)
+    embeddings = VectorField(dimensions=None)
+    raw = models.TextField()
+    search_model = models.ForeignKey(SearchModelConfig, on_delete=models.SET_NULL, default=None, null=True, blank=True)

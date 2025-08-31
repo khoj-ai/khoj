@@ -8,7 +8,7 @@ from typing import Callable, Dict, List, Optional
 import yaml
 
 from khoj.database.adapters import AgentAdapters, EntryAdapters
-from khoj.database.models import Agent, ChatMessageModel, KhojUser
+from khoj.database.models import Agent, ChatMessageModel, KhojUser, UserMemory
 from khoj.processor.conversation import prompts
 from khoj.processor.conversation.utils import (
     OperatorRun,
@@ -58,6 +58,7 @@ async def apick_next_tool(
     max_iterations: int = 5,
     query_images: List[str] = [],
     query_files: str = None,
+    relevant_memories: List[UserMemory] = [],
     max_document_searches: int = 7,
     max_online_searches: int = 3,
     max_webpages_to_read: int = 3,
@@ -171,6 +172,7 @@ async def apick_next_tool(
                 query="",
                 query_files=query_files,
                 query_images=query_images,
+                relevant_memories=relevant_memories,
                 system_message=function_planning_prompt,
                 chat_history=chat_and_research_history,
                 tools=tools,
@@ -228,6 +230,7 @@ async def research(
     send_status_func: Optional[Callable] = None,
     user_name: str = None,
     location: LocationData = None,
+    relevant_memories: List[UserMemory] = [],
     query_files: str = None,
     cancellation_event: Optional[asyncio.Event] = None,
     interrupt_queue: Optional[asyncio.Queue] = None,
@@ -290,6 +293,7 @@ async def research(
             MAX_ITERATIONS,
             query_images=query_images,
             query_files=query_files,
+            relevant_memories=relevant_memories,
             max_document_searches=max_document_searches,
             max_online_searches=max_online_searches,
             max_webpages_to_read=max_webpages_to_read,
@@ -333,8 +337,9 @@ async def research(
                 query_images=query_images,
                 previous_inferred_queries=previous_inferred_queries,
                 agent=agent,
-                tracer=tracer,
                 query_files=query_files,
+                relevant_memories=relevant_memories,
+                tracer=tracer,
             ):
                 if isinstance(result, dict) and ChatEvent.STATUS in result:
                     yield result[ChatEvent.STATUS]
