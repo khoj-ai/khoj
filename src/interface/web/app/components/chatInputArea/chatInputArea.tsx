@@ -96,6 +96,16 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
     const [menuLevel, setMenuLevel] = useState<"main" | "file" | "date" | "word" | "dateMode" | "wordMode" | null>(null);
     const [dateMode, setDateMode] = useState<"exact" | ">=" | "<=" | null>(null);
     const [wordMode, setWordMode] = useState<"include" | "exclude" | null>(null);
+    const [dateOperatorInfo, setDateOperatorInfo] = useState<{
+        insertStart: number;
+        insertToken: string;
+        operator: "exact" | ">=" | "<=";
+    } | null>(null);
+    const [wordOperatorInfo, setWordOperatorInfo] = useState<{
+        insertStart: number;
+        insertToken: string;
+        sign: "+" | "-";
+    } | null>(null);
     const [highlightIndex, setHighlightIndex] = useState(0);
     const triggerRef = useRef<{ kind: "at" | "file" | "date" | "word"; triggerLen: number; query?: string; sign?: "+" | "-" } | null>(null);
     const suggestionsContainerRef = useRef<HTMLDivElement | null>(null);
@@ -473,8 +483,8 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
         if (atMatch) return { kind: "at" as const, query: atMatch[1], triggerLen: atMatch[0].length };
         const fileMatch = before.match(/(?:^|\s)file:("?)([^"\s]*)$/i);
         if (fileMatch) return { kind: "file" as const, query: fileMatch[2], triggerLen: fileMatch[0].length };
-        // require colon for date trigger (e.g. dt: or date:)
-        const dateMatch = before.match(/(?:^|\s)(?:date|dt):(\"?)([^\"\s]*)$/i);
+        // allow optional colon for date trigger (e.g. dt or dt: or date)
+        const dateMatch = before.match(/(?:^|\s)(?:date|dt):?(\"?)([^\"\s]*)$/i);
         if (dateMatch) return { kind: "date" as const, query: dateMatch[2], triggerLen: dateMatch[0].length };
         // word triggers only when user types +" or -" (opening quote present)
         const wordMatch = before.match(/(?:^|\s)([+-])\"([^\"]*)$/);
@@ -493,8 +503,29 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
             setSuggestions(["file", "date", "word"]);
         } else if (level === "date") {
             setSuggestions(["exact", "after", "before"]);
+        } else if (level === "dateMode") {
+            // show current typed date as single suggestion
+            const ta = chatInputRef.current;
+            if (dateOperatorInfo && ta) {
+                const start = dateOperatorInfo.insertStart + dateOperatorInfo.insertToken.length;
+                const caret = ta.selectionStart;
+                const typed = message.slice(start, caret);
+                setSuggestions([typed || ""]);
+            } else {
+                setSuggestions([""]);
+            }
         } else if (level === "word") {
             setSuggestions(["include", "exclude"]);
+        } else if (level === "wordMode") {
+            const ta = chatInputRef.current;
+            if (wordOperatorInfo && ta) {
+                const start = wordOperatorInfo.insertStart + wordOperatorInfo.insertToken.length;
+                const caret = ta.selectionStart;
+                const typed = message.slice(start, caret);
+                setSuggestions([typed || ""]);
+            } else {
+                setSuggestions([""]);
+            }
         } else {
             setSuggestions([]);
         }
@@ -567,6 +598,24 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
         setMenuLevel(newMenuLevel);
         setShowFileSuggestions(true);
         updateSuggestions("", levelOverride || newMenuLevel);
+    }
+
+    function prepareDateOperatorInfo(choice: string) {
+        const ta = chatInputRef.current!;
+        const caret = ta.selectionStart;
+        const trig = getTriggerAtCaret(ta.value, caret);
+        const insertStart = trig ? caret - trig.triggerLen : caret;
+        const insertToken = choice === "exact" ? 'dt:"' : choice === "after" ? 'dt>="' : 'dt<="';
+        setDateOperatorInfo({ insertStart, insertToken, operator: choice as any });
+    }
+
+    function prepareWordOperatorInfo(sign: "+" | "-") {
+        const ta = chatInputRef.current!;
+        const caret = ta.selectionStart;
+        const trig = getTriggerAtCaret(ta.value, caret);
+        const insertStart = trig ? caret - trig.triggerLen : caret;
+        const insertToken = sign + '"';
+        setWordOperatorInfo({ insertStart, insertToken, sign });
     }
 
     function insertDateFilterFromCaret(textarea: HTMLTextAreaElement) {
@@ -930,8 +979,11 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
                                             } else if (choice === "date") {
                                                 insertTriggerToken(chatInputRef.current!, "dt:", "date", "date");
                                             } else if (choice === "word") {
-                                                // insert +" to start word include mode
-                                                insertTriggerToken(chatInputRef.current!, '+"', "word", "word");
+                                                // start word include mode: insert +" and enter wordMode
+                                                insertTriggerToken(chatInputRef.current!, '+"', "wordMode", "wordMode");
+                                                setWordMode("include");
+                                                // prepare operator info after insertion
+                                                setTimeout(() => prepareWordOperatorInfo('+'), 0);
                                             }
                                             return;
                                         }
@@ -943,7 +995,10 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
                                             if (choice === "exact") setDateMode("exact");
                                             else if (choice === "after") setDateMode(">=");
                                             else setDateMode("<=");
-                                            setMenuLevel("dateMode");
+                                            // insert corresponding operator token (dt:" or dt>=" or dt<=" ) and enter dateMode
+                                            const token = choice === "exact" ? 'dt:"' : choice === "after" ? 'dt>="' : 'dt<="';
+                                            insertTriggerToken(chatInputRef.current!, token, "dateMode", "dateMode");
+                                            setTimeout(() => prepareDateOperatorInfo(choice), 0);
                                             return;
                                         }
                                         if (menuLevel === "dateMode") {
@@ -1051,6 +1106,8 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
                                                     if (choice === "exact") setDateMode("exact");
                                                     else if (choice === "after") setDateMode(">=");
                                                     else setDateMode("<=");
+                                                    // prepare operator info and switch to dateMode where user types the date
+                                                    prepareDateOperatorInfo(choice);
                                                     setMenuLevel("dateMode");
                                                 } else if (menuLevel === "dateMode") {
                                                     insertDateFilterFromCaret(chatInputRef.current!);
