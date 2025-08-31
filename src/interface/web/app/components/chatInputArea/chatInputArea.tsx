@@ -570,6 +570,12 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
             insertion = `@${suggestion} `;
         }
 
+        // Ensure there's a space before insertion if previous char isn't whitespace
+        const needsLeadingSpace = insertStart > 0 && !/\s/.test(message.charAt(insertStart - 1));
+        if (needsLeadingSpace) {
+            insertion = " " + insertion;
+        }
+
         const newMessage = message.slice(0, insertStart) + insertion + message.slice(end);
         setMessage(newMessage);
 
@@ -598,11 +604,15 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
             insertEnd = caret;
         }
 
-        const newMessage = message.slice(0, insertStart) + token + message.slice(insertEnd);
+        // add space before token if needed
+        const needsLeadingSpace = insertStart > 0 && !/\s/.test(message.charAt(insertStart - 1));
+        const tokenToInsert = needsLeadingSpace ? " " + token : token;
+
+        const newMessage = message.slice(0, insertStart) + tokenToInsert + message.slice(insertEnd);
         setMessage(newMessage);
 
         requestAnimationFrame(() => {
-            const pos = insertStart + token.length;
+            const pos = insertStart + (needsLeadingSpace ? token.length + 1 : token.length);
             textarea.selectionStart = textarea.selectionEnd = pos;
             textarea.focus();
         });
