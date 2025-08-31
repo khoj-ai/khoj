@@ -47,6 +47,8 @@ JINA_API_KEY = os.getenv("JINA_API_KEY")
 FIRECRAWL_API_KEY = os.getenv("FIRECRAWL_API_KEY")
 FIRECRAWL_USE_LLM_EXTRACT = is_env_var_true("FIRECRAWL_USE_LLM_EXTRACT")
 
+SEARXNG_URL = os.getenv("KHOJ_SEARXNG_URL")
+
 # Timeout for web search and webpage read HTTP requests
 WEBPAGE_REQUEST_TIMEOUT = 60  # seconds
 
@@ -120,8 +122,9 @@ async def search_online(
     if JINA_API_KEY:
         search_engine = "Jina"
         search_engines.append((search_engine, search_with_jina))
-    search_engine = "Searxng"
-    search_engines.append((search_engine, search_with_searxng))
+    if SEARXNG_URL:
+        search_engine = "Searxng"
+        search_engines.append((search_engine, search_with_searxng))
 
     if send_status_func:
         subqueries_str = "\n- " + "\n- ".join(subqueries)
@@ -253,9 +256,8 @@ async def search_with_firecrawl(query: str, location: LocationData) -> Tuple[str
 
 async def search_with_searxng(query: str, location: LocationData) -> Tuple[str, Dict[str, List[Dict]]]:
     """Search using local SearXNG instance."""
-    # Use environment variable or default to localhost
-    searxng_url = os.getenv("KHOJ_SEARXNG_URL", "http://localhost:42113")
-    search_url = f"{searxng_url}/search"
+    # Use environment variable
+    search_url = f"{SEARXNG_URL}/search"
     country_code = location.country_code.lower() if location and location.country_code else "us"
 
     params = {"q": query, "format": "html", "language": "en", "country": country_code, "categories": "general"}
@@ -264,7 +266,7 @@ async def search_with_searxng(query: str, location: LocationData) -> Tuple[str, 
         try:
             async with session.get(search_url, params=params, timeout=WEBPAGE_REQUEST_TIMEOUT) as response:
                 if response.status != 200:
-                    logger.error(f"SearXNG search failed to call {searxng_url}: {await response.text()}")
+                    logger.error(f"SearXNG search failed to call {SEARXNG_URL}: {await response.text()}")
                     return query, {}
 
                 html_content = await response.text()
