@@ -456,8 +456,14 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
                     setShowFileSuggestions(true);
                     // Map trig.kind directly to menuLevel (handles dateMode/wordMode too)
                     if (trig.kind === "at") {
-                        setMenuLevel("main");
-                        updateSuggestions("", "main");
+                        // If user typed characters immediately after '@', open file selector filtered by that query
+                        if (trig.query && trig.query.length > 0) {
+                            setMenuLevel("file");
+                            updateSuggestions(trig.query, "file");
+                        } else {
+                            setMenuLevel("main");
+                            updateSuggestions("", "main");
+                        }
                     } else {
                         setMenuLevel(trig.kind as any);
                         updateSuggestions(trig.query || "", trig.kind as any);
@@ -1022,7 +1028,7 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
                                 focus:outline-none focus-visible:ring-transparent
                                 w-full h-16 min-h-16 max-h-[128px] md:py-4 rounded-lg resize-none dark:bg-neutral-700
                                 ${props.isMobileWidth ? "text-md" : "text-lg"}`}
-                            placeholder="Type / to see a list of commands"
+                            placeholder="Type / for commands and @ for filters"
                             id="message"
                             autoFocus={true}
                             value={message}
