@@ -95,6 +95,7 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
     const [suggestions, setSuggestions] = useState<string[]>([]);
     const [highlightIndex, setHighlightIndex] = useState(0);
     const triggerRef = useRef<{ kind: "at" | "file"; triggerLen: number } | null>(null);
+    const suggestionsContainerRef = useRef<HTMLDivElement | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const fileInputButtonRef = useRef<HTMLButtonElement>(null);
     const researchModeRef = useRef<HTMLButtonElement>(null);
@@ -444,7 +445,7 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
     function updateSuggestions(query: string) {
         setFileQuery(query);
         const q = query.toLowerCase();
-        const filtered = allFiles.filter((f) => f.toLowerCase().includes(q)).slice(0, 50);
+        const filtered = allFiles.filter((f) => f.toLowerCase().includes(q)).slice(0, 20);
         setSuggestions(filtered);
         setHighlightIndex(0);
     }
@@ -475,6 +476,19 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
         setShowFileSuggestions(false);
         triggerRef.current = null;
     }
+
+    useEffect(() => {
+        if (!showFileSuggestions) return;
+        const container = suggestionsContainerRef.current;
+        if (!container) return;
+        const children = container.children;
+        if (highlightIndex >= 0 && highlightIndex < children.length) {
+            const el = children[highlightIndex] as HTMLElement | undefined;
+            if (el && typeof el.scrollIntoView === "function") {
+                el.scrollIntoView({ block: "nearest" });
+            }
+        }
+    }, [highlightIndex, showFileSuggestions, suggestions]);
 
     function handleDragOver(event: React.DragEvent<HTMLDivElement>) {
         event.preventDefault();
@@ -805,7 +819,7 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
                             disabled={recording}
                         />
                         {showFileSuggestions && suggestions.length > 0 && (
-                            <div className="absolute z-50 bg-background border rounded-md mt-2 w-80 max-h-64 overflow-auto shadow-lg">
+                            <div ref={suggestionsContainerRef} className="absolute z-50 bg-background border rounded-md mt-2 w-80 max-h-64 overflow-auto shadow-lg">
                                 {suggestions.map((s: string, idx: number) => (
                                     <div
                                         key={s}
