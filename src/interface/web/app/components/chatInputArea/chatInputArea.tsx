@@ -89,6 +89,12 @@ interface ChatInputProps {
 
 export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((props, ref) => {
     const [message, setMessage] = useState("");
+    const [allFiles, setAllFiles] = useState<string[]>([]);
+    const [showFileSuggestions, setShowFileSuggestions] = useState(false);
+    const [fileQuery, setFileQuery] = useState("");
+    const [suggestions, setSuggestions] = useState<string[]>([]);
+    const [highlightIndex, setHighlightIndex] = useState(0);
+    const triggerRef = useRef<{ kind: "at" | "file"; triggerLen: number } | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const fileInputButtonRef = useRef<HTMLButtonElement>(null);
     const researchModeRef = useRef<HTMLButtonElement>(null);
@@ -140,6 +146,14 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
         setMessage(props.prefillMessage);
         chatInputRef?.current?.focus();
     }, [props.prefillMessage]);
+
+    useEffect(() => {
+        // Load all files for suggestions
+        fetch("/api/content/computer", { method: "GET", headers: { "Content-Type": "application/json" } })
+            .then((r) => r.json())
+            .then((data) => setAllFiles(Array.isArray(data) ? data : []))
+            .catch((e) => console.error("Failed to load files for suggestions", e));
+    }, []);
 
     useEffect(() => {
         if (props.focus === ChatInputFocus.MESSAGE) {
@@ -321,8 +335,8 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
         } catch (error) {
             setError(
                 "Error converting files. " +
-                    error +
-                    ". Please try again, or contact team@khoj.dev if the issue persists.",
+                error +
+                ". Please try again, or contact team@khoj.dev if the issue persists.",
             );
             console.error("Error converting files:", error);
             return [];
@@ -417,6 +431,50 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
             setShowCommandList(false);
         }
     }, [message]);
+
+    function getTriggerAtCaret(value: string, caretPos: number) {
+        const before = value.slice(0, caretPos);
+        const atMatch = before.match(/(?:^|\s)@([^\s@]*)$/);
+        if (atMatch) return { kind: "at" as const, query: atMatch[1], triggerLen: atMatch[0].length };
+        const fileMatch = before.match(/(?:^|\s)file:("?)([^"\s]*)$/i);
+        if (fileMatch) return { kind: "file" as const, query: fileMatch[2], triggerLen: fileMatch[0].length };
+        return null;
+    }
+
+    function updateSuggestions(query: string) {
+        setFileQuery(query);
+        const q = query.toLowerCase();
+        const filtered = allFiles.filter((f) => f.toLowerCase().includes(q)).slice(0, 50);
+        setSuggestions(filtered);
+        setHighlightIndex(0);
+    }
+
+    function insertSuggestionAtCaret(textarea: HTMLTextAreaElement, suggestion: string) {
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        const trigger = triggerRef.current;
+        if (!trigger) return;
+        const insertStart = start - trigger.triggerLen;
+        let insertion = suggestion;
+        if (trigger.kind === "file") {
+            insertion = `file:\"${suggestion}\" `;
+        } else {
+            insertion = `@${suggestion} `;
+        }
+
+        const newMessage = message.slice(0, insertStart) + insertion + message.slice(end);
+        setMessage(newMessage);
+
+        // Restore caret after insertion
+        requestAnimationFrame(() => {
+            const pos = insertStart + insertion.length;
+            textarea.selectionStart = textarea.selectionEnd = pos;
+            textarea.focus();
+        });
+
+        setShowFileSuggestions(false);
+        triggerRef.current = null;
+    }
 
     function handleDragOver(event: React.DragEvent<HTMLDivElement>) {
         event.preventDefault();
@@ -688,7 +746,33 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
                             id="message"
                             autoFocus={true}
                             value={message}
-                            onKeyDown={(e) => {
+                            onKeyDown={(e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+                                // Keyboard handling for file suggestions
+                                if (showFileSuggestions) {
+                                    if (e.key === "ArrowDown") {
+                                        e.preventDefault();
+                                        setHighlightIndex((i) => Math.min(i + 1, suggestions.length - 1));
+                                        return;
+                                    }
+                                    if (e.key === "ArrowUp") {
+                                        e.preventDefault();
+                                        setHighlightIndex((i) => Math.max(i - 1, 0));
+                                        return;
+                                    }
+                                    if (e.key === "Enter") {
+                                        if (suggestions.length > 0) {
+                                            e.preventDefault();
+                                            insertSuggestionAtCaret(chatInputRef.current!, suggestions[highlightIndex]);
+                                            return;
+                                        }
+                                    }
+                                    if (e.key === "Escape") {
+                                        setShowFileSuggestions(false);
+                                        triggerRef.current = null;
+                                        return;
+                                    }
+                                }
+
                                 if (
                                     e.key === "Enter" &&
                                     !e.shiftKey &&
@@ -702,9 +786,43 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
                                     onSendMessage();
                                 }
                             }}
-                            onChange={(e) => setMessage(e.target.value)}
+                            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => {
+                                setMessage(e.target.value);
+
+                                // Check caret trigger
+                                const ta = e.target as HTMLTextAreaElement;
+                                const caret = ta.selectionStart;
+                                const trig = getTriggerAtCaret(ta.value, caret);
+                                if (trig) {
+                                    triggerRef.current = { kind: trig.kind, triggerLen: trig.triggerLen };
+                                    setShowFileSuggestions(true);
+                                    updateSuggestions(trig.query || "");
+                                } else {
+                                    setShowFileSuggestions(false);
+                                    triggerRef.current = null;
+                                }
+                            }}
                             disabled={recording}
                         />
+                        {showFileSuggestions && suggestions.length > 0 && (
+                            <div className="absolute z-50 bg-background border rounded-md mt-2 w-80 max-h-64 overflow-auto shadow-lg">
+                                {suggestions.map((s: string, idx: number) => (
+                                    <div
+                                        key={s}
+                                        className={`p-2 cursor-pointer ${idx === highlightIndex ? "bg-sky-100" : ""}`}
+                                        onMouseDown={(ev: React.MouseEvent) => {
+                                            // prevent blur
+                                            ev.preventDefault();
+                                            insertSuggestionAtCaret(chatInputRef.current!, s);
+                                        }}
+                                        onMouseEnter={() => setHighlightIndex(idx)}
+                                    >
+                                        <div className="text-sm truncate">{s.split("/").pop()}</div>
+                                        <div className="text-xs text-muted-foreground truncate">{s}</div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                     </div>
                     <div className="flex items-end pb-2">
                         {recording ? (
