@@ -436,14 +436,25 @@ def evaluate_response_with_mcq_match(
 ) -> tuple[bool | None, str, float]:
     """Evaluate Khoj response against benchmark ground truth using string matching"""
     try:
-        # Extract answer from agent response
-        answer_pattern_multichoice = r"(?i)Answer\s*:\s*([A-D])"
-        match = re.search(answer_pattern_multichoice, agent_response)
-        extracted_answer = match.group(1) if match else None
+        # Extract answer from agent response using multiple patterns
+        answer_patterns = [
+            r"(?i)Answer\s*:\s*([A-D])",  # Answer: D
+            r"(?i)(?:final\s+)?answer\s+is\s+([A-D])",  # answer is D / final answer is D
+            r"\$\\boxed\{([A-D])\}\$",  # $\boxed{D}$
+            r"\\boxed\{([A-D])\}",  # \boxed{D}
+            r"\b([A-D])\b(?=\s*$)",  # Just the letter at end of response
+        ]
+
+        extracted_answer = None
+        for pattern in answer_patterns:
+            match = re.search(pattern, agent_response)
+            if match:
+                extracted_answer = match.group(1).upper()
+                break
 
         # Check if extracted answer matches ground truth
         decision = extracted_answer == ground_truth
-        explanation = f"Agent response {'matches' if decision else 'does not match'} ground truth {ground_truth}"
+        explanation = f'Agent response "{extracted_answer}" {"matches" if decision else "does not match"} ground truth {ground_truth}.'
 
         # Return decision, explanation and cost in structured form
         return float(decision), explanation, 0.0
