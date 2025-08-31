@@ -1,3 +1,4 @@
+import hashlib
 import json
 import logging
 import os
@@ -457,6 +458,11 @@ def responses_completion_with_backoff(
 
     model_kwargs = deepcopy(model_kwargs)
     model_kwargs["top_p"] = model_kwargs.get("top_p", 0.95)
+
+    # Use prompt cache key to increase probability of cache hits
+    if instructions:
+        model_kwargs["prompt_cache_key"] = f"{hashlib.md5(instructions[:500].encode()).hexdigest()}"
+
     # Configure thinking for openai reasoning models
     if is_openai_reasoning_model(model_name, api_base_url):
         temperature = 1
