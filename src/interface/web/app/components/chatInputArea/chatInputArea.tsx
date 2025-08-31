@@ -450,6 +450,12 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
                     } else if (trig.kind === "file") {
                         setMenuLevel("file");
                         updateSuggestions(trig.query || "", "file");
+                    } else if (trig.kind === "date") {
+                        setMenuLevel("date");
+                        updateSuggestions(trig.query || "", "date");
+                    } else if (trig.kind === "word") {
+                        setMenuLevel("word");
+                        updateSuggestions(trig.query || "", "word");
                     } else {
                         setMenuLevel("main");
                         updateSuggestions(trig.query || "", "main");
@@ -467,10 +473,12 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
         if (atMatch) return { kind: "at" as const, query: atMatch[1], triggerLen: atMatch[0].length };
         const fileMatch = before.match(/(?:^|\s)file:("?)([^"\s]*)$/i);
         if (fileMatch) return { kind: "file" as const, query: fileMatch[2], triggerLen: fileMatch[0].length };
+        // require colon for date trigger (e.g. dt: or date:)
         const dateMatch = before.match(/(?:^|\s)(?:date|dt):(\"?)([^\"\s]*)$/i);
         if (dateMatch) return { kind: "date" as const, query: dateMatch[2], triggerLen: dateMatch[0].length };
-        const wordMatch = before.match(/(?:^|\s)([+-])(\"?)([^\"\s]*)$/);
-        if (wordMatch) return { kind: "word" as const, query: wordMatch[3], triggerLen: wordMatch[0].length, sign: wordMatch[1] as "+" | "-" };
+        // word triggers only when user types +" or -" (opening quote present)
+        const wordMatch = before.match(/(?:^|\s)([+-])\"([^\"]*)$/);
+        if (wordMatch) return { kind: "word" as const, query: wordMatch[2], triggerLen: wordMatch[0].length, sign: wordMatch[1] as "+" | "-" };
         return null;
     }
 
@@ -922,8 +930,8 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
                                             } else if (choice === "date") {
                                                 insertTriggerToken(chatInputRef.current!, "dt:", "date", "date");
                                             } else if (choice === "word") {
-                                                // start word include by default
-                                                insertTriggerToken(chatInputRef.current!, "+", "word", "word");
+                                                // insert +" to start word include mode
+                                                insertTriggerToken(chatInputRef.current!, '+"', "word", "word");
                                             }
                                             return;
                                         }
@@ -990,6 +998,12 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
                                     } else if (trig.kind === "file") {
                                         setMenuLevel("file");
                                         updateSuggestions(trig.query || "", "file");
+                                    } else if (trig.kind === "date") {
+                                        setMenuLevel("date");
+                                        updateSuggestions(trig.query || "", "date");
+                                    } else if (trig.kind === "word") {
+                                        setMenuLevel("word");
+                                        updateSuggestions(trig.query || "", "word");
                                     } else {
                                         setMenuLevel("main");
                                         updateSuggestions(trig.query || "", "main");
@@ -1002,53 +1016,62 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
                             }}
                             disabled={recording}
                         />
-                        {showFileSuggestions && suggestions.length > 0 && (
-                            <div ref={suggestionsContainerRef} className="absolute z-50 bg-background border rounded-md mt-2 w-80 max-h-64 overflow-auto shadow-lg">
-                                {suggestions.map((s: string, idx: number) => (
-                                    <div
-                                        key={s}
-                                        className={`p-2 cursor-pointer ${idx === highlightIndex ? "bg-sky-100" : ""}`}
-                                        onMouseDown={(ev: React.MouseEvent) => {
-                                            // prevent blur
-                                            ev.preventDefault();
-                                            if (menuLevel === "file") insertSuggestionAtCaret(chatInputRef.current!, s);
-                                            else if (menuLevel === "main") {
-                                                const choice = String(s).toLowerCase();
-                                                if (choice === "file") {
-                                                    setMenuLevel("file");
-                                                    updateSuggestions("");
-                                                } else if (choice === "date") {
-                                                    setMenuLevel("date");
-                                                    updateSuggestions("");
-                                                } else if (choice === "word") {
-                                                    setMenuLevel("word");
-                                                    updateSuggestions("");
+                        {showFileSuggestions && (() => {
+                            const displayList =
+                                menuLevel === "file"
+                                    ? suggestions
+                                    : menuLevel === "date"
+                                        ? ["exact", "after", "before"]
+                                        : menuLevel === "dateMode"
+                                            ? []
+                                            : menuLevel === "word"
+                                                ? ["include", "exclude"]
+                                                : menuLevel === "main"
+                                                    ? ["file", "date", "word"]
+                                                    : [];
+
+                            if (displayList.length === 0) return null;
+
+                            return (
+                                <div ref={suggestionsContainerRef} className="absolute z-50 bg-background border rounded-md mt-2 w-80 max-h-64 overflow-auto shadow-lg">
+                                    {displayList.map((s: string, idx: number) => (
+                                        <div
+                                            key={s + idx}
+                                            className={`p-2 cursor-pointer ${idx === highlightIndex ? "bg-sky-100" : ""}`}
+                                            onMouseDown={(ev: React.MouseEvent) => {
+                                                ev.preventDefault();
+                                                if (menuLevel === "file") insertSuggestionAtCaret(chatInputRef.current!, s);
+                                                else if (menuLevel === "main") {
+                                                    const choice = String(s).toLowerCase();
+                                                    if (choice === "file") insertTriggerToken(chatInputRef.current!, "file:", "file", "file");
+                                                    else if (choice === "date") insertTriggerToken(chatInputRef.current!, "dt:", "date", "date");
+                                                    else if (choice === "word") insertTriggerToken(chatInputRef.current!, '+"', "word", "word");
+                                                } else if (menuLevel === "date") {
+                                                    const choice = String(s).toLowerCase();
+                                                    if (choice === "exact") setDateMode("exact");
+                                                    else if (choice === "after") setDateMode(">=");
+                                                    else setDateMode("<=");
+                                                    setMenuLevel("dateMode");
+                                                } else if (menuLevel === "dateMode") {
+                                                    insertDateFilterFromCaret(chatInputRef.current!);
+                                                } else if (menuLevel === "word") {
+                                                    const choice = String(s).toLowerCase();
+                                                    if (choice === "include") setWordMode("include");
+                                                    else setWordMode("exclude");
+                                                    setMenuLevel("wordMode");
+                                                } else if (menuLevel === "wordMode") {
+                                                    insertWordFilterFromCaret(chatInputRef.current!);
                                                 }
-                                            } else if (menuLevel === "date") {
-                                                const choice = String(s).toLowerCase();
-                                                if (choice === "exact") setDateMode("exact");
-                                                else if (choice === "after") setDateMode(">=");
-                                                else setDateMode("<=");
-                                                setMenuLevel("dateMode");
-                                            } else if (menuLevel === "dateMode") {
-                                                insertDateFilterFromCaret(chatInputRef.current!);
-                                            } else if (menuLevel === "word") {
-                                                const choice = String(s).toLowerCase();
-                                                if (choice === "include") setWordMode("include");
-                                                else setWordMode("exclude");
-                                                setMenuLevel("wordMode");
-                                            } else if (menuLevel === "wordMode") {
-                                                insertWordFilterFromCaret(chatInputRef.current!);
-                                            }
-                                        }}
-                                        onMouseEnter={() => setHighlightIndex(idx)}
-                                    >
-                                        <div className="text-sm truncate">{menuLevel === "file" ? s.split("/").pop() : s}</div>
-                                        {menuLevel === "file" && <div className="text-xs text-muted-foreground truncate">{s}</div>}
-                                    </div>
-                                ))}
-                            </div>
-                        )}
+                                            }}
+                                            onMouseEnter={() => setHighlightIndex(idx)}
+                                        >
+                                            <div className="text-sm truncate">{menuLevel === "file" ? s.split("/").pop() : s}</div>
+                                            {menuLevel === "file" && <div className="text-xs text-muted-foreground truncate">{s}</div>}
+                                        </div>
+                                    ))}
+                                </div>
+                            );
+                        })()}
                     </div>
                     <div className="flex items-end pb-2">
                         {recording ? (
