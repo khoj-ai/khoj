@@ -118,6 +118,7 @@ from khoj.utils.helpers import (
     ToolDefinition,
     get_file_type,
     in_debug_mode,
+    is_code_sandbox_enabled,
     is_none_or_empty,
     is_operator_enabled,
     is_valid_url,
@@ -369,6 +370,8 @@ async def aget_data_sources_and_output_format(
         if source == ConversationCommand.Operator and not is_operator_enabled():
             continue
         if source in [ConversationCommand.Online, ConversationCommand.Webpage] and not is_web_search_enabled():
+            continue
+        if source == ConversationCommand.Code and not is_code_sandbox_enabled():
             continue
         source_options[source.value] = description
         if len(agent_sources) == 0 or source.value in agent_sources:

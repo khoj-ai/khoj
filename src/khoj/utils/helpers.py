@@ -777,6 +777,12 @@ def is_operator_enabled():
     return is_env_var_true("KHOJ_OPERATOR_ENABLED")
 
 
+def is_code_sandbox_enabled():
+    """Check if Khoj can run code in sandbox.
+    Set KHOJ_TERRARIUM_URL or E2B api key via env var to enable it."""
+    return not is_none_or_empty(os.getenv("KHOJ_TERRARIUM_URL")) or is_e2b_code_sandbox_enabled()
+
+
 def is_valid_url(url: str) -> bool:
     """Check if a string is a valid URL"""
     try:

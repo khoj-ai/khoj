@@ -34,6 +34,7 @@ from khoj.utils.helpers import (
     ConversationCommand,
     ToolDefinition,
     dict_to_tuple,
+    is_code_sandbox_enabled,
     is_none_or_empty,
     is_operator_enabled,
     is_web_search_enabled,
@@ -120,6 +121,10 @@ async def apick_next_tool(
         # Skip showing web search tool if agent has no access to internet
         if tool in web_research_tools and not is_web_search_enabled():
             continue
+        # Skip showing code tool if agent has no access to code execution sandbox
+        if tool == ConversationCommand.PythonCoder and not is_code_sandbox_enabled():
+            continue
+        # Format description with relevant usage limits
         if tool == ConversationCommand.SemanticSearchFiles:
             description = tool_data.description.format(max_search_queries=max_document_searches)
         elif tool == ConversationCommand.ReadWebpage:
