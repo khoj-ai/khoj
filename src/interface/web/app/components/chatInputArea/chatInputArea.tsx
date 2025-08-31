@@ -93,8 +93,11 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
     const [showFileSuggestions, setShowFileSuggestions] = useState(false);
     const [fileQuery, setFileQuery] = useState("");
     const [suggestions, setSuggestions] = useState<string[]>([]);
+    const [menuLevel, setMenuLevel] = useState<"main" | "file" | "date" | "word" | "dateMode" | "wordMode" | null>(null);
+    const [dateMode, setDateMode] = useState<"exact" | ">=" | "<=" | null>(null);
+    const [wordMode, setWordMode] = useState<"include" | "exclude" | null>(null);
     const [highlightIndex, setHighlightIndex] = useState(0);
-    const triggerRef = useRef<{ kind: "at" | "file"; triggerLen: number } | null>(null);
+    const triggerRef = useRef<{ kind: "at" | "file" | "date" | "word"; triggerLen: number; query?: string; sign?: "+" | "-" } | null>(null);
     const suggestionsContainerRef = useRef<HTMLDivElement | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const fileInputButtonRef = useRef<HTMLButtonElement>(null);
@@ -431,22 +434,62 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
         } else {
             setShowCommandList(false);
         }
+
+        // Also detect trigger even when message is set programmatically
+        try {
+            const ta = chatInputRef.current as HTMLTextAreaElement | null;
+            if (ta) {
+                const caret = ta.selectionStart;
+                const trig = getTriggerAtCaret(message, caret);
+                if (trig) {
+                    triggerRef.current = { kind: trig.kind, triggerLen: trig.triggerLen };
+                    setShowFileSuggestions(true);
+                    if (trig.kind === "at") {
+                        setMenuLevel("main");
+                        updateSuggestions("", "main");
+                    } else if (trig.kind === "file") {
+                        setMenuLevel("file");
+                        updateSuggestions(trig.query || "", "file");
+                    } else {
+                        setMenuLevel("main");
+                        updateSuggestions(trig.query || "", "main");
+                    }
+                }
+            }
+        } catch (err) {
+            // ignore
+        }
     }, [message]);
 
-    function getTriggerAtCaret(value: string, caretPos: number) {
+    function getTriggerAtCaret(value: string, caretPos: number): { kind: "at" | "file" | "date" | "word"; query: string; triggerLen: number; sign?: "+" | "-" } | null {
         const before = value.slice(0, caretPos);
         const atMatch = before.match(/(?:^|\s)@([^\s@]*)$/);
         if (atMatch) return { kind: "at" as const, query: atMatch[1], triggerLen: atMatch[0].length };
         const fileMatch = before.match(/(?:^|\s)file:("?)([^"\s]*)$/i);
         if (fileMatch) return { kind: "file" as const, query: fileMatch[2], triggerLen: fileMatch[0].length };
+        const dateMatch = before.match(/(?:^|\s)(?:date|dt):(\"?)([^\"\s]*)$/i);
+        if (dateMatch) return { kind: "date" as const, query: dateMatch[2], triggerLen: dateMatch[0].length };
+        const wordMatch = before.match(/(?:^|\s)([+-])(\"?)([^\"\s]*)$/);
+        if (wordMatch) return { kind: "word" as const, query: wordMatch[3], triggerLen: wordMatch[0].length, sign: wordMatch[1] as "+" | "-" };
         return null;
     }
 
-    function updateSuggestions(query: string) {
+    function updateSuggestions(query: string, levelOverride?: typeof menuLevel) {
         setFileQuery(query);
         const q = query.toLowerCase();
-        const filtered = allFiles.filter((f) => f.toLowerCase().includes(q)).slice(0, 20);
-        setSuggestions(filtered);
+        const level = levelOverride || menuLevel;
+        if (level === "file") {
+            const filtered = allFiles.filter((f) => f.toLowerCase().includes(q)).slice(0, 20);
+            setSuggestions(filtered);
+        } else if (level === "main") {
+            setSuggestions(["file", "date", "word"]);
+        } else if (level === "date") {
+            setSuggestions(["exact", "after", "before"]);
+        } else if (level === "word") {
+            setSuggestions(["include", "exclude"]);
+        } else {
+            setSuggestions([]);
+        }
         setHighlightIndex(0);
     }
 
@@ -457,8 +500,21 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
         if (!trigger) return;
         const insertStart = start - trigger.triggerLen;
         let insertion = suggestion;
-        if (trigger.kind === "file") {
+        if (menuLevel === "file" || trigger.kind === "file") {
             insertion = `file:\"${suggestion}\" `;
+        } else if (menuLevel === "main") {
+            // selecting main menu item should not insert directly
+            insertion = `@${suggestion} `;
+        } else if (menuLevel === "wordMode") {
+            const quoted = suggestion.includes(" ") ? `\"${suggestion}\"` : suggestion;
+            insertion = wordMode === "include" ? `+${quoted} ` : `-${quoted} `;
+        } else if (menuLevel === "dateMode") {
+            // suggestion here is expected to be the date string
+            if (!dateMode) return;
+            const d = suggestion;
+            if (dateMode === "exact") insertion = `dt:\"${d}\" `;
+            else if (dateMode === ">=") insertion = `dt>=\"${d}\" `;
+            else insertion = `dt<=\"${d}\" `;
         } else {
             insertion = `@${suggestion} `;
         }
@@ -475,6 +531,88 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
 
         setShowFileSuggestions(false);
         triggerRef.current = null;
+        setMenuLevel(null);
+        setDateMode(null);
+        setWordMode(null);
+    }
+
+    function insertTriggerToken(textarea: HTMLTextAreaElement, token: string, newMenuLevel: typeof menuLevel, levelOverride?: typeof menuLevel) {
+        // replace the original trigger (e.g. '@') with the token (like 'file:')
+        const caret = textarea.selectionStart;
+        const trig = getTriggerAtCaret(textarea.value, caret);
+        let insertStart = caret;
+        let insertEnd = caret;
+        if (trig) {
+            insertStart = caret - trig.triggerLen;
+            insertEnd = caret;
+        }
+
+        const newMessage = message.slice(0, insertStart) + token + message.slice(insertEnd);
+        setMessage(newMessage);
+
+        requestAnimationFrame(() => {
+            const pos = insertStart + token.length;
+            textarea.selectionStart = textarea.selectionEnd = pos;
+            textarea.focus();
+        });
+
+        setMenuLevel(newMenuLevel);
+        setShowFileSuggestions(true);
+        updateSuggestions("", levelOverride || newMenuLevel);
+    }
+
+    function insertDateFilterFromCaret(textarea: HTMLTextAreaElement) {
+        const trig = getTriggerAtCaret(textarea.value, textarea.selectionStart);
+        if (!trig) return;
+        const dateText = trig.query;
+        const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+        if (!dateMode || !dateRegex.test(dateText)) {
+            setWarning("Please enter a date in YYYY-MM-DD format");
+            return;
+        }
+        const insertStart = textarea.selectionStart - trig.triggerLen;
+        let insertion = "";
+        if (dateMode === "exact") insertion = `dt:\"${dateText}\" `;
+        else if (dateMode === ">=") insertion = `dt>=\"${dateText}\" `;
+        else insertion = `dt<=\"${dateText}\" `;
+
+        const newMessage = message.slice(0, insertStart) + insertion + message.slice(textarea.selectionEnd);
+        setMessage(newMessage);
+        requestAnimationFrame(() => {
+            const pos = insertStart + insertion.length;
+            textarea.selectionStart = textarea.selectionEnd = pos;
+            textarea.focus();
+        });
+
+        setShowFileSuggestions(false);
+        triggerRef.current = null;
+        setMenuLevel(null);
+        setDateMode(null);
+    }
+
+    function insertWordFilterFromCaret(textarea: HTMLTextAreaElement) {
+        const trig = getTriggerAtCaret(textarea.value, textarea.selectionStart);
+        if (!trig) return;
+        const wordText = trig.query;
+        if (!wordMode || wordText.length === 0) {
+            setWarning("Please enter a word or phrase");
+            return;
+        }
+        const insertStart = textarea.selectionStart - trig.triggerLen;
+        const quoted = wordText.includes(" ") ? `\"${wordText}\"` : wordText;
+        const insertion = wordMode === "include" ? `+${quoted} ` : `-${quoted} `;
+        const newMessage = message.slice(0, insertStart) + insertion + message.slice(textarea.selectionEnd);
+        setMessage(newMessage);
+        requestAnimationFrame(() => {
+            const pos = insertStart + insertion.length;
+            textarea.selectionStart = textarea.selectionEnd = pos;
+            textarea.focus();
+        });
+
+        setShowFileSuggestions(false);
+        triggerRef.current = null;
+        setMenuLevel(null);
+        setWordMode(null);
     }
 
     useEffect(() => {
@@ -761,7 +899,7 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
                             autoFocus={true}
                             value={message}
                             onKeyDown={(e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-                                // Keyboard handling for file suggestions
+                                // Keyboard handling for file/menu suggestions
                                 if (showFileSuggestions) {
                                     if (e.key === "ArrowDown") {
                                         e.preventDefault();
@@ -774,15 +912,51 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
                                         return;
                                     }
                                     if (e.key === "Enter") {
-                                        if (suggestions.length > 0) {
-                                            e.preventDefault();
-                                            insertSuggestionAtCaret(chatInputRef.current!, suggestions[highlightIndex]);
+                                        e.preventDefault();
+                                        const selected = suggestions[highlightIndex];
+                                        if (!selected) return;
+                                        const choice = String(selected).toLowerCase();
+                                        if (menuLevel === "main") {
+                                            if (choice === "file") {
+                                                insertTriggerToken(chatInputRef.current!, "file:", "file", "file");
+                                            } else if (choice === "date") {
+                                                insertTriggerToken(chatInputRef.current!, "dt:", "date", "date");
+                                            } else if (choice === "word") {
+                                                // start word include by default
+                                                insertTriggerToken(chatInputRef.current!, "+", "word", "word");
+                                            }
+                                            return;
+                                        }
+                                        if (menuLevel === "file") {
+                                            insertSuggestionAtCaret(chatInputRef.current!, selected);
+                                            return;
+                                        }
+                                        if (menuLevel === "date") {
+                                            if (choice === "exact") setDateMode("exact");
+                                            else if (choice === "after") setDateMode(">=");
+                                            else setDateMode("<=");
+                                            setMenuLevel("dateMode");
+                                            return;
+                                        }
+                                        if (menuLevel === "dateMode") {
+                                            insertDateFilterFromCaret(chatInputRef.current!);
+                                            return;
+                                        }
+                                        if (menuLevel === "word") {
+                                            if (choice === "include") setWordMode("include");
+                                            else setWordMode("exclude");
+                                            setMenuLevel("wordMode");
+                                            return;
+                                        }
+                                        if (menuLevel === "wordMode") {
+                                            insertWordFilterFromCaret(chatInputRef.current!);
                                             return;
                                         }
                                     }
                                     if (e.key === "Escape") {
                                         setShowFileSuggestions(false);
                                         triggerRef.current = null;
+                                        setMenuLevel(null);
                                         return;
                                     }
                                 }
@@ -810,10 +984,20 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
                                 if (trig) {
                                     triggerRef.current = { kind: trig.kind, triggerLen: trig.triggerLen };
                                     setShowFileSuggestions(true);
-                                    updateSuggestions(trig.query || "");
+                                    if (trig.kind === "at") {
+                                        setMenuLevel("main");
+                                        updateSuggestions("", "main");
+                                    } else if (trig.kind === "file") {
+                                        setMenuLevel("file");
+                                        updateSuggestions(trig.query || "", "file");
+                                    } else {
+                                        setMenuLevel("main");
+                                        updateSuggestions(trig.query || "", "main");
+                                    }
                                 } else {
                                     setShowFileSuggestions(false);
                                     triggerRef.current = null;
+                                    setMenuLevel(null);
                                 }
                             }}
                             disabled={recording}
@@ -827,12 +1011,40 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
                                         onMouseDown={(ev: React.MouseEvent) => {
                                             // prevent blur
                                             ev.preventDefault();
-                                            insertSuggestionAtCaret(chatInputRef.current!, s);
+                                            if (menuLevel === "file") insertSuggestionAtCaret(chatInputRef.current!, s);
+                                            else if (menuLevel === "main") {
+                                                const choice = String(s).toLowerCase();
+                                                if (choice === "file") {
+                                                    setMenuLevel("file");
+                                                    updateSuggestions("");
+                                                } else if (choice === "date") {
+                                                    setMenuLevel("date");
+                                                    updateSuggestions("");
+                                                } else if (choice === "word") {
+                                                    setMenuLevel("word");
+                                                    updateSuggestions("");
+                                                }
+                                            } else if (menuLevel === "date") {
+                                                const choice = String(s).toLowerCase();
+                                                if (choice === "exact") setDateMode("exact");
+                                                else if (choice === "after") setDateMode(">=");
+                                                else setDateMode("<=");
+                                                setMenuLevel("dateMode");
+                                            } else if (menuLevel === "dateMode") {
+                                                insertDateFilterFromCaret(chatInputRef.current!);
+                                            } else if (menuLevel === "word") {
+                                                const choice = String(s).toLowerCase();
+                                                if (choice === "include") setWordMode("include");
+                                                else setWordMode("exclude");
+                                                setMenuLevel("wordMode");
+                                            } else if (menuLevel === "wordMode") {
+                                                insertWordFilterFromCaret(chatInputRef.current!);
+                                            }
                                         }}
                                         onMouseEnter={() => setHighlightIndex(idx)}
                                     >
-                                        <div className="text-sm truncate">{s.split("/").pop()}</div>
-                                        <div className="text-xs text-muted-foreground truncate">{s}</div>
+                                        <div className="text-sm truncate">{menuLevel === "file" ? s.split("/").pop() : s}</div>
+                                        {menuLevel === "file" && <div className="text-xs text-muted-foreground truncate">{s}</div>}
                                     </div>
                                 ))}
                             </div>
