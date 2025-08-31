@@ -576,6 +576,12 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
             insertion = " " + insertion;
         }
 
+        // Ensure there's a space after insertion if the following char isn't whitespace
+        const needsTrailingSpace = end < message.length && !/\s/.test(message.charAt(end));
+        if (needsTrailingSpace) {
+            insertion = insertion + " ";
+        }
+
         const newMessage = message.slice(0, insertStart) + insertion + message.slice(end);
         setMessage(newMessage);
 
@@ -608,11 +614,15 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
         const needsLeadingSpace = insertStart > 0 && !/\s/.test(message.charAt(insertStart - 1));
         const tokenToInsert = needsLeadingSpace ? " " + token : token;
 
-        const newMessage = message.slice(0, insertStart) + tokenToInsert + message.slice(insertEnd);
+        // ensure trailing space after token if needed
+        const needsTrailingSpaceToken = insertEnd < message.length && !/\s/.test(message.charAt(insertEnd));
+        const finalToken = needsTrailingSpaceToken ? tokenToInsert + " " : tokenToInsert;
+
+        const newMessage = message.slice(0, insertStart) + finalToken + message.slice(insertEnd);
         setMessage(newMessage);
 
         requestAnimationFrame(() => {
-            const pos = insertStart + (needsLeadingSpace ? token.length + 1 : token.length);
+            const pos = insertStart + (needsLeadingSpace ? token.length + 1 : token.length) + (needsTrailingSpaceToken ? 1 : 0);
             textarea.selectionStart = textarea.selectionEnd = pos;
             textarea.focus();
         });
@@ -626,7 +636,11 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
         const ta = chatInputRef.current!;
         const caret = ta.selectionStart;
         const trig = getTriggerAtCaret(ta.value, caret);
-        const insertStart = trig ? caret - trig.triggerLen : caret;
+        let insertStart = trig ? caret - trig.triggerLen : caret;
+        // If there's a space immediately before the operator token in the message, include it
+        if (insertStart > 0 && /\s/.test(message.charAt(insertStart - 1))) {
+            insertStart = insertStart - 1;
+        }
         const insertToken = choice === "exact" ? 'dt:"' : choice === "after" ? 'dt>="' : 'dt<="';
         setDateOperatorInfo({ insertStart, insertToken, operator: choice as any });
     }
@@ -635,7 +649,10 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
         const ta = chatInputRef.current!;
         const caret = ta.selectionStart;
         const trig = getTriggerAtCaret(ta.value, caret);
-        const insertStart = trig ? caret - trig.triggerLen : caret;
+        let insertStart = trig ? caret - trig.triggerLen : caret;
+        if (insertStart > 0 && /\s/.test(message.charAt(insertStart - 1))) {
+            insertStart = insertStart - 1;
+        }
         const insertToken = sign + '"';
         setWordOperatorInfo({ insertStart, insertToken, sign });
     }
@@ -665,11 +682,18 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
             setWarning("Please enter a date in YYYY-MM-DD format");
             return;
         }
-        const insertStart = textarea.selectionStart - trig.triggerLen;
+        // Prefer operator info insertStart if available (accounts for added leading space)
+        const insertStart = dateOperatorInfo ? dateOperatorInfo.insertStart : textarea.selectionStart - trig.triggerLen;
         let insertion = "";
         if (dateMode === "exact") insertion = `dt:\"${dateText}\" `;
         else if (dateMode === ">=") insertion = `dt>=\"${dateText}\" `;
         else insertion = `dt<=\"${dateText}\" `;
+
+        // Ensure leading/trailing spaces are preserved
+        const needsLeadingSpace = insertStart > 0 && !/\s/.test(message.charAt(insertStart - 1));
+        if (needsLeadingSpace) insertion = " " + insertion;
+        const needsTrailingSpace = textarea.selectionEnd < message.length && !/\s/.test(message.charAt(textarea.selectionEnd));
+        if (needsTrailingSpace) insertion = insertion + " ";
 
         const newMessage = message.slice(0, insertStart) + insertion + message.slice(textarea.selectionEnd);
         setMessage(newMessage);
@@ -683,6 +707,7 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
         triggerRef.current = null;
         setMenuLevel(null);
         setDateMode(null);
+        setDateOperatorInfo(null);
     }
 
     function insertWordFilterFromCaret(textarea: HTMLTextAreaElement) {
@@ -693,10 +718,16 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
             setWarning("Please enter a word or phrase");
             return;
         }
-        const insertStart = textarea.selectionStart - trig.triggerLen;
+        const insertStart = wordOperatorInfo ? wordOperatorInfo.insertStart : textarea.selectionStart - trig.triggerLen;
         // Always quote the word/phrase to match filter syntax
         const quoted = `\"${wordText}\"`;
-        const insertion = wordMode === "include" ? `+${quoted} ` : `-${quoted} `;
+        let insertion = wordMode === "include" ? `+${quoted} ` : `-${quoted} `;
+        // Preserve surrounding spaces
+        const needsLeadingSpaceW = insertStart > 0 && !/\s/.test(message.charAt(insertStart - 1));
+        if (needsLeadingSpaceW) insertion = " " + insertion;
+        const needsTrailingSpaceW = textarea.selectionEnd < message.length && !/\s/.test(message.charAt(textarea.selectionEnd));
+        if (needsTrailingSpaceW) insertion = insertion + " ";
+
         const newMessage = message.slice(0, insertStart) + insertion + message.slice(textarea.selectionEnd);
         setMessage(newMessage);
         requestAnimationFrame(() => {
@@ -709,6 +740,7 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
         triggerRef.current = null;
         setMenuLevel(null);
         setWordMode(null);
+        setWordOperatorInfo(null);
     }
 
     useEffect(() => {
