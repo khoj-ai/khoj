@@ -40,6 +40,7 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 GEMINI_EVAL_MODEL = os.getenv("GEMINI_EVAL_MODEL", "gemini-2.5-flash")
 
 LLM_SEED = int(os.getenv("KHOJ_LLM_SEED")) if os.getenv("KHOJ_LLM_SEED") else None
+DATASET_SEED = int(os.getenv("DATASET_SEED")) if os.getenv("DATASET_SEED") else None
 SAMPLE_SIZE = os.getenv("SAMPLE_SIZE")  # Number of examples to evaluate
 RANDOMIZE = os.getenv("RANDOMIZE", "false").lower() == "true"  # Randomize examples
 BATCH_SIZE = int(
@@ -196,7 +197,7 @@ def load_frames_dataset():
     try:
         dataset = load_dataset("google/frames-benchmark")
         # Use test split for evaluation. Sample and shuffle dataset if configured
-        dataset = dataset.shuffle() if RANDOMIZE else dataset
+        dataset = dataset.shuffle(seed=DATASET_SEED) if RANDOMIZE else dataset
         return dataset["test"][: int(SAMPLE_SIZE)] if SAMPLE_SIZE else dataset["test"]
 
     except Exception as e:
@@ -238,7 +239,7 @@ def load_simpleqa_dataset():
 
         # Convert benchmark to HF Dataset
         dataset = Dataset.from_list(formatted_data)
-        dataset = dataset.shuffle() if RANDOMIZE else dataset
+        dataset = dataset.shuffle(seed=DATASET_SEED) if RANDOMIZE else dataset
         dataset = dataset.select(range(int(SAMPLE_SIZE))) if SAMPLE_SIZE else dataset
 
         return dataset
@@ -275,8 +276,11 @@ def load_gpqa_dataset():
             row["Incorrect Answer 3"],
             row["Correct Answer"],
         ]
-        # Shuffle choices
-        random.shuffle(choices)
+        # Shuffle choices with deterministic seed if provided
+        if DATASET_SEED is not None:
+            random.Random(DATASET_SEED).shuffle(choices)
+        else:
+            random.shuffle(choices)
 
         # Get correct answer letter
         correct_index = choices.index(row["Correct Answer"])
@@ -307,7 +311,7 @@ D) {choices[3]}
         dataset = dataset.add_column("Answer", [p[1] for p in prompts_and_answers])
 
         # Sample and shuffle dataset if configured
-        dataset = dataset.shuffle() if RANDOMIZE else dataset
+        dataset = dataset.shuffle(seed=DATASET_SEED) if RANDOMIZE else dataset
         dataset = dataset[: int(SAMPLE_SIZE)] if SAMPLE_SIZE else dataset
 
         return dataset
@@ -331,7 +335,7 @@ def load_math500_dataset():
         # Load the MATH500 dataset from HuggingFace
         dataset = load_dataset("HuggingFaceH4/MATH-500", split="test")
         dataset = dataset.rename_columns({"problem": "Prompt", "answer": "Answer", "subject": "reasoning_types"})
-        dataset = dataset.shuffle() if RANDOMIZE else dataset
+        dataset = dataset.shuffle(seed=DATASET_SEED) if RANDOMIZE else dataset
         dataset = dataset.select(range(int(SAMPLE_SIZE))) if SAMPLE_SIZE else dataset
 
         return dataset
