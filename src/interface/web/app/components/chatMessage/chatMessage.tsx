@@ -528,6 +528,25 @@ const ChatMessage = forwardRef<HTMLDivElement, ChatMessageProps>((props, ref) =>
             },
         );
 
+        if (props.chatMessage.by !== "khoj") {
+            try {
+                // Require token to be at start or preceded by whitespace to avoid
+                // matching hyphens inside filenames or other words.
+                const tokenRegex = /(^|\s)(file:\"[^\"]+\"|file:[^\s"<>]+|dt(?:(?:>=|<=):?)?\"[^\"]*\"|dt(?:(?:>=|<=):?)[^\s"<>]+|\+\"[^\"]*\"|\+[^\s"<>]+|-\"[^\"]*\"|-[^\s"<>]+)/g;
+
+                messageToRender = messageToRender.replace(tokenRegex, (all, prefix, token) => {
+                    let cls = "bg-sky-100 text-sky-800 border border-sky-200";
+                    if (token.startsWith("file:")) cls = "bg-sky-100 text-sky-800 border border-sky-200";
+                    else if (token.startsWith("dt")) cls = "bg-amber-100 text-amber-800 border border-amber-200";
+                    else if (token.startsWith("+")) cls = "bg-emerald-100 text-emerald-800 border border-emerald-200";
+                    else if (token.startsWith("-")) cls = "bg-rose-100 text-rose-800 border border-rose-200";
+                    return `${prefix}<span class="inline ${cls} rounded-md">${token}</span>`;
+                });
+            } catch (e) {
+                // ignore decorate errors and fall back to plain markdown
+            }
+        }
+
         // Render the markdown
         let markdownRendered = md.render(messageToRender);
 
@@ -539,7 +558,6 @@ const ChatMessage = forwardRef<HTMLDivElement, ChatMessageProps>((props, ref) =>
             .replace(/RIGHTBRACKET/g, "\\]");
 
         // Sanitize and set the rendered markdown
-        // Configure DOMPurify to allow file link attributes
         const cleanMarkdown = DOMPurify.sanitize(markdownRendered, {
             ADD_ATTR: ["data-file-path", "data-line-number"],
         });
