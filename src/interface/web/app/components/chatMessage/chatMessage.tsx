@@ -530,9 +530,8 @@ const ChatMessage = forwardRef<HTMLDivElement, ChatMessageProps>((props, ref) =>
 
         if (props.chatMessage.by !== "khoj") {
             try {
-                // Require token to be at start or preceded by whitespace to avoid
-                // matching hyphens inside filenames or other words.
-                const tokenRegex = /(^|\s)(file:\"[^\"]+\"|file:[^\s"<>]+|dt(?:(?:>=|<=):?)?\"[^\"]*\"|dt(?:(?:>=|<=):?)[^\s"<>]+|\+\"[^\"]*\"|\+[^\s"<>]+|-\"[^\"]*\"|-[^\s"<>]+)/g;
+                // Match tokens: file:"..." or file:word, dt variants (dt:, dt:"...", dt>="...", dt<="...", dt>=YYYY, etc), +"..."/+word, -"..."/-word
+                const tokenRegex = /(^|\s)(file:\"[^\"]+\"|file:[^\s"<>]+|dt(?:(?:>=|<=|>|<|:))?(?:\"[^\"]*\"|[^\s"<>]+)|\+\"[^\"]*\"|\+[^\s"<>]+|-\"[^\"]*\"|-[^\s"<>]+)/g;
 
                 messageToRender = messageToRender.replace(tokenRegex, (all, prefix, token) => {
                     let cls = "bg-sky-100 text-sky-800 border border-sky-200";

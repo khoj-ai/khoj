@@ -111,6 +111,7 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
     const triggerRef = useRef<{ kind: "at" | "file" | "date" | "word" | "dateMode" | "wordMode"; triggerLen: number; query?: string; sign?: "+" | "-" } | null>(null);
     const suggestionsContainerRef = useRef<HTMLDivElement | null>(null);
     const overlayRef = useRef<HTMLDivElement | null>(null);
+    const overlayInnerRef = useRef<HTMLDivElement | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const fileInputButtonRef = useRef<HTMLButtonElement>(null);
     const researchModeRef = useRef<HTMLButtonElement>(null);
@@ -497,13 +498,61 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
         if (!ta || !ov) return;
 
         function onScroll() {
-            ov.scrollTop = ta.scrollTop;
-            ov.scrollLeft = ta.scrollLeft;
+            const taInner = chatInputRef?.current as HTMLTextAreaElement | null;
+            const inner = overlayInnerRef?.current as HTMLDivElement | null;
+            if (!taInner || !inner) return;
+            // translate the inner overlay so it matches textarea pixel scroll
+            inner.style.transform = `translate(${-taInner.scrollLeft}px, ${-taInner.scrollTop}px)`;
         }
 
         ta.addEventListener("scroll", onScroll);
+        // run once to initialize
+        onScroll();
         return () => ta.removeEventListener("scroll", onScroll);
     }, [chatInputRef, overlayRef]);
+
+    // Copy computed font metrics from the textarea to the overlay inner to
+    // ensure identical text metrics (prevents caret misalignment).
+    useEffect(() => {
+        function applyMetrics() {
+            const ta = chatInputRef?.current as HTMLTextAreaElement | null;
+            const inner = overlayInnerRef?.current as HTMLDivElement | null;
+            const ov = overlayRef?.current as HTMLDivElement | null;
+            if (!ta || !inner || !ov) return;
+
+            const style = window.getComputedStyle(ta);
+            inner.style.fontFamily = style.fontFamily;
+            inner.style.fontSize = style.fontSize;
+            inner.style.fontWeight = style.fontWeight;
+            inner.style.lineHeight = style.lineHeight;
+            inner.style.letterSpacing = style.letterSpacing;
+            inner.style.wordSpacing = style.wordSpacing;
+            inner.style.whiteSpace = 'pre-wrap';
+            inner.style.boxSizing = 'border-box';
+
+            // Match padding so wrapping positions match
+            const padLeft = parseFloat(style.paddingLeft || '0');
+            const padTop = parseFloat(style.paddingTop || '0');
+            inner.style.paddingLeft = `${padLeft}px`;
+            inner.style.paddingTop = `${padTop}px`;
+
+            // Set inner width to textarea content width (clientWidth)
+            inner.style.width = `${ta.clientWidth}px`;
+
+            // Initialize transform to match current scroll
+            inner.style.transform = `translate(${-ta.scrollLeft}px, ${-ta.scrollTop}px)`;
+        }
+
+        applyMetrics();
+        const ta = chatInputRef?.current as HTMLTextAreaElement | null;
+        window.addEventListener('resize', applyMetrics);
+        const ro = new ResizeObserver(applyMetrics);
+        if (ta) ro.observe(ta);
+        return () => {
+            window.removeEventListener('resize', applyMetrics);
+            try { ro.disconnect(); } catch (e) { }
+        };
+    }, [chatInputRef, overlayInnerRef, overlayRef, props.isMobileWidth, message]);
 
     // getTriggerAtCaret is now imported from query-filters
 
@@ -534,7 +583,8 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
 
             // Try to find the earliest token among patterns
             const fileMatch = slice.match(/^file:\"([^\"]+)\"/);
-            const dateMatch = slice.match(/^(dt(?:(?:>=|<=):?)?\"?([^\"\s]*)\"?)/);
+            // Accept straight quotes (") or unicode curly quotes (\u201C \u201D)
+            const dateMatch = slice.match(/^(dt(?:(?:>=|<=))?:?)(?:"|\u201C|\u201D)?([^"\u201C\u201D\s]*)(?:"|\u201C|\u201D)?/);
             const includeMatch = slice.match(/^\+\"([^\"]+)\"/);
             const excludeMatch = slice.match(/^\-\"([^\"]+)\"/);
 
@@ -1112,8 +1162,8 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
                     </div>
                     <div className="flex-grow flex flex-col w-full gap-1.5 relative">
                         {/* Overlay showing decorated tokens (badges). Pointer-events none so textarea receives input. */}
-                        <div ref={overlayRef} className="absolute inset-0 z-10 pointer-events-none px-3 md:py-4 overflow-auto">
-                            <div className={`w-full break-words ${props.isMobileWidth ? "text-md" : "text-lg"} leading-6 text-neutral-800 dark:text-neutral-200 whitespace-pre-wrap`}>
+                        <div ref={overlayRef} className="absolute inset-0 z-10 pointer-events-none overflow-hidden">
+                            <div ref={overlayInnerRef} className={`w-full break-words ${props.isMobileWidth ? "text-md" : "text-lg"} leading-6 text-neutral-800 dark:text-neutral-200 whitespace-pre-wrap will-change-transform px-3 py-2 md:py-4 text-sm font-sans`}>
                                 {renderDecoratedMessage(message)}
                             </div>
                         </div>
@@ -1262,8 +1312,8 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
                                     highlightIndex={highlightIndex}
                                     setHighlightIndex={setHighlightIndex}
                                     chatInputRef={chatInputRef}
-                                    insertSuggestionAtCaret={(s: string) => insertSuggestionAtCaret(chatInputRef.current!, s)}
-                                    insertTriggerToken={(token: string, newMenuLevel: any, levelOverride?: any) => insertTriggerToken(chatInputRef.current!, token, newMenuLevel, levelOverride)}
+                                    insertSuggestionAtCaret={(_ta: HTMLTextAreaElement, s: string) => insertSuggestionAtCaret(chatInputRef.current!, s)}
+                                    insertTriggerToken={(_ta: HTMLTextAreaElement, token: string, newMenuLevel: any, levelOverride?: any) => insertTriggerToken(chatInputRef.current!, token, newMenuLevel, levelOverride)}
                                     prepareDateOperatorInfo={(c: string) => prepareDateOperatorInfo(c)}
                                     prepareWordOperatorInfo={(s: any) => prepareWordOperatorInfo(s)}
                                     setDateMode={(m: any) => setDateMode(m)}
