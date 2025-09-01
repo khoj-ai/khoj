@@ -1,5 +1,6 @@
 import styles from "./chatInputArea.module.css";
 import React, { useEffect, useRef, useState, forwardRef } from "react";
+import QueryFiltersPopover, { getTriggerAtCaret } from "./query-filters";
 
 import DOMPurify from "dompurify";
 import "katex/dist/katex.min.css";
@@ -488,27 +489,7 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
         }
     }, [message]);
 
-    function getTriggerAtCaret(value: string, caretPos: number): { kind: "at" | "file" | "date" | "dateMode" | "word" | "wordMode"; query: string; triggerLen: number; sign?: "+" | "-"; operator?: string } | null {
-        const before = value.slice(0, caretPos);
-        const atMatch = before.match(/(?:^|\s)@([^\s@]*)$/);
-        if (atMatch) return { kind: "at" as const, query: atMatch[1], triggerLen: atMatch[0].length };
-        const fileMatch = before.match(/(?:^|\s)file:("?)([^"\s]*)$/i);
-        if (fileMatch) return { kind: "file" as const, query: fileMatch[2], triggerLen: fileMatch[0].length };
-
-        // date trigger: detect operator presence (>=, <=) or colon+quote. If operator or quote present -> dateMode
-        const dateModeMatch = before.match(/(?:^|\s)(?:date|dt)((?:>=|<=):?|:)(\"?)([^\"\s]*)$/i);
-        if (dateModeMatch) return { kind: "dateMode" as const, query: dateModeMatch[3], triggerLen: dateModeMatch[0].length, operator: dateModeMatch[1] };
-
-        // date simple trigger without operator (dt or dt:) -> date (show operator choices)
-        const dateMatch = before.match(/(?:^|\s)(?:date|dt):?([^\s\"]*)$/i);
-        if (dateMatch) return { kind: "date" as const, query: dateMatch[1] || "", triggerLen: dateMatch[0].length };
-
-        // word triggers: if +" or -" present -> wordMode; otherwise if just + or - do not trigger
-        const wordModeMatch = before.match(/(?:^|\s)([+-])\"([^\"]*)$/);
-        if (wordModeMatch) return { kind: "wordMode" as const, query: wordModeMatch[2], triggerLen: wordModeMatch[0].length, sign: wordModeMatch[1] as "+" | "-" };
-
-        return null;
-    }
+    // getTriggerAtCaret is now imported from query-filters
 
     function updateSuggestions(query: string, levelOverride?: typeof menuLevel) {
         setFileQuery(query);
@@ -1141,7 +1122,7 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
                                             setMenuLevel("date");
                                             updateSuggestions("", "date");
                                         }
-                                    } else if (trig.kind === "word") {
+                                    } else if (trig.kind === "wordMode") {
                                         // typed +"... or -"... -> open wordMode (single mirror suggestion)
                                         setMenuLevel("wordMode");
                                         updateSuggestions(trig.query || "", "wordMode");
@@ -1157,70 +1138,26 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
                             }}
                             disabled={recording}
                         />
-                        {showFileSuggestions && (() => {
-                            const displayList =
-                                menuLevel === "file"
-                                    ? suggestions
-                                    : menuLevel === "date"
-                                        ? ["exact", "after", "before"]
-                                        : menuLevel === "dateMode"
-                                            ? suggestions
-                                            : menuLevel === "word"
-                                                ? ["include", "exclude"]
-                                                : menuLevel === "wordMode"
-                                                    ? suggestions
-                                                    : menuLevel === "main"
-                                                        ? ["file", "date", "word"]
-                                                        : [];
-
-                            if (displayList.length === 0) return null;
-
-                            return (
-                                <div ref={suggestionsContainerRef} className="absolute z-50 bg-background border rounded-md mt-2 w-80 max-h-64 overflow-auto shadow-lg">
-                                    {displayList.map((s: string, idx: number) => (
-                                        <div
-                                            key={s + idx}
-                                            className={`p-2 cursor-pointer ${idx === highlightIndex ? "bg-sky-100" : ""}`}
-                                            onMouseDown={(ev: React.MouseEvent) => {
-                                                ev.preventDefault();
-                                                if (menuLevel === "file") insertSuggestionAtCaret(chatInputRef.current!, s);
-                                                else if (menuLevel === "main") {
-                                                    const choice = String(s).toLowerCase();
-                                                    if (choice === "file") insertTriggerToken(chatInputRef.current!, "file:", "file", "file");
-                                                    else if (choice === "date") insertTriggerToken(chatInputRef.current!, "dt", "date", "date");
-                                                    else if (choice === "word") insertTriggerToken(chatInputRef.current!, '"+"'.replace(/\\/g, '"+"'), "word", "word");
-                                                } else if (menuLevel === "date") {
-                                                    const choice = String(s).toLowerCase();
-                                                    if (choice === "exact") setDateMode("exact");
-                                                    else if (choice === "after") setDateMode(">=");
-                                                    else setDateMode("<=");
-                                                    // prepare operator info and switch to dateMode where user types the date
-                                                    prepareDateOperatorInfo(choice);
-                                                    setMenuLevel("dateMode");
-                                                } else if (menuLevel === "dateMode") {
-                                                    insertDateFilterFromCaret(chatInputRef.current!);
-                                                } else if (menuLevel === "word") {
-                                                    const choice = String(s).toLowerCase();
-                                                    const sign = choice === "include" ? "+" : "-";
-                                                    const token = sign + '"';
-                                                    // insert the operator token (+" or -") and enter wordMode
-                                                    insertTriggerToken(chatInputRef.current!, token, "wordMode", "wordMode");
-                                                    setWordMode(choice === "include" ? "include" : "exclude");
-                                                    // prepare operator info after insertion so mirror works
-                                                    setTimeout(() => prepareWordOperatorInfo(sign as "+" | "-"), 0);
-                                                } else if (menuLevel === "wordMode") {
-                                                    insertWordFilterFromCaret(chatInputRef.current!);
-                                                }
-                                            }}
-                                            onMouseEnter={() => setHighlightIndex(idx)}
-                                        >
-                                            <div className="text-sm truncate">{menuLevel === "file" ? s.split("/").pop() : s}</div>
-                                            {menuLevel === "file" && <div className="text-xs text-muted-foreground truncate">{s}</div>}
-                                        </div>
-                                    ))}
-                                </div>
-                            );
-                        })()}
+                        {showFileSuggestions && (
+                            <div ref={suggestionsContainerRef}>
+                                <QueryFiltersPopover
+                                    menuLevel={menuLevel}
+                                    suggestions={suggestions}
+                                    highlightIndex={highlightIndex}
+                                    setHighlightIndex={setHighlightIndex}
+                                    chatInputRef={chatInputRef}
+                                    insertSuggestionAtCaret={(s: string) => insertSuggestionAtCaret(chatInputRef.current!, s)}
+                                    insertTriggerToken={(token: string, newMenuLevel: any, levelOverride?: any) => insertTriggerToken(chatInputRef.current!, token, newMenuLevel, levelOverride)}
+                                    prepareDateOperatorInfo={(c: string) => prepareDateOperatorInfo(c)}
+                                    prepareWordOperatorInfo={(s: any) => prepareWordOperatorInfo(s)}
+                                    setDateMode={(m: any) => setDateMode(m)}
+                                    setWordMode={(m: any) => setWordMode(m)}
+                                    setMenuLevel={(m: any) => setMenuLevel(m)}
+                                    insertDateFilterFromCaret={() => insertDateFilterFromCaret(chatInputRef.current!)}
+                                    insertWordFilterFromCaret={() => insertWordFilterFromCaret(chatInputRef.current!)}
+                                />
+                            </div>
+                        )}
                     </div>
                     <div className="flex items-end pb-2">
                         {recording ? (
