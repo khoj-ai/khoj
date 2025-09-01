@@ -542,7 +542,7 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
                 pushText(slice.slice(0, fileMatch.index ?? 0));
                 const full = fileMatch[0] as string; // e.g. file:"name"
                 parts.push(
-                    <span key={`b-file-${keyIndex++}`} className="inline bg-sky-100 text-sky-800 border border-sky-200 rounded-md">
+                    <span key={`b-file-${keyIndex++}`} className="inline bg-sky-100 text-sky-800 rounded">
                         {full}
                     </span>,
                 );
@@ -555,7 +555,7 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
                 const full = dateMatch[0] as string;
                 pushText(slice.slice(0, dateMatch.index ?? 0));
                 parts.push(
-                    <span key={`b-date-${keyIndex++}`} className="inline bg-amber-100 text-amber-800 border border-amber-200 rounded-md">
+                    <span key={`b-date-${keyIndex++}`} className="inline bg-amber-100 text-amber-800 rounded">
                         {full}
                     </span>,
                 );
@@ -567,7 +567,7 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
                 pushText(slice.slice(0, includeMatch.index ?? 0));
                 const val = includeMatch[1];
                 parts.push(
-                    <span key={`b-inc-${keyIndex++}`} className="inline bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-md">
+                    <span key={`b-inc-${keyIndex++}`} className="inline bg-emerald-100 text-emerald-800 rounded">
                         {includeMatch[0]}
                     </span>,
                 );
@@ -579,7 +579,7 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
                 pushText(slice.slice(0, excludeMatch.index ?? 0));
                 const val = excludeMatch[1];
                 parts.push(
-                    <span key={`b-exc-${keyIndex++}`} className="inline bg-rose-100 text-rose-800 border border-rose-200 rounded-md">
+                    <span key={`b-exc-${keyIndex++}`} className="inline bg-rose-100 text-rose-800 rounded">
                         {excludeMatch[0]}
                     </span>,
                 );
@@ -1113,7 +1113,7 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
                     <div className="flex-grow flex flex-col w-full gap-1.5 relative">
                         {/* Overlay showing decorated tokens (badges). Pointer-events none so textarea receives input. */}
                         <div ref={overlayRef} className="absolute inset-0 z-10 pointer-events-none px-3 md:py-4 overflow-auto">
-                            <div className="w-full break-words text-lg text-neutral-800 dark:text-neutral-200 whitespace-pre-wrap">
+                            <div className={`w-full break-words ${props.isMobileWidth ? "text-md" : "text-lg"} leading-6 text-neutral-800 dark:text-neutral-200 whitespace-pre-wrap`}>
                                 {renderDecoratedMessage(message)}
                             </div>
                         </div>
@@ -1122,7 +1122,7 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
                             ref={chatInputRef}
                             className={`border-none focus:border-none
                                 focus:outline-none focus-visible:ring-transparent
-                                w-full h-16 min-h-16 max-h-[128px] md:py-4 rounded-lg resize-none bg-transparent text-transparent relative z-20
+                                w-full h-16 min-h-16 max-h-[128px] md:py-4 rounded-lg resize-none bg-transparent text-transparent relative z-20 leading-6
                                 ${props.isMobileWidth ? "text-md" : "text-lg"}`}
                             placeholder=""
                             style={{ caretColor: '#0f172a' }}
