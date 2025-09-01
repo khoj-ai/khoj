@@ -110,6 +110,7 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
     const [highlightIndex, setHighlightIndex] = useState(0);
     const triggerRef = useRef<{ kind: "at" | "file" | "date" | "word" | "dateMode" | "wordMode"; triggerLen: number; query?: string; sign?: "+" | "-" } | null>(null);
     const suggestionsContainerRef = useRef<HTMLDivElement | null>(null);
+    const overlayRef = useRef<HTMLDivElement | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const fileInputButtonRef = useRef<HTMLButtonElement>(null);
     const researchModeRef = useRef<HTMLButtonElement>(null);
@@ -489,7 +490,114 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
         }
     }, [message]);
 
+    // Sync overlay scroll with textarea so badges behave like text during scrolling
+    useEffect(() => {
+        const ta = chatInputRef?.current as HTMLTextAreaElement | null;
+        const ov = overlayRef?.current as HTMLDivElement | null;
+        if (!ta || !ov) return;
+
+        function onScroll() {
+            ov.scrollTop = ta.scrollTop;
+            ov.scrollLeft = ta.scrollLeft;
+        }
+
+        ta.addEventListener("scroll", onScroll);
+        return () => ta.removeEventListener("scroll", onScroll);
+    }, [chatInputRef, overlayRef]);
+
     // getTriggerAtCaret is now imported from query-filters
+
+    // Render a decorated, read-only overlay of the message where tokens
+    // (file:"...", dt:"..."/dt>="..."/dt<="...", +"..." and -"...")
+    // are shown as pill badges. The overlay preserves whitespace/line breaks.
+    function renderDecoratedMessage(msg: string) {
+        if (msg.length === 0) {
+            return <div className="text-muted-foreground">Type / for commands and @ for filters</div>;
+        }
+
+        const parts: React.ReactNode[] = [];
+        let cursor = 0;
+        let keyIndex = 0;
+
+        // Helper to push plain text preserving whitespace
+        function pushText(text: string) {
+            if (text.length === 0) return;
+            parts.push(
+                <span key={`t-${keyIndex++}`} className="whitespace-pre-wrap">
+                    {text}
+                </span>,
+            );
+        }
+
+        while (cursor < msg.length) {
+            const slice = msg.slice(cursor);
+
+            // Try to find the earliest token among patterns
+            const fileMatch = slice.match(/^file:\"([^\"]+)\"/);
+            const dateMatch = slice.match(/^(dt(?:(?:>=|<=):?)?\"?([^\"\s]*)\"?)/);
+            const includeMatch = slice.match(/^\+\"([^\"]+)\"/);
+            const excludeMatch = slice.match(/^\-\"([^\"]+)\"/);
+
+            if (fileMatch) {
+                pushText(slice.slice(0, fileMatch.index ?? 0));
+                const full = fileMatch[0] as string; // e.g. file:"name"
+                parts.push(
+                    <span key={`b-file-${keyIndex++}`} className="inline bg-sky-100 text-sky-800 border border-sky-200 rounded-md">
+                        {full}
+                    </span>,
+                );
+                cursor += full.length;
+                continue;
+            }
+
+            if (dateMatch) {
+                // dateMatch[0] is the whole operator+value, dateMatch[2] is value
+                const full = dateMatch[0] as string;
+                pushText(slice.slice(0, dateMatch.index ?? 0));
+                parts.push(
+                    <span key={`b-date-${keyIndex++}`} className="inline bg-amber-100 text-amber-800 border border-amber-200 rounded-md">
+                        {full}
+                    </span>,
+                );
+                cursor += full.length;
+                continue;
+            }
+
+            if (includeMatch) {
+                pushText(slice.slice(0, includeMatch.index ?? 0));
+                const val = includeMatch[1];
+                parts.push(
+                    <span key={`b-inc-${keyIndex++}`} className="inline bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-md">
+                        {includeMatch[0]}
+                    </span>,
+                );
+                cursor += includeMatch[0].length;
+                continue;
+            }
+
+            if (excludeMatch) {
+                pushText(slice.slice(0, excludeMatch.index ?? 0));
+                const val = excludeMatch[1];
+                parts.push(
+                    <span key={`b-exc-${keyIndex++}`} className="inline bg-rose-100 text-rose-800 border border-rose-200 rounded-md">
+                        {excludeMatch[0]}
+                    </span>,
+                );
+                cursor += excludeMatch[0].length;
+                continue;
+            }
+
+            // No token at current position; push next character and advance
+            parts.push(
+                <span key={`t-${keyIndex++}`} className="whitespace-pre-wrap">
+                    {slice.charAt(0)}
+                </span>,
+            );
+            cursor += 1;
+        }
+
+        return <>{parts}</>;
+    }
 
     function updateSuggestions(query: string, levelOverride?: typeof menuLevel) {
         setFileQuery(query);
@@ -1003,13 +1111,21 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
                         </TooltipProvider>
                     </div>
                     <div className="flex-grow flex flex-col w-full gap-1.5 relative">
+                        {/* Overlay showing decorated tokens (badges). Pointer-events none so textarea receives input. */}
+                        <div ref={overlayRef} className="absolute inset-0 z-10 pointer-events-none px-3 md:py-4 overflow-auto">
+                            <div className="w-full break-words text-lg text-neutral-800 dark:text-neutral-200 whitespace-pre-wrap">
+                                {renderDecoratedMessage(message)}
+                            </div>
+                        </div>
+
                         <Textarea
                             ref={chatInputRef}
                             className={`border-none focus:border-none
                                 focus:outline-none focus-visible:ring-transparent
-                                w-full h-16 min-h-16 max-h-[128px] md:py-4 rounded-lg resize-none dark:bg-neutral-700
+                                w-full h-16 min-h-16 max-h-[128px] md:py-4 rounded-lg resize-none bg-transparent text-transparent relative z-20
                                 ${props.isMobileWidth ? "text-md" : "text-lg"}`}
-                            placeholder="Type / for commands and @ for filters"
+                            placeholder=""
+                            style={{ caretColor: '#0f172a' }}
                             id="message"
                             autoFocus={true}
                             value={message}
