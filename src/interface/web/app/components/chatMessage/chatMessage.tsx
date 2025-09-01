@@ -721,7 +721,22 @@ const ChatMessage = forwardRef<HTMLDivElement, ChatMessageProps>((props, ref) =>
 
     function formatDate(timestamp: string) {
         // Format date in HH:MM, DD MMM YYYY format
-        let date = new Date(timestamp + "Z");
+        // Handle timestamps in "YYYY-MM-DD HH:MM:SS" format from backend
+        let date: Date;
+        if (timestamp.includes(" ") && !timestamp.includes("T")) {
+            // Convert "YYYY-MM-DD HH:MM:SS" to ISO format
+            date = new Date(timestamp.replace(" ", "T") + "Z");
+        } else if (!timestamp.endsWith("Z")) {
+            date = new Date(timestamp + "Z");
+        } else {
+            date = new Date(timestamp);
+        }
+
+        // Check if date is valid
+        if (isNaN(date.getTime())) {
+            return "Invalid Date";
+        }
+
         let time_string = date
             .toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true })
             .toUpperCase();
