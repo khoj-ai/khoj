@@ -703,23 +703,24 @@ const ChatMessage = forwardRef<HTMLDivElement, ChatMessageProps>((props, ref) =>
             }
         };
 
-        // Also handle scroll events that might clear selection
+        // Attach scroll handler to the chat viewport only, not window
+        const scrollAreaViewport = document.querySelector<HTMLElement>("[data-radix-scroll-area-viewport]");
         const onScroll = () => {
-            // Small delay to check selection after scroll settles
+            // De-bounce lightly to read selection after scroll applies
             setTimeout(() => {
                 const sel = document.getSelection();
                 if (!sel || !sel.toString() || !messageRef.current) {
                     selectionActiveRef.current = false;
                 }
-            }, 50);
+            }, 30);
         };
 
         document.addEventListener("selectionchange", onSelectionChange);
-        window.addEventListener("scroll", onScroll, { passive: true });
+        if (scrollAreaViewport) scrollAreaViewport.addEventListener("scroll", onScroll, { passive: true });
 
         return () => {
             document.removeEventListener("selectionchange", onSelectionChange);
-            window.removeEventListener("scroll", onScroll);
+            if (scrollAreaViewport) scrollAreaViewport.removeEventListener("scroll", onScroll);
         };
     }, []);
 

@@ -575,7 +575,7 @@ export default function Chat() {
             <div className="print-hidden">
                 <AppSidebar conversationId={conversationId || ""} />
             </div>
-            <SidebarInset>
+            <SidebarInset className="h-screen flex flex-col">
                 <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4 print-hidden">
                     <SidebarTrigger className="-ml-1" />
                     <Separator orientation="vertical" className="mr-2 h-4" />
@@ -616,7 +616,7 @@ export default function Chat() {
                         </Button>
                     </div>
                 </header>
-                <div className={`${styles.main} ${styles.chatLayout}`}>
+                <div className={`${styles.main} ${styles.chatLayout} overflow-hidden flex-1`}>
                     <title>
                         {`${defaultTitle}${!!title && title !== defaultTitle ? `: ${title}` : ""}`}
                     </title>
