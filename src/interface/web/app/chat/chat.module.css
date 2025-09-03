@@ -127,6 +127,7 @@ div.chatTitleWrapper {
 
 /* Print-specific styles for chat layout */
 @media print {
+
     /* Chat container adjustments */
     div.main {
         height: auto !important;
