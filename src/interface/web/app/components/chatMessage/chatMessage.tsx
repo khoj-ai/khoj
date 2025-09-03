@@ -422,6 +422,7 @@ const ChatMessage = forwardRef<HTMLDivElement, ChatMessageProps>((props, ref) =>
 
     const interruptedRef = useRef<boolean>(false);
     const messageRef = useRef<HTMLDivElement>(null);
+    const selectionActiveRef = useRef<boolean>(false);
 
     useEffect(() => {
         interruptedRef.current = interrupted;
@@ -687,6 +688,41 @@ const ChatMessage = forwardRef<HTMLDivElement, ChatMessageProps>((props, ref) =>
         }
     }, [markdownRendered, messageRef]);
 
+    // Track if there is an active text selection inside this message (no React re-render)
+    useEffect(() => {
+        const onSelectionChange = () => {
+            try {
+                const sel = document.getSelection();
+                selectionActiveRef.current = !!(
+                    sel && sel.rangeCount > 0 && sel.toString() &&
+                    messageRef.current &&
+                    (messageRef.current.contains(sel.anchorNode) || messageRef.current.contains(sel.focusNode))
+                );
+            } catch {
+                selectionActiveRef.current = false;
+            }
+        };
+
+        // Also handle scroll events that might clear selection
+        const onScroll = () => {
+            // Small delay to check selection after scroll settles
+            setTimeout(() => {
+                const sel = document.getSelection();
+                if (!sel || !sel.toString() || !messageRef.current) {
+                    selectionActiveRef.current = false;
+                }
+            }, 50);
+        };
+
+        document.addEventListener("selectionchange", onSelectionChange);
+        window.addEventListener("scroll", onScroll, { passive: true });
+
+        return () => {
+            document.removeEventListener("selectionchange", onSelectionChange);
+            window.removeEventListener("scroll", onScroll);
+        };
+    }, []);
+
     // Fetch file content for dialog and hover using shared hook
     const {
         content: previewContentHook,
@@ -874,12 +910,21 @@ const ChatMessage = forwardRef<HTMLDivElement, ChatMessageProps>((props, ref) =>
         props.chatMessage.codeContext,
     );
 
+    function handleMouseEnter(event: React.MouseEvent) {
+        setIsHovering(true);
+    }
+    function handleMouseLeave(event: React.MouseEvent) {
+        // Prevent hover collapse while a selection inside this message is active
+        if (selectionActiveRef.current) return;
+        setIsHovering(false);
+    }
+
     return (
         <div
             ref={ref}
             className={constructClasses(props.chatMessage)}
-            onMouseLeave={(event) => setIsHovering(false)}
-            onMouseEnter={(event) => setIsHovering(true)}
+            onMouseLeave={handleMouseLeave}
+            onMouseEnter={handleMouseEnter}
             data-created={formatDate(props.chatMessage.created)}
         >
             <div className={chatMessageWrapperClasses(props.chatMessage)}>
@@ -1054,126 +1099,119 @@ const ChatMessage = forwardRef<HTMLDivElement, ChatMessageProps>((props, ref) =>
                 />
             </div>
             <div className={styles.chatFooter}>
-                {(isHovering || props.isMobileWidth || props.isLastMessage || isPlaying) && (
-                    <>
-                        <div
-                            title={formatDate(props.chatMessage.created)}
-                            className={`text-gray-400 relative top-0 left-4`}
-                        >
-                            {renderTimeStamp(props.chatMessage.created)}
-                        </div>
-                        <div className={`${styles.chatButtons} shadow-sm`}>
-                            {props.chatMessage.by === "khoj" &&
-                                (isPlaying ? (
-                                    interrupted ? (
-                                        <InlineLoading iconClassName="p-0" className="m-0" />
-                                    ) : (
-                                        <button
-                                            title="Pause Speech"
-                                            onClick={(event) => setInterrupted(true)}
-                                        >
-                                            <Pause
-                                                alt="Pause Message"
-                                                className="hsl(var(--muted-foreground))"
-                                            />
-                                        </button>
-                                    )
+                <div className={`${styles.chatFooterInner} ${isHovering || props.isMobileWidth || isPlaying
+                    ? styles.visibleControls
+                    : styles.hiddenControls
+                    }`}>
+                    <div
+                        title={formatDate(props.chatMessage.created)}
+                        className={`text-gray-400 relative top-0 left-4`}
+                    >
+                        {renderTimeStamp(props.chatMessage.created)}
+                    </div>
+                    <div className={`${styles.chatButtons} shadow-sm`}>
+                        {props.chatMessage.by === "khoj" &&
+                            (isPlaying ? (
+                                interrupted ? (
+                                    <InlineLoading iconClassName="p-0" className="m-0" />
                                 ) : (
-                                    <button title="Speak" onClick={(event) => playTextToSpeech()}>
-                                        <SpeakerHigh
-                                            alt="Speak Message"
-                                            className="hsl(var(--muted-foreground)) hover:text-green-500"
+                                    <button
+                                        title="Pause Speech"
+                                        onClick={(event) => setInterrupted(true)}
+                                    >
+                                        <Pause
+                                            alt="Pause Message"
+                                            className="hsl(var(--muted-foreground))"
                                         />
                                     </button>
-                                ))}
-                            {props.chatMessage.turnId && (
+                                )
+                            ) : (
+                                <button title="Speak" onClick={(event) => playTextToSpeech()}>
+                                    <SpeakerHigh
+                                        alt="Speak Message"
+                                        className="hsl(var(--muted-foreground)) hover:text-green-500"
+                                    />
+                                </button>
+                            ))}
+                        {props.chatMessage.turnId && (
+                            <button
+                                title="Delete"
+                                className={`${styles.deleteButton}`}
+                                onClick={() => deleteMessage(props.chatMessage)}
+                            >
+                                <Trash
+                                    alt="Delete Message"
+                                    className="hsl(var(--muted-foreground)) hover:text-red-500"
+                                />
+                            </button>
+                        )}
+                        {props.chatMessage.by === "khoj" &&
+                            props.onRetryMessage &&
+                            props.isLastMessage && (
                                 <button
-                                    title="Delete"
-                                    className={`${styles.deleteButton}`}
-                                    onClick={() => deleteMessage(props.chatMessage)}
+                                    title="Retry"
+                                    className={`${styles.retryButton}`}
+                                    onClick={() => {
+                                        const turnId = props.chatMessage.turnId || props.turnId;
+                                        const query =
+                                            props.chatMessage.rawQuery ||
+                                            props.chatMessage.intent?.query;
+                                        if (query) {
+                                            props.onRetryMessage?.(query, turnId);
+                                        } else {
+                                            console.error("No original query found for retry");
+                                            const fallbackQuery = prompt(
+                                                "Enter the original query to retry:",
+                                            );
+                                            if (fallbackQuery) {
+                                                props.onRetryMessage?.(fallbackQuery, turnId);
+                                            }
+                                        }
+                                    }}
                                 >
-                                    <Trash
-                                        alt="Delete Message"
-                                        className="hsl(var(--muted-foreground)) hover:text-red-500"
+                                    <ArrowClockwise
+                                        alt="Retry Message"
+                                        className="hsl(var(--muted-foreground)) hover:text-blue-500"
                                     />
                                 </button>
                             )}
-                            {props.chatMessage.by === "khoj" &&
-                                props.onRetryMessage &&
-                                props.isLastMessage && (
-                                    <button
-                                        title="Retry"
-                                        className={`${styles.retryButton}`}
-                                        onClick={() => {
-                                            const turnId = props.chatMessage.turnId || props.turnId;
-                                            const query =
-                                                props.chatMessage.rawQuery ||
-                                                props.chatMessage.intent?.query;
-                                            console.log("Retry button clicked for turnId:", turnId);
-                                            console.log("ChatMessage data:", {
-                                                rawQuery: props.chatMessage.rawQuery,
-                                                intent: props.chatMessage.intent,
-                                                message: props.chatMessage.message,
-                                            });
-                                            console.log("Extracted query:", query);
-                                            if (query) {
-                                                props.onRetryMessage?.(query, turnId);
-                                            } else {
-                                                console.error("No original query found for retry");
-                                                // Fallback: try to get from a previous user message or show an input dialog
-                                                const fallbackQuery = prompt(
-                                                    "Enter the original query to retry:",
-                                                );
-                                                if (fallbackQuery) {
-                                                    props.onRetryMessage?.(fallbackQuery, turnId);
-                                                }
-                                            }
-                                        }}
-                                    >
-                                        <ArrowClockwise
-                                            alt="Retry Message"
-                                            className="hsl(var(--muted-foreground)) hover:text-blue-500"
-                                        />
-                                    </button>
-                                )}
-                            <button
-                                title="Copy"
-                                className={`${styles.copyButton}`}
-                                onClick={() => {
-                                    navigator.clipboard.writeText(textRendered);
-                                    setCopySuccess(true);
-                                }}
-                            >
-                                {copySuccess ? (
-                                    <Copy
-                                        alt="Copied Message"
-                                        weight="fill"
-                                        className="text-green-500"
-                                    />
-                                ) : (
-                                    <Copy
-                                        alt="Copy Message"
-                                        className="hsl(var(--muted-foreground)) hover:text-green-500"
-                                    />
-                                )}
-                            </button>
-                            {props.chatMessage.by === "khoj" &&
-                                (props.chatMessage.intent ? (
-                                    <FeedbackButtons
-                                        uquery={props.chatMessage.intent.query}
-                                        kquery={props.chatMessage.message}
-                                    />
-                                ) : (
-                                    <FeedbackButtons
-                                        uquery={
-                                            props.chatMessage.rawQuery || props.chatMessage.message
-                                        }
-                                        kquery={props.chatMessage.message}
-                                    />
-                                ))}
-                        </div>
-                    </>
-                )}
+                        <button
+                            title="Copy"
+                            className={`${styles.copyButton}`}
+                            onClick={() => {
+                                navigator.clipboard.writeText(textRendered);
+                                setCopySuccess(true);
+                            }}
+                        >
+                            {copySuccess ? (
+                                <Copy
+                                    alt="Copied Message"
+                                    weight="fill"
+                                    className="text-green-500"
+                                />
+                            ) : (
+                                <Copy
+                                    alt="Copy Message"
+                                    className="hsl(var(--muted-foreground)) hover:text-green-500"
+                                />
+                            )}
+                        </button>
+                        {props.chatMessage.by === "khoj" &&
+                            (props.chatMessage.intent ? (
+                                <FeedbackButtons
+                                    uquery={props.chatMessage.intent.query}
+                                    kquery={props.chatMessage.message}
+                                />
+                            ) : (
+                                <FeedbackButtons
+                                    uquery={
+                                        props.chatMessage.rawQuery || props.chatMessage.message
+                                    }
+                                    kquery={props.chatMessage.message}
+                                />
+                            ))}
+                    </div>
+                </div>
             </div>
         </div>
     );
