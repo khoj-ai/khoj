@@ -521,8 +521,8 @@ function FileFilterComboBox(props: FileFilterComboBoxProps) {
                             ? "✔️"
                             : "Selected"
                         : props.isMobileWidth
-                          ? " "
-                          : "Select file"}
+                            ? " "
+                            : "Select file"}
                     <Funnel className="opacity-50" />
                 </Button>
             </PopoverTrigger>
@@ -791,9 +791,17 @@ export default function Search() {
                             <div className="p-4 w-full mx-auto">
                                 <div className="flex justify-between items-center border-2 border-muted p-1 gap-1 rounded-lg flex-col md:flex-row">
                                     <div className="relative flex-1 w-full">
+                                        {selectedFileFilter && (
+                                            <div className="absolute left-3 top-1/2 transform -translate-y-1/2 flex items-center gap-2 pointer-events-auto z-20">
+                                                <div className="bg-sky-100 text-sky-800 border border-sky-200 px-3 py-0.5 rounded-full text-sm font-medium z-20">
+                                                    {selectedFileFilter.split("/").pop()}
+                                                </div>
+                                            </div>
+                                        )}
+
                                         <Input
                                             autoFocus={true}
-                                            className="border-none pl-4 focus-visible:ring-transparent focus-visible:ring-offset-transparent"
+                                            className={`border-none focus-visible:ring-transparent focus-visible:ring-offset-transparent ${selectedFileFilter ? "pl-36" : "pl-4"}`}
                                             onChange={(e) =>
                                                 handleSearchInputChange(e.currentTarget.value)
                                             }
