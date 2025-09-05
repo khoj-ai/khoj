@@ -111,6 +111,7 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
 
     const [progressValue, setProgressValue] = useState(0);
     const [isDragAndDropping, setIsDragAndDropping] = useState(false);
+    const [isDraggingOver, setIsDraggingOver] = useState(false);
 
     const [showCommandList, setShowCommandList] = useState(false);
     const [useResearchMode, setUseResearchMode] = useState<boolean>(
@@ -237,10 +238,21 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
     function handleDragAndDropFiles(event: React.DragEvent<HTMLDivElement>) {
         event.preventDefault();
         setIsDragAndDropping(false);
+        setIsDraggingOver(false);
 
         if (!event.dataTransfer.files) return;
 
         uploadFiles(event.dataTransfer.files);
+    }
+
+    function handlePaste(event: React.ClipboardEvent<HTMLDivElement>) {
+        if (!event.clipboardData) return;
+        const files = event.clipboardData.files;
+        if (files && files.length > 0) {
+            // Prevent default only when handling files so simple text paste remains intact
+            event.preventDefault();
+            uploadFiles(files);
+        }
     }
 
     function uploadFiles(files: FileList) {
@@ -422,11 +434,18 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
     function handleDragOver(event: React.DragEvent<HTMLDivElement>) {
         event.preventDefault();
         setIsDragAndDropping(true);
+        setIsDraggingOver(true);
+    }
+
+    function handleDragEnter(event: React.DragEvent<HTMLDivElement>) {
+        event.preventDefault();
+        setIsDraggingOver(true);
     }
 
     function handleDragLeave(event: React.DragEvent<HTMLDivElement>) {
         event.preventDefault();
         setIsDragAndDropping(false);
+        setIsDraggingOver(false);
     }
 
     function removeImageUpload(index: number) {
@@ -644,10 +663,12 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
                         ))}
                 </div>
                 <div
-                    className={`${styles.actualInputArea} justify-between dark:bg-neutral-700 relative ${isDragAndDropping && "animate-pulse"}`}
+                    className={`${styles.actualInputArea} justify-between dark:bg-neutral-700 relative ${isDragAndDropping && "animate-pulse"} ${isDraggingOver ? styles.dragOver : ""}`}
                     onDragOver={handleDragOver}
+                    onDragEnter={handleDragEnter}
                     onDragLeave={handleDragLeave}
                     onDrop={handleDragAndDropFiles}
+                    onPaste={handlePaste}
                 >
                     <input
                         type="file"
