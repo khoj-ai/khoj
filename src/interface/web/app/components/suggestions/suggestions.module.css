@@ -1,5 +1,26 @@
 .card {
     border-radius: 0.5rem;
+    transition: transform 180ms cubic-bezier(.2, .8, .2, 1), box-shadow 180ms cubic-bezier(.2, .8, .2, 1);
+    will-change: transform, box-shadow;
+    transform: translateY(0);
+    box-shadow: 0 1px 6px rgba(16, 24, 40, 0.06);
+}
+
+.card:hover,
+.card:focus-within,
+.card:focus {
+    transform: translateY(-6px);
+    box-shadow: 0 10px 30px rgba(16, 24, 40, 0.12);
+    outline: none;
+}
+
+.card:active {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(16, 24, 40, 0.10);
+}
+
+.card:focus-visible {
+    box-shadow: 0 10px 30px rgba(16, 24, 40, 0.12), 0 0 0 3px rgba(59, 130, 246, 0.12);
 }
 
 .title {

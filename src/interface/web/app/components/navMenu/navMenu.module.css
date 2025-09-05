@@ -59,6 +59,17 @@ div.settingsMenuOptions {
     border-radius: 8px;
 }
 
+/* Keyboard key styling */
+kbd {
+    background: #f3f4f6;
+    border: 1px solid #e5e7eb;
+    padding: 2px 6px;
+    border-radius: 6px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, "Roboto Mono", "Segoe UI Mono", "Noto Mono", monospace;
+    font-size: 0.75rem;
+    line-height: 1;
+}
+
 @media screen and (max-width: 600px) {
     menu.menu span {
         display: none;
