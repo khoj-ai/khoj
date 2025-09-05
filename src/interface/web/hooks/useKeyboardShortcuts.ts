@@ -46,5 +46,3 @@ export default function useKeyboardShortcuts(shortcuts: ShortcutMap | null) {
         return () => window.removeEventListener("keydown", handler);
     }, [shortcuts]);
 }
-
-
