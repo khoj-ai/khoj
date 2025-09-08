@@ -337,7 +337,7 @@ export class KhojSettingTab extends PluginSettingTab {
                     button.removeCta();
                     indexVaultSetting = indexVaultSetting.setDisabled(true);
 
-                    // Show indicator for indexing in progress
+                    // Show indicator for indexing in progress (animated text)
                     const progress_indicator = window.setInterval(() => {
                         if (button.buttonEl.innerText === 'Updating 🌑') {
                             button.setButtonText('Updating 🌘');
@@ -359,15 +359,55 @@ export class KhojSettingTab extends PluginSettingTab {
                     }, 300);
                     this.plugin.registerInterval(progress_indicator);
 
-                    this.plugin.settings.lastSync = await updateContentIndex(
-                        this.app.vault, this.plugin.settings, this.plugin.settings.lastSync, true, true
-                    );
+                    // Obtain sync progress elements by id (created below)
+                    const syncProgressEl = document.getElementById('khoj-sync-progress') as HTMLProgressElement | null;
+                    const syncProgressText = document.getElementById('khoj-sync-progress-text') as HTMLElement | null;
 
-                    // Reset button once index is updated
-                    window.clearInterval(progress_indicator);
-                    button.setButtonText('Update');
-                    button.setCta();
-                    indexVaultSetting = indexVaultSetting.setDisabled(false);
+                    if (syncProgressEl && syncProgressText) {
+                        syncProgressEl.style.display = '';
+                        syncProgressText.style.display = '';
+                        syncProgressText.textContent = 'Syncing... 0 / ? files';
+                        syncProgressEl.value = 0;
+                        syncProgressEl.max = 1;
+                    }
+
+                    // Define progress callback
+                    const onProgress = (progress: { processed: number, total: number }) => {
+                        try {
+                            const { processed, total } = progress;
+                            const el = document.getElementById('khoj-sync-progress') as HTMLProgressElement | null;
+                            const txt = document.getElementById('khoj-sync-progress-text') as HTMLElement | null;
+                            if (!el || !txt) return;
+                            el.max = Math.max(total, 1);
+                            el.value = Math.min(processed, el.max);
+                            txt.textContent = `Syncing... ${processed} / ${total} files`;
+                        } catch (err) {
+                            console.warn('Khoj: Error updating sync progress UI', err);
+                        }
+                    };
+
+                    try {
+                        this.plugin.settings.lastSync = await updateContentIndex(
+                            this.app.vault, this.plugin.settings, this.plugin.settings.lastSync, true, true, onProgress
+                        );
+                    } finally {
+                        // Cleanup: hide sync progress UI and refresh storage estimation
+                        const el = document.getElementById('khoj-sync-progress') as HTMLProgressElement | null;
+                        const txt = document.getElementById('khoj-sync-progress-text') as HTMLElement | null;
+                        if (el) el.style.display = 'none';
+                        if (txt) txt.style.display = 'none';
+                        try {
+                            (this as any).updateStorageDisplay();
+                        } catch (err) {
+                            console.warn('Khoj: Failed to refresh storage display after sync', err);
+                        }
+
+                        // Reset animated text and button state
+                        window.clearInterval(progress_indicator);
+                        button.setButtonText('Update');
+                        button.setCta();
+                        indexVaultSetting = indexVaultSetting.setDisabled(false);
+                    }
                 })
             );
         // Estimated Cloud Storage (client-side estimation)
@@ -376,7 +416,7 @@ export class KhojSettingTab extends PluginSettingTab {
             .setDesc('Estimated storage usage based on files configured for sync. This is a client-side estimation.')
             .then(() => { });
 
-        // Create custom elements: progress and text
+        // Create custom elements: progress and text for storage estimation
         const progressEl = document.createElement('progress');
         progressEl.value = 0;
         progressEl.max = 1;
@@ -385,6 +425,20 @@ export class KhojSettingTab extends PluginSettingTab {
         progressText.textContent = 'Calculating...';
         storageSetting.descEl.appendChild(progressEl);
         storageSetting.descEl.appendChild(progressText);
+
+        // Create second progress bar for Force Sync operation (hidden by default)
+        const syncProgressEl = document.createElement('progress');
+        syncProgressEl.id = 'khoj-sync-progress';
+        syncProgressEl.value = 0;
+        syncProgressEl.max = 1;
+        syncProgressEl.style.width = '100%';
+        syncProgressEl.style.display = 'none';
+        const syncProgressText = document.createElement('span');
+        syncProgressText.id = 'khoj-sync-progress-text';
+        syncProgressText.textContent = '';
+        syncProgressText.style.display = 'none';
+        storageSetting.descEl.appendChild(syncProgressEl);
+        storageSetting.descEl.appendChild(syncProgressText);
 
         // Bind update method
         (this as any).updateStorageDisplay = async () => {
