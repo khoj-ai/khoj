@@ -20,6 +20,7 @@ magika = Magika()
 
 class GithubToEntries(TextToEntries):
     def __init__(self, config: GithubConfig):
+        super().__init__(config)
         raw_repos = config.githubrepoconfig.all()
         repos = []
         for repo in raw_repos:

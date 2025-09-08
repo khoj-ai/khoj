@@ -777,6 +777,12 @@ def is_operator_enabled():
     return is_env_var_true("KHOJ_OPERATOR_ENABLED")
 
 
+def is_code_sandbox_enabled():
+    """Check if Khoj can run code in sandbox.
+    Set KHOJ_TERRARIUM_URL or E2B api key via env var to enable it."""
+    return not is_none_or_empty(os.getenv("KHOJ_TERRARIUM_URL")) or is_e2b_code_sandbox_enabled()
+
+
 def is_valid_url(url: str) -> bool:
     """Check if a string is a valid URL"""
     try:
@@ -792,6 +798,23 @@ def is_internet_connected():
         return response.status_code == 200
     except Exception:
         return False
+
+
+def is_web_search_enabled():
+    """
+    Check if web search tool is enabled.
+    Set API key or provider URL via env var for a supported search engine to enable it.
+    """
+    return any(
+        not is_none_or_empty(os.getenv(search_config))
+        for search_config in [
+            "GOOGLE_SEARCH_API_KEY",
+            "SERPER_DEV_API_KEY",
+            "JINA_API_KEY",
+            "FIRECRAWL_API_KEY",
+            "KHOJ_SEARXNG_URL",
+        ]
+    )
 
 
 def is_internal_url(url: str) -> bool:

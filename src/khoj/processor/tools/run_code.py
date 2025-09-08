@@ -39,7 +39,7 @@ from khoj.utils.rawconfig import LocationData
 logger = logging.getLogger(__name__)
 
 
-SANDBOX_URL = os.getenv("KHOJ_TERRARIUM_URL", "http://localhost:8080")
+SANDBOX_URL = os.getenv("KHOJ_TERRARIUM_URL")
 DEFAULT_E2B_TEMPLATE = "pmt2o0ghpang8gbiys57"
 
 
