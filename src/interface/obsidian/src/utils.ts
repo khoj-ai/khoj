@@ -60,6 +60,8 @@ export const supportedImageFilesTypes = fileTypeToExtension.image;
 export const supportedBinaryFileTypes = fileTypeToExtension.pdf.concat(supportedImageFilesTypes);
 export const supportedFileTypes = fileTypeToExtension.markdown.concat(supportedBinaryFileTypes);
 
+import { deleteContentByType, uploadContentBatch } from './api';
+
 export async function updateContentIndex(vault: Vault, setting: KhojSetting, lastSync: Map<TFile, number>, regenerate: boolean = false, userTriggered: boolean = false): Promise<Map<TFile, number>> {
     // Get all markdown, pdf files in the vault
     console.log(`Khoj: Updating Khoj content index...`)
@@ -114,6 +116,7 @@ export async function updateContentIndex(vault: Vault, setting: KhojSetting, las
     let fileData = [];
     let currentBatchSize = 0;
     const MAX_BATCH_SIZE = 10 * 1024 * 1024; // 10MB max batch size
+    const CHUNK_FILE_COUNT = 50; // Number of files per logical chunk when uploading by type
     let currentBatch = [];
 
     for (const file of files) {
@@ -158,85 +161,76 @@ export async function updateContentIndex(vault: Vault, setting: KhojSetting, las
 
     // Delete all files of enabled content types first if regenerating
     let error_message = null;
-    const contentTypesToDelete = [];
+    const contentTypesToDelete: string[] = [];
     if (regenerate) {
-        // Mark content types to delete based on user sync file type settings
         if (setting.syncFileType.markdown) contentTypesToDelete.push('markdown');
         if (setting.syncFileType.pdf) contentTypesToDelete.push('pdf');
         if (setting.syncFileType.images) contentTypesToDelete.push('image');
     }
-    for (const contentType of contentTypesToDelete) {
-        const response = await fetch(`${setting.khojUrl}/api/content/type/${contentType}?client=obsidian`, {
-            method: "DELETE",
-            headers: {
-                'Authorization': `Bearer ${setting.khojApiKey}`,
-            }
-        });
-        if (!response.ok) {
-            error_message = "❗️Failed to clear existing content index";
-            fileData = [];
+
+    // Perform deletions sequentially to avoid rate limiting
+    try {
+        for (const contentType of contentTypesToDelete) {
+            console.log(`Khoj: Starting deletion of ${contentType} files...`);
+            await deleteContentByType(setting.khojUrl, setting.khojApiKey, contentType);
+            console.log(`Khoj: ${contentType} files deleted successfully.`);
         }
+    } catch (err) {
+        console.error('Khoj: Error while deleting content types:', err);
+        error_message = "❗️Failed to clear existing content index";
+        fileData = [];
     }
 
     // Iterate through all indexable files in vault, 10Mb batch at a time
     let responses: string[] = [];
-    for (const batch of fileData) {
-        // Create multipart form data with all files in batch
-        const formData = new FormData();
-        batch.forEach(fileItem => { formData.append('files', fileItem.blob, fileItem.path) });
+    if (!error_message) {
+        // Group files by type for chunked processing
+        const filesByType: Record<string, { blob: Blob, path: string }[]> = {
+            markdown: [],
+            pdf: [],
+            image: [],
+        };
 
-        // Call Khoj backend to sync index with updated files in vault
-        const method = regenerate ? "PUT" : "PATCH";
-        const response = await fetch(`${setting.khojUrl}/api/content?client=obsidian`, {
-            method: method,
-            headers: {
-                'Authorization': `Bearer ${setting.khojApiKey}`,
-            },
-            body: formData,
-        });
-
-        if (!response.ok) {
-            if (response.status === 429) {
-                let response_text = await response.text();
-                if (response_text.includes("Too much data")) {
-                    const errorFragment = document.createDocumentFragment();
-                    errorFragment.appendChild(document.createTextNode("❗️Exceeded data sync limits. To resolve this either:"));
-                    const bulletList = document.createElement('ul');
-
-                    const limitFilesItem = document.createElement('li');
-                    const settingsPrefixText = document.createTextNode("Limit files to sync from ");
-                    const settingsLink = document.createElement('a');
-                    settingsLink.textContent = "Khoj settings";
-                    settingsLink.href = "#";
-                    settingsLink.addEventListener('click', (e) => {
-                        e.preventDefault();
-                        openKhojPluginSettings();
-                    });
-                    limitFilesItem.appendChild(settingsPrefixText);
-                    limitFilesItem.appendChild(settingsLink);
-                    bulletList.appendChild(limitFilesItem);
-
-                    const upgradeItem = document.createElement('li');
-                    const upgradeLink = document.createElement('a');
-                    upgradeLink.href = `${setting.khojUrl}/settings#subscription`;
-                    upgradeLink.textContent = 'Upgrade your subscription';
-                    upgradeLink.target = '_blank';
-                    upgradeItem.appendChild(upgradeLink);
-                    bulletList.appendChild(upgradeItem);
-                    errorFragment.appendChild(bulletList);
-                    error_message = errorFragment;
-                } else {
-                    error_message = `❗️Failed to sync your content with Khoj server. Requests were throttled. Upgrade your subscription or try again later.`;
-                }
-                break;
-            } else if (response.status === 404) {
-                error_message = `❗️Could not connect to Khoj server. Ensure you can connect to it.`;
-                break;
-            } else {
-                error_message = `❗️Failed to sync all your content with Khoj server. Raise issue on Khoj Discord or Github\nError: ${response.statusText}`;
+        for (const batch of fileData) {
+            for (const fileItem of batch) {
+                const ext = fileItem.path.split('.').pop()?.toLowerCase() ?? '';
+                if (fileTypeToExtension.markdown.includes(ext)) filesByType.markdown.push(fileItem);
+                else if (fileTypeToExtension.pdf.includes(ext)) filesByType.pdf.push(fileItem);
+                else if (fileTypeToExtension.image.includes(ext)) filesByType.image.push(fileItem);
+                else filesByType.markdown.push(fileItem);
             }
-        } else {
-            responses.push(await response.text());
+        }
+
+        const method: 'PUT' | 'PATCH' = regenerate ? 'PUT' : 'PATCH';
+
+        for (const typeKey of Object.keys(filesByType)) {
+            const allFilesOfType = filesByType[typeKey] as { blob: Blob, path: string }[];
+            if (allFilesOfType.length === 0) continue;
+
+            // Split into logical chunks of CHUNK_FILE_COUNT
+            const totalBatches = Math.ceil(allFilesOfType.length / CHUNK_FILE_COUNT);
+            for (let i = 0; i < totalBatches; i++) {
+                const startIdx = i * CHUNK_FILE_COUNT;
+                const endIdx = Math.min(startIdx + CHUNK_FILE_COUNT, allFilesOfType.length);
+                const chunk = allFilesOfType.slice(startIdx, endIdx);
+                console.log(`Khoj: Indexing ${typeKey} files: batch ${i + 1} of ${totalBatches}...`);
+                try {
+                    const resultText = await uploadContentBatch(setting.khojUrl, setting.khojApiKey, method, chunk);
+                    responses.push(resultText);
+                    console.log(`Khoj: Successfully indexed ${typeKey} files: batch ${i + 1} of ${totalBatches}.`);
+                } catch (err: any) {
+                    console.error(`Khoj: Failed to upload ${typeKey} batch ${i + 1}:`, err);
+                    // Surface user-friendly error based on server response text when available
+                    if (err.message && err.message.includes('429')) {
+                        error_message = `❗️Requests were throttled. Upgrade your subscription or try again later.`;
+                    } else {
+                        error_message = `❗️Failed to sync all your content with Khoj server. Error: ${err.message ?? String(err)}`;
+                    }
+                    // Stop processing further batches on error
+                    break;
+                }
+            }
+            if (error_message) break;
         }
     }
 
