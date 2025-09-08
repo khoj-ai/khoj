@@ -62,7 +62,14 @@ export const supportedFileTypes = fileTypeToExtension.markdown.concat(supportedB
 
 import { deleteContentByType, uploadContentBatch } from './api';
 
-export async function updateContentIndex(vault: Vault, setting: KhojSetting, lastSync: Map<TFile, number>, regenerate: boolean = false, userTriggered: boolean = false): Promise<Map<TFile, number>> {
+export async function updateContentIndex(
+    vault: Vault,
+    setting: KhojSetting,
+    lastSync: Map<TFile, number>,
+    regenerate: boolean = false,
+    userTriggered: boolean = false,
+    onProgress?: (progress: { processed: number, total: number }) => void
+): Promise<Map<TFile, number>> {
     // Get all markdown, pdf files in the vault
     console.log(`Khoj: Updating Khoj content index...`)
     const files = vault.getFiles()
@@ -88,6 +95,20 @@ export async function updateContentIndex(vault: Vault, setting: KhojSetting, las
     let countOfFilesToIndex = 0;
     let countOfFilesToDelete = 0;
     lastSync = lastSync.size > 0 ? lastSync : new Map<TFile, number>();
+
+    // Compute total number of files that will be processed (index + delete)
+    // This uses the same logic as the processing loop: skip files not modified
+    // when not regenerating.
+    let totalIndexCandidates = 0;
+    for (const file of files) {
+        if (!regenerate && file.stat.mtime < (lastSync.get(file) ?? 0)) continue;
+        totalIndexCandidates++;
+    }
+    const totalDeleteCandidates = Array.from(lastSync.keys()).filter(f => !files.includes(f)).length;
+    const totalFilesToProcess = totalIndexCandidates + totalDeleteCandidates;
+
+    // Progress counter
+    let processedCount = 0;
 
     // Add all files to index as multipart form data
     let fileData = [];
@@ -195,6 +216,14 @@ export async function updateContentIndex(vault: Vault, setting: KhojSetting, las
                     const resultText = await uploadContentBatch(setting.khojUrl, setting.khojApiKey, method, chunk);
                     responses.push(resultText);
                     console.log(`Khoj: Successfully indexed ${typeKey} files: batch ${i + 1} of ${totalBatches}.`);
+                    // Update progress after successful batch upload
+                    processedCount += chunk.length;
+                    try {
+                        if (onProgress) onProgress({ processed: processedCount, total: totalFilesToProcess });
+                    } catch (err) {
+                        // Callback errors should not break the sync process
+                        console.warn('Khoj: onProgress callback threw an error', err);
+                    }
                 } catch (err: any) {
                     console.error(`Khoj: Failed to upload ${typeKey} batch ${i + 1}:`, err);
                     // Surface user-friendly error based on server response text when available
