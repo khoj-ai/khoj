@@ -229,6 +229,7 @@ export class KhojSettingTab extends PluginSettingTab {
                 .onChange(async (value) => {
                     this.plugin.settings.syncFileType.markdown = value;
                     await this.plugin.saveSettings();
+                    try { if (typeof (this as any).updateStorageDisplay === 'function') (this as any).updateStorageDisplay(); } catch (e) { console.warn('Khoj: updateStorageDisplay error', e); }
                 }));
 
         // Add setting to sync images
@@ -240,6 +241,7 @@ export class KhojSettingTab extends PluginSettingTab {
                 .onChange(async (value) => {
                     this.plugin.settings.syncFileType.images = value;
                     await this.plugin.saveSettings();
+                    try { if (typeof (this as any).updateStorageDisplay === 'function') (this as any).updateStorageDisplay(); } catch (e) { console.warn('Khoj: updateStorageDisplay error', e); }
                 }));
 
         // Add setting to sync PDFs
@@ -251,6 +253,7 @@ export class KhojSettingTab extends PluginSettingTab {
                 .onChange(async (value) => {
                     this.plugin.settings.syncFileType.pdf = value;
                     await this.plugin.saveSettings();
+                    try { if (typeof (this as any).updateStorageDisplay === 'function') (this as any).updateStorageDisplay(); } catch (e) { console.warn('Khoj: updateStorageDisplay error', e); }
                 }));
 
         // Add setting for sync interval
@@ -362,25 +365,41 @@ export class KhojSettingTab extends PluginSettingTab {
                     // Obtain sync progress elements by id (created below)
                     const syncProgressEl = document.getElementById('khoj-sync-progress') as HTMLProgressElement | null;
                     const syncProgressText = document.getElementById('khoj-sync-progress-text') as HTMLElement | null;
+                    const syncProgressType = document.getElementById('khoj-sync-progress-type') as HTMLElement | null;
 
                     if (syncProgressEl && syncProgressText) {
                         syncProgressEl.style.display = '';
                         syncProgressText.style.display = '';
+                        if (syncProgressType) syncProgressType.style.display = 'none';
                         syncProgressText.textContent = 'Syncing... 0 / ? files';
                         syncProgressEl.value = 0;
                         syncProgressEl.max = 1;
                     }
 
-                    // Define progress callback
-                    const onProgress = (progress: { processed: number, total: number }) => {
+                    // Define progress callback (includes optional contentType)
+                    const onProgress = (progress: { processed: number, total: number, contentType?: string }) => {
                         try {
-                            const { processed, total } = progress;
+                            const { processed, total, contentType } = progress;
                             const el = document.getElementById('khoj-sync-progress') as HTMLProgressElement | null;
                             const txt = document.getElementById('khoj-sync-progress-text') as HTMLElement | null;
+                            const typeEl = document.getElementById('khoj-sync-progress-type') as HTMLElement | null;
                             if (!el || !txt) return;
                             el.max = Math.max(total, 1);
                             el.value = Math.min(processed, el.max);
                             txt.textContent = `Syncing... ${processed} / ${total} files`;
+                            if (typeEl) {
+                                let label = '';
+                                if (contentType === 'image') label = 'Images';
+                                else if (contentType === 'pdf') label = 'PDFs';
+                                else if (contentType === 'markdown') label = 'Markdowns';
+                                else if (contentType) label = contentType;
+                                if (label) {
+                                    typeEl.textContent = `(${label})`;
+                                    typeEl.style.display = '';
+                                } else {
+                                    typeEl.style.display = 'none';
+                                }
+                            }
                         } catch (err) {
                             console.warn('Khoj: Error updating sync progress UI', err);
                         }
@@ -394,8 +413,10 @@ export class KhojSettingTab extends PluginSettingTab {
                         // Cleanup: hide sync progress UI and refresh storage estimation
                         const el = document.getElementById('khoj-sync-progress') as HTMLProgressElement | null;
                         const txt = document.getElementById('khoj-sync-progress-text') as HTMLElement | null;
+                        const typeEl = document.getElementById('khoj-sync-progress-type') as HTMLElement | null;
                         if (el) el.style.display = 'none';
                         if (txt) txt.style.display = 'none';
+                        if (typeEl) typeEl.style.display = 'none';
                         try {
                             (this as any).updateStorageDisplay();
                         } catch (err) {
@@ -437,8 +458,15 @@ export class KhojSettingTab extends PluginSettingTab {
         syncProgressText.id = 'khoj-sync-progress-text';
         syncProgressText.textContent = '';
         syncProgressText.style.display = 'none';
+        // Element to display the current content type being synced (e.g. Images, PDFs, Markdowns)
+        const syncProgressType = document.createElement('span');
+        syncProgressType.id = 'khoj-sync-progress-type';
+        syncProgressType.textContent = '';
+        syncProgressType.style.display = 'none';
+        syncProgressType.style.marginLeft = '8px';
         storageSetting.descEl.appendChild(syncProgressEl);
         storageSetting.descEl.appendChild(syncProgressText);
+        storageSetting.descEl.appendChild(syncProgressType);
 
         // Bind update method
         (this as any).updateStorageDisplay = async () => {

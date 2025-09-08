@@ -68,7 +68,7 @@ export async function updateContentIndex(
     lastSync: Map<TFile, number>,
     regenerate: boolean = false,
     userTriggered: boolean = false,
-    onProgress?: (progress: { processed: number, total: number }) => void
+    onProgress?: (progress: { processed: number, total: number, contentType?: string }) => void
 ): Promise<Map<TFile, number>> {
     // Get all markdown, pdf files in the vault
     console.log(`Khoj: Updating Khoj content index...`)
@@ -219,7 +219,7 @@ export async function updateContentIndex(
                     // Update progress after successful batch upload
                     processedCount += chunk.length;
                     try {
-                        if (onProgress) onProgress({ processed: processedCount, total: totalFilesToProcess });
+                        if (onProgress) onProgress({ processed: processedCount, total: totalFilesToProcess, contentType: typeKey });
                     } catch (err) {
                         // Callback errors should not break the sync process
                         console.warn('Khoj: onProgress callback threw an error', err);
