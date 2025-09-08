@@ -370,6 +370,45 @@ export class KhojSettingTab extends PluginSettingTab {
                     indexVaultSetting = indexVaultSetting.setDisabled(false);
                 })
             );
+        // Estimated Cloud Storage (client-side estimation)
+        const storageSetting = new Setting(containerEl)
+            .setName('Estimated Cloud Storage (estimation)')
+            .setDesc('Estimated storage usage based on files configured for sync. This is a client-side estimation.')
+            .then(() => { });
+
+        // Create custom elements: progress and text
+        const progressEl = document.createElement('progress');
+        progressEl.value = 0;
+        progressEl.max = 1;
+        progressEl.style.width = '100%';
+        const progressText = document.createElement('span');
+        progressText.textContent = 'Calculating...';
+        storageSetting.descEl.appendChild(progressEl);
+        storageSetting.descEl.appendChild(progressText);
+
+        // Bind update method
+        (this as any).updateStorageDisplay = async () => {
+            // Show calculating state
+            progressEl.removeAttribute('value');
+            progressText.textContent = 'Calculating...';
+            try {
+                const { calculateVaultSyncMetrics } = await import('./utils');
+                const metrics = await calculateVaultSyncMetrics(this.app.vault, this.plugin.settings);
+                const usedMB = (metrics.usedBytes / (1024 * 1024));
+                const totalMB = (metrics.totalBytes / (1024 * 1024));
+                const usedStr = `${usedMB.toFixed(1)} Mo`;
+                const totalStr = `${totalMB.toFixed(0)} Mo`;
+                progressEl.value = metrics.usedBytes;
+                progressEl.max = metrics.totalBytes;
+                progressText.textContent = `${usedStr} / ${totalStr}`;
+            } catch (err) {
+                console.error('Khoj: Failed to update storage display', err);
+                progressText.textContent = 'Estimation unavailable';
+            }
+        };
+
+        // Call initial update
+        (this as any).updateStorageDisplay();
     }
 
     private connectStatusIcon() {

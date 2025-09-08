@@ -624,6 +624,58 @@ export function getLinkToEntry(sourceFiles: TFile[], chosenFile: string, chosenE
     }
 }
 
+/**
+ * Calculate estimated vault sync metrics (used and total bytes).
+ * This is a client-side estimation based on the configured sync file types and folders.
+ * The storage limit is determined from the backend-provided `setting.userInfo?.is_active` flag:
+ * - if true => premium limit (500 MB)
+ * - otherwise => free limit (10 MB)
+ * This avoids client-side heuristics and relies on server-provided user info.
+ */
+export async function calculateVaultSyncMetrics(vault: Vault, setting: KhojSetting): Promise<{ usedBytes: number, totalBytes: number }> {
+    try {
+        const files = vault.getFiles()
+            .filter(file => supportedFileTypes.includes(file.extension))
+            .filter(file => {
+                if (fileTypeToExtension.markdown.includes(file.extension)) return setting.syncFileType.markdown;
+                if (fileTypeToExtension.pdf.includes(file.extension)) return setting.syncFileType.pdf;
+                if (fileTypeToExtension.image.includes(file.extension)) return setting.syncFileType.images;
+                return false;
+            })
+            .filter(file => {
+                if (setting.syncFolders.length === 0) return true;
+                return setting.syncFolders.some(folder =>
+                    file.path.startsWith(folder + '/') || file.path === folder
+                );
+            });
+
+        const usedBytes = files.reduce((acc, file) => acc + (file.stat?.size ?? 0), 0);
+
+        // Default to free plan limit
+        const FREE_LIMIT = 10 * 1024 * 1024; // 10 MB
+        const PAID_LIMIT = 500 * 1024 * 1024; // 500 MB
+        let totalBytes = FREE_LIMIT;
+
+        // Determine plan from backend-provided user info. Use FREE_LIMIT as default when info missing.
+        try {
+            if (setting.userInfo && setting.userInfo.is_active === true) {
+                totalBytes = PAID_LIMIT;
+            } else {
+                totalBytes = FREE_LIMIT;
+            }
+        } catch (err) {
+            // Defensive: on any unexpected error, fall back to free limit
+            console.warn('Khoj: Error reading userInfo.is_active, defaulting to free limit', err);
+            totalBytes = FREE_LIMIT;
+        }
+
+        return { usedBytes, totalBytes };
+    } catch (err) {
+        console.error('Khoj: Error calculating vault sync metrics:', err);
+        return { usedBytes: 0, totalBytes: 10 * 1024 * 1024 };
+    }
+}
+
 export async function fetchChatModels(settings: KhojSetting): Promise<ModelOption[]> {
     if (!settings.connectedToBackend || !settings.khojUrl) {
         return [];
