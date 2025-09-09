@@ -483,7 +483,7 @@ export default function ChatHistory(props: ChatHistoryProps) {
             instant ||
             (scrollAreaEl &&
                 scrollAreaEl.scrollHeight - (scrollAreaEl.scrollTop + scrollAreaEl.clientHeight) <
-                    5)
+                5)
         ) {
             setIsNearBottom(true);
         }
@@ -576,7 +576,7 @@ export default function ChatHistory(props: ChatHistoryProps) {
                     <hr />
                 </div>
 
-                <div className={`${styles.chatHistory} ${props.customClassName}`}>
+                <div className={`${styles.chatHistory} h-full ${props.customClassName}`}>
                     <div ref={sentinelRef} style={{ height: "1px" }}>
                         {fetchingData && <InlineLoading className="opacity-50" />}
                     </div>
@@ -601,12 +601,12 @@ export default function ChatHistory(props: ChatHistoryProps) {
                                         index === data.chat.length - 2
                                             ? latestUserMessageRef
                                             : // attach ref to the newest fetched message to handle scroll on fetch
-                                              // note: stabilize index selection against last page having less messages than fetchMessageCount
-                                              index ===
+                                            // note: stabilize index selection against last page having less messages than fetchMessageCount
+                                            index ===
                                                 data.chat.length -
-                                                    (currentPage - 1) * fetchMessageCount
-                                              ? latestFetchedMessageRef
-                                              : null
+                                                (currentPage - 1) * fetchMessageCount
+                                                ? latestFetchedMessageRef
+                                                : null
                                     }
                                     isMobileWidth={isMobileWidth}
                                     chatMessage={chatMessage}
