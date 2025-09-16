@@ -1,5 +1,6 @@
 import styles from "./chatInputArea.module.css";
 import React, { useEffect, useRef, useState, forwardRef } from "react";
+import QueryFiltersPopover, { getTriggerAtCaret } from "./query-filters";
 
 import DOMPurify from "dompurify";
 import "katex/dist/katex.min.css";
@@ -89,6 +90,28 @@ interface ChatInputProps {
 
 export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((props, ref) => {
     const [message, setMessage] = useState("");
+    const [allFiles, setAllFiles] = useState<string[]>([]);
+    const [showFileSuggestions, setShowFileSuggestions] = useState(false);
+    const [fileQuery, setFileQuery] = useState("");
+    const [suggestions, setSuggestions] = useState<string[]>([]);
+    const [menuLevel, setMenuLevel] = useState<"main" | "file" | "date" | "word" | "dateMode" | "wordMode" | null>(null);
+    const [dateMode, setDateMode] = useState<"exact" | ">=" | "<=" | null>(null);
+    const [wordMode, setWordMode] = useState<"include" | "exclude" | null>(null);
+    const [dateOperatorInfo, setDateOperatorInfo] = useState<{
+        insertStart: number;
+        insertToken: string;
+        operator: "exact" | ">=" | "<=";
+    } | null>(null);
+    const [wordOperatorInfo, setWordOperatorInfo] = useState<{
+        insertStart: number;
+        insertToken: string;
+        sign: "+" | "-";
+    } | null>(null);
+    const [highlightIndex, setHighlightIndex] = useState(0);
+    const triggerRef = useRef<{ kind: "at" | "file" | "date" | "word" | "dateMode" | "wordMode"; triggerLen: number; query?: string; sign?: "+" | "-" } | null>(null);
+    const suggestionsContainerRef = useRef<HTMLDivElement | null>(null);
+    const overlayRef = useRef<HTMLDivElement | null>(null);
+    const overlayInnerRef = useRef<HTMLDivElement | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const fileInputButtonRef = useRef<HTMLButtonElement>(null);
     const researchModeRef = useRef<HTMLButtonElement>(null);
@@ -140,6 +163,14 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
         setMessage(props.prefillMessage);
         chatInputRef?.current?.focus();
     }, [props.prefillMessage]);
+
+    useEffect(() => {
+        // Load all files for suggestions
+        fetch("/api/content/computer", { method: "GET", headers: { "Content-Type": "application/json" } })
+            .then((r) => r.json())
+            .then((data) => setAllFiles(Array.isArray(data) ? data : []))
+            .catch((e) => console.error("Failed to load files for suggestions", e));
+    }, []);
 
     useEffect(() => {
         if (props.focus === ChatInputFocus.MESSAGE) {
@@ -321,8 +352,8 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
         } catch (error) {
             setError(
                 "Error converting files. " +
-                    error +
-                    ". Please try again, or contact team@khoj.dev if the issue persists.",
+                error +
+                ". Please try again, or contact team@khoj.dev if the issue persists.",
             );
             console.error("Error converting files:", error);
             return [];
@@ -416,7 +447,459 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
         } else {
             setShowCommandList(false);
         }
+
+        // Also detect trigger even when message is set programmatically
+        try {
+            const ta = chatInputRef.current as HTMLTextAreaElement | null;
+            if (ta) {
+                const caret = ta.selectionStart;
+                const trig = getTriggerAtCaret(message, caret);
+                if (trig) {
+                    triggerRef.current = { kind: trig.kind, triggerLen: trig.triggerLen };
+                    setShowFileSuggestions(true);
+                    // Map trig.kind directly to menuLevel (handles dateMode/wordMode too)
+                    if (trig.kind === "at") {
+                        // If user typed characters immediately after '@', open file selector filtered by that query
+                        if (trig.query && trig.query.length > 0) {
+                            setMenuLevel("file");
+                            updateSuggestions(trig.query, "file");
+                        } else {
+                            setMenuLevel("main");
+                            updateSuggestions("", "main");
+                        }
+                    } else {
+                        setMenuLevel(trig.kind as any);
+                        updateSuggestions(trig.query || "", trig.kind as any);
+                        // prepare operator info when dateMode/wordMode is detected
+                        if (trig.kind === "dateMode") {
+                            const op = (trig as any).operator || ":";
+                            const insertStart = ta.selectionStart - trig.triggerLen;
+                            const insertToken = op === ">=" ? 'dt>="' : op === "<=" ? 'dt<="' : 'dt:"';
+                            setDateOperatorInfo({ insertStart, insertToken, operator: op });
+                        }
+                        if (trig.kind === "wordMode") {
+                            const sign = (trig as any).sign || "+";
+                            const insertStart = ta.selectionStart - trig.triggerLen;
+                            const insertToken = sign + '"';
+                            setWordOperatorInfo({ insertStart, insertToken, sign });
+                        }
+                    }
+                }
+            }
+        } catch (err) {
+            // ignore
+        }
     }, [message]);
+
+    // Sync overlay scroll with textarea so badges behave like text during scrolling
+    useEffect(() => {
+        const ta = chatInputRef?.current as HTMLTextAreaElement | null;
+        const ov = overlayRef?.current as HTMLDivElement | null;
+        if (!ta || !ov) return;
+
+        function onScroll() {
+            const taInner = chatInputRef?.current as HTMLTextAreaElement | null;
+            const inner = overlayInnerRef?.current as HTMLDivElement | null;
+            if (!taInner || !inner) return;
+            // translate the inner overlay so it matches textarea pixel scroll
+            inner.style.transform = `translate(${-taInner.scrollLeft}px, ${-taInner.scrollTop}px)`;
+        }
+
+        ta.addEventListener("scroll", onScroll);
+        // run once to initialize
+        onScroll();
+        return () => ta.removeEventListener("scroll", onScroll);
+    }, [chatInputRef, overlayRef]);
+
+    // Copy computed font metrics from the textarea to the overlay inner to
+    // ensure identical text metrics (prevents caret misalignment).
+    useEffect(() => {
+        function applyMetrics() {
+            const ta = chatInputRef?.current as HTMLTextAreaElement | null;
+            const inner = overlayInnerRef?.current as HTMLDivElement | null;
+            const ov = overlayRef?.current as HTMLDivElement | null;
+            if (!ta || !inner || !ov) return;
+
+            const style = window.getComputedStyle(ta);
+            inner.style.fontFamily = style.fontFamily;
+            inner.style.fontSize = style.fontSize;
+            inner.style.fontWeight = style.fontWeight;
+            inner.style.lineHeight = style.lineHeight;
+            inner.style.letterSpacing = style.letterSpacing;
+            inner.style.wordSpacing = style.wordSpacing;
+            inner.style.whiteSpace = 'pre-wrap';
+            inner.style.boxSizing = 'border-box';
+
+            // Match padding so wrapping positions match
+            const padLeft = parseFloat(style.paddingLeft || '0');
+            const padTop = parseFloat(style.paddingTop || '0');
+            inner.style.paddingLeft = `${padLeft}px`;
+            inner.style.paddingTop = `${padTop}px`;
+
+            // Set inner width to textarea content width (clientWidth)
+            inner.style.width = `${ta.clientWidth}px`;
+
+            // Initialize transform to match current scroll
+            inner.style.transform = `translate(${-ta.scrollLeft}px, ${-ta.scrollTop}px)`;
+        }
+
+        applyMetrics();
+        const ta = chatInputRef?.current as HTMLTextAreaElement | null;
+        window.addEventListener('resize', applyMetrics);
+        const ro = new ResizeObserver(applyMetrics);
+        if (ta) ro.observe(ta);
+        return () => {
+            window.removeEventListener('resize', applyMetrics);
+            try { ro.disconnect(); } catch (e) { }
+        };
+    }, [chatInputRef, overlayInnerRef, overlayRef, props.isMobileWidth, message]);
+
+    // getTriggerAtCaret is now imported from query-filters
+
+    // Render a decorated, read-only overlay of the message where tokens
+    // (file:"...", dt:"..."/dt>="..."/dt<="...", +"..." and -"...")
+    // are shown as pill badges. The overlay preserves whitespace/line breaks.
+    function renderDecoratedMessage(msg: string) {
+        if (msg.length === 0) {
+            return <div className="text-muted-foreground">Type / for commands and @ for filters</div>;
+        }
+
+        const parts: React.ReactNode[] = [];
+        let cursor = 0;
+        let keyIndex = 0;
+
+        // Helper to push plain text preserving whitespace
+        function pushText(text: string) {
+            if (text.length === 0) return;
+            parts.push(
+                <span key={`t-${keyIndex++}`} className="whitespace-pre-wrap">
+                    {text}
+                </span>,
+            );
+        }
+
+        while (cursor < msg.length) {
+            const slice = msg.slice(cursor);
+
+            // Try to find the earliest token among patterns
+            const fileMatch = slice.match(/^file:\"([^\"]+)\"/);
+            // Accept straight quotes (") or unicode curly quotes (\u201C \u201D)
+            const dateMatch = slice.match(/^(dt(?:(?:>=|<=))?:?)(?:"|\u201C|\u201D)?([^"\u201C\u201D\s]*)(?:"|\u201C|\u201D)?/);
+            const includeMatch = slice.match(/^\+\"([^\"]+)\"/);
+            const excludeMatch = slice.match(/^\-\"([^\"]+)\"/);
+
+            if (fileMatch) {
+                pushText(slice.slice(0, fileMatch.index ?? 0));
+                const full = fileMatch[0] as string; // e.g. file:"name"
+                parts.push(
+                    <span key={`b-file-${keyIndex++}`} className="inline bg-sky-100 text-sky-800 rounded">
+                        {full}
+                    </span>,
+                );
+                cursor += full.length;
+                continue;
+            }
+
+            if (dateMatch) {
+                // dateMatch[0] is the whole operator+value, dateMatch[2] is value
+                const full = dateMatch[0] as string;
+                pushText(slice.slice(0, dateMatch.index ?? 0));
+                parts.push(
+                    <span key={`b-date-${keyIndex++}`} className="inline bg-amber-100 text-amber-800 rounded">
+                        {full}
+                    </span>,
+                );
+                cursor += full.length;
+                continue;
+            }
+
+            if (includeMatch) {
+                pushText(slice.slice(0, includeMatch.index ?? 0));
+                const val = includeMatch[1];
+                parts.push(
+                    <span key={`b-inc-${keyIndex++}`} className="inline bg-emerald-100 text-emerald-800 rounded">
+                        {includeMatch[0]}
+                    </span>,
+                );
+                cursor += includeMatch[0].length;
+                continue;
+            }
+
+            if (excludeMatch) {
+                pushText(slice.slice(0, excludeMatch.index ?? 0));
+                const val = excludeMatch[1];
+                parts.push(
+                    <span key={`b-exc-${keyIndex++}`} className="inline bg-rose-100 text-rose-800 rounded">
+                        {excludeMatch[0]}
+                    </span>,
+                );
+                cursor += excludeMatch[0].length;
+                continue;
+            }
+
+            // No token at current position; push next character and advance
+            parts.push(
+                <span key={`t-${keyIndex++}`} className="whitespace-pre-wrap">
+                    {slice.charAt(0)}
+                </span>,
+            );
+            cursor += 1;
+        }
+
+        return <>{parts}</>;
+    }
+
+    function updateSuggestions(query: string, levelOverride?: typeof menuLevel) {
+        setFileQuery(query);
+        const q = query.toLowerCase();
+        const level = levelOverride || menuLevel;
+        if (level === "file") {
+            const filtered = allFiles.filter((f) => f.toLowerCase().includes(q)).slice(0, 20);
+            setSuggestions(filtered);
+        } else if (level === "main") {
+            setSuggestions(["file", "date", "word"]);
+        } else if (level === "date") {
+            setSuggestions(["exact", "after", "before"]);
+        } else if (level === "dateMode") {
+            // show current typed date as single suggestion
+            const ta = chatInputRef.current;
+            if (dateOperatorInfo && ta) {
+                const start = dateOperatorInfo.insertStart + dateOperatorInfo.insertToken.length;
+                const caret = ta.selectionStart;
+                const typed = message.slice(start, caret);
+                setSuggestions([typed || ""]);
+            } else {
+                setSuggestions([""]);
+            }
+        } else if (level === "word") {
+            setSuggestions(["include", "exclude"]);
+        } else if (level === "wordMode") {
+            const ta = chatInputRef.current;
+            if (wordOperatorInfo && ta) {
+                const start = wordOperatorInfo.insertStart + wordOperatorInfo.insertToken.length;
+                const caret = ta.selectionStart;
+                const typed = message.slice(start, caret);
+                setSuggestions([typed || ""]);
+            } else {
+                setSuggestions([""]);
+            }
+        } else {
+            setSuggestions([]);
+        }
+        setHighlightIndex(0);
+    }
+
+    function insertSuggestionAtCaret(textarea: HTMLTextAreaElement, suggestion: string) {
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        const trigger = triggerRef.current;
+        if (!trigger) return;
+        const insertStart = start - trigger.triggerLen;
+        let insertion = suggestion;
+        if (menuLevel === "file" || trigger.kind === "file") {
+            insertion = `file:\"${suggestion}\" `;
+        } else if (menuLevel === "main") {
+            // selecting main menu item should not insert directly
+            insertion = `@${suggestion} `;
+        } else if (menuLevel === "wordMode") {
+            const quoted = suggestion.includes(" ") ? `\"${suggestion}\"` : suggestion;
+            insertion = wordMode === "include" ? `+${quoted} ` : `-${quoted} `;
+        } else if (menuLevel === "dateMode") {
+            // suggestion here is expected to be the date string
+            if (!dateMode) return;
+            const d = suggestion;
+            if (dateMode === "exact") insertion = `dt:\"${d}\" `;
+            else if (dateMode === ">=") insertion = `dt>=\"${d}\" `;
+            else insertion = `dt<=\"${d}\" `;
+        } else {
+            insertion = `@${suggestion} `;
+        }
+
+        // Ensure there's a space before insertion if previous char isn't whitespace
+        const needsLeadingSpace = insertStart > 0 && !/\s/.test(message.charAt(insertStart - 1));
+        if (needsLeadingSpace) {
+            insertion = " " + insertion;
+        }
+
+        // Ensure there's a space after insertion if the following char isn't whitespace
+        const needsTrailingSpace = end < message.length && !/\s/.test(message.charAt(end));
+        if (needsTrailingSpace) {
+            insertion = insertion + " ";
+        }
+
+        const newMessage = message.slice(0, insertStart) + insertion + message.slice(end);
+        setMessage(newMessage);
+
+        // Restore caret after insertion
+        requestAnimationFrame(() => {
+            const pos = insertStart + insertion.length;
+            textarea.selectionStart = textarea.selectionEnd = pos;
+            textarea.focus();
+        });
+
+        setShowFileSuggestions(false);
+        triggerRef.current = null;
+        setMenuLevel(null);
+        setDateMode(null);
+        setWordMode(null);
+    }
+
+    function insertTriggerToken(textarea: HTMLTextAreaElement, token: string, newMenuLevel: typeof menuLevel, levelOverride?: typeof menuLevel) {
+        // replace the original trigger (e.g. '@') with the token (like 'file:')
+        const caret = textarea.selectionStart;
+        const trig = getTriggerAtCaret(textarea.value, caret);
+        let insertStart = caret;
+        let insertEnd = caret;
+        if (trig) {
+            insertStart = caret - trig.triggerLen;
+            insertEnd = caret;
+        }
+
+        // add space before token if needed
+        const needsLeadingSpace = insertStart > 0 && !/\s/.test(message.charAt(insertStart - 1));
+        const tokenToInsert = needsLeadingSpace ? " " + token : token;
+
+        // ensure trailing space after token if needed
+        const needsTrailingSpaceToken = insertEnd < message.length && !/\s/.test(message.charAt(insertEnd));
+        const finalToken = needsTrailingSpaceToken ? tokenToInsert + " " : tokenToInsert;
+
+        const newMessage = message.slice(0, insertStart) + finalToken + message.slice(insertEnd);
+        setMessage(newMessage);
+
+        requestAnimationFrame(() => {
+            const pos = insertStart + (needsLeadingSpace ? token.length + 1 : token.length) + (needsTrailingSpaceToken ? 1 : 0);
+            textarea.selectionStart = textarea.selectionEnd = pos;
+            textarea.focus();
+        });
+
+        setMenuLevel(newMenuLevel);
+        setShowFileSuggestions(true);
+        updateSuggestions("", levelOverride || newMenuLevel);
+    }
+
+    function prepareDateOperatorInfo(choice: string) {
+        const ta = chatInputRef.current!;
+        const caret = ta.selectionStart;
+        const trig = getTriggerAtCaret(ta.value, caret);
+        let insertStart = trig ? caret - trig.triggerLen : caret;
+        // If there's a space immediately before the operator token in the message, include it
+        if (insertStart > 0 && /\s/.test(message.charAt(insertStart - 1))) {
+            insertStart = insertStart - 1;
+        }
+        const insertToken = choice === "exact" ? 'dt:"' : choice === "after" ? 'dt>="' : 'dt<="';
+        setDateOperatorInfo({ insertStart, insertToken, operator: choice as any });
+    }
+
+    function prepareWordOperatorInfo(sign: "+" | "-") {
+        const ta = chatInputRef.current!;
+        const caret = ta.selectionStart;
+        const trig = getTriggerAtCaret(ta.value, caret);
+        let insertStart = trig ? caret - trig.triggerLen : caret;
+        if (insertStart > 0 && /\s/.test(message.charAt(insertStart - 1))) {
+            insertStart = insertStart - 1;
+        }
+        const insertToken = sign + '"';
+        setWordOperatorInfo({ insertStart, insertToken, sign });
+    }
+
+    function insertDateFilterFromCaret(textarea: HTMLTextAreaElement) {
+        const trig = getTriggerAtCaret(textarea.value, textarea.selectionStart);
+        if (!trig) return;
+        let dateText = trig.query;
+        const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+        // If the user hasn't typed a closing quote, try to include typed text up to caret
+        const ta = textarea;
+        const caret = ta.selectionStart;
+        if (trig.triggerLen && dateText === "") {
+            // nothing typed after operator
+            setWarning("Please enter a date in YYYY-MM-DD format");
+            return;
+        }
+        // If there's no closing quote, but user typed characters, ensure we capture them
+        if (!dateRegex.test(dateText)) {
+            // try to get the typed slice from operator position
+            if (dateOperatorInfo) {
+                const start = dateOperatorInfo.insertStart + dateOperatorInfo.insertToken.length;
+                dateText = textarea.value.slice(start, caret);
+            }
+        }
+        if (!dateMode || !dateRegex.test(dateText)) {
+            setWarning("Please enter a date in YYYY-MM-DD format");
+            return;
+        }
+        // Prefer operator info insertStart if available (accounts for added leading space)
+        const insertStart = dateOperatorInfo ? dateOperatorInfo.insertStart : textarea.selectionStart - trig.triggerLen;
+        let insertion = "";
+        if (dateMode === "exact") insertion = `dt:\"${dateText}\" `;
+        else if (dateMode === ">=") insertion = `dt>=\"${dateText}\" `;
+        else insertion = `dt<=\"${dateText}\" `;
+
+        // Ensure leading/trailing spaces are preserved
+        const needsLeadingSpace = insertStart > 0 && !/\s/.test(message.charAt(insertStart - 1));
+        if (needsLeadingSpace) insertion = " " + insertion;
+        const needsTrailingSpace = textarea.selectionEnd < message.length && !/\s/.test(message.charAt(textarea.selectionEnd));
+        if (needsTrailingSpace) insertion = insertion + " ";
+
+        const newMessage = message.slice(0, insertStart) + insertion + message.slice(textarea.selectionEnd);
+        setMessage(newMessage);
+        requestAnimationFrame(() => {
+            const pos = insertStart + insertion.length;
+            textarea.selectionStart = textarea.selectionEnd = pos;
+            textarea.focus();
+        });
+
+        setShowFileSuggestions(false);
+        triggerRef.current = null;
+        setMenuLevel(null);
+        setDateMode(null);
+        setDateOperatorInfo(null);
+    }
+
+    function insertWordFilterFromCaret(textarea: HTMLTextAreaElement) {
+        const trig = getTriggerAtCaret(textarea.value, textarea.selectionStart);
+        if (!trig) return;
+        const wordText = trig.query;
+        if (!wordMode || wordText.length === 0) {
+            setWarning("Please enter a word or phrase");
+            return;
+        }
+        const insertStart = wordOperatorInfo ? wordOperatorInfo.insertStart : textarea.selectionStart - trig.triggerLen;
+        // Always quote the word/phrase to match filter syntax
+        const quoted = `\"${wordText}\"`;
+        let insertion = wordMode === "include" ? `+${quoted} ` : `-${quoted} `;
+        // Preserve surrounding spaces
+        const needsLeadingSpaceW = insertStart > 0 && !/\s/.test(message.charAt(insertStart - 1));
+        if (needsLeadingSpaceW) insertion = " " + insertion;
+        const needsTrailingSpaceW = textarea.selectionEnd < message.length && !/\s/.test(message.charAt(textarea.selectionEnd));
+        if (needsTrailingSpaceW) insertion = insertion + " ";
+
+        const newMessage = message.slice(0, insertStart) + insertion + message.slice(textarea.selectionEnd);
+        setMessage(newMessage);
+        requestAnimationFrame(() => {
+            const pos = insertStart + insertion.length;
+            textarea.selectionStart = textarea.selectionEnd = pos;
+            textarea.focus();
+        });
+
+        setShowFileSuggestions(false);
+        triggerRef.current = null;
+        setMenuLevel(null);
+        setWordMode(null);
+        setWordOperatorInfo(null);
+    }
+
+    useEffect(() => {
+        if (!showFileSuggestions) return;
+        const container = suggestionsContainerRef.current;
+        if (!container) return;
+        const children = container.children;
+        if (highlightIndex >= 0 && highlightIndex < children.length) {
+            const el = children[highlightIndex] as HTMLElement | undefined;
+            if (el && typeof el.scrollIntoView === "function") {
+                el.scrollIntoView({ block: "nearest" });
+            }
+        }
+    }, [highlightIndex, showFileSuggestions, suggestions]);
 
     function handleDragOver(event: React.DragEvent<HTMLDivElement>) {
         event.preventDefault();
@@ -678,17 +1161,95 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
                         </TooltipProvider>
                     </div>
                     <div className="flex-grow flex flex-col w-full gap-1.5 relative">
+                        {/* Overlay showing decorated tokens (badges). Pointer-events none so textarea receives input. */}
+                        <div ref={overlayRef} className="absolute inset-0 z-10 pointer-events-none overflow-hidden">
+                            <div ref={overlayInnerRef} className={`w-full break-words ${props.isMobileWidth ? "text-md" : "text-lg"} leading-6 text-neutral-800 dark:text-neutral-200 whitespace-pre-wrap will-change-transform px-3 py-2 md:py-4 text-sm font-sans`}>
+                                {renderDecoratedMessage(message)}
+                            </div>
+                        </div>
+
                         <Textarea
                             ref={chatInputRef}
                             className={`border-none focus:border-none
                                 focus:outline-none focus-visible:ring-transparent
-                                w-full h-16 min-h-16 max-h-[128px] md:py-4 rounded-lg resize-none dark:bg-neutral-700
+                                w-full h-16 min-h-16 max-h-[128px] md:py-4 rounded-lg resize-none bg-transparent text-transparent relative z-20 leading-6
                                 ${props.isMobileWidth ? "text-md" : "text-lg"}`}
-                            placeholder="Type / to see a list of commands"
+                            placeholder=""
+                            style={{ caretColor: '#0f172a' }}
                             id="message"
                             autoFocus={true}
                             value={message}
-                            onKeyDown={(e) => {
+                            onKeyDown={(e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+                                // Keyboard handling for file/menu suggestions
+                                if (showFileSuggestions) {
+                                    if (e.key === "ArrowDown") {
+                                        e.preventDefault();
+                                        setHighlightIndex((i) => Math.min(i + 1, suggestions.length - 1));
+                                        return;
+                                    }
+                                    if (e.key === "ArrowUp") {
+                                        e.preventDefault();
+                                        setHighlightIndex((i) => Math.max(i - 1, 0));
+                                        return;
+                                    }
+                                    if (e.key === "Enter") {
+                                        e.preventDefault();
+                                        const selected = suggestions[highlightIndex];
+                                        if (!selected) return;
+                                        const choice = String(selected).toLowerCase();
+                                        if (menuLevel === "main") {
+                                            if (choice === "file") {
+                                                insertTriggerToken(chatInputRef.current!, "file:", "file", "file");
+                                            } else if (choice === "date") {
+                                                insertTriggerToken(chatInputRef.current!, "dt", "date", "date");
+                                            } else if (choice === "word") {
+                                                // go to word submenu (include/exclude)
+                                                setMenuLevel("word");
+                                                updateSuggestions("", "word");
+                                            }
+                                            return;
+                                        }
+                                        if (menuLevel === "file") {
+                                            insertSuggestionAtCaret(chatInputRef.current!, selected);
+                                            return;
+                                        }
+                                        if (menuLevel === "date") {
+                                            if (choice === "exact") setDateMode("exact");
+                                            else if (choice === "after") setDateMode(">=");
+                                            else setDateMode("<=");
+                                            // insert corresponding operator token (dt:" or dt>=" or dt<=" ) and enter dateMode
+                                            const token = choice === "exact" ? 'dt:"' : choice === "after" ? 'dt>="' : 'dt<="';
+                                            insertTriggerToken(chatInputRef.current!, token, "dateMode", "dateMode");
+                                            setTimeout(() => prepareDateOperatorInfo(choice), 0);
+                                            return;
+                                        }
+                                        if (menuLevel === "dateMode") {
+                                            insertDateFilterFromCaret(chatInputRef.current!);
+                                            return;
+                                        }
+                                        if (menuLevel === "word") {
+                                            // Insert the operator token (+" or -") and enter wordMode
+                                            const sign = choice === "include" ? "+" : "-";
+                                            const token = sign + '"';
+                                            insertTriggerToken(chatInputRef.current!, token, "wordMode", "wordMode");
+                                            setWordMode(choice === "include" ? "include" : "exclude");
+                                            // prepare operator info after insertion so mirror works
+                                            setTimeout(() => prepareWordOperatorInfo(sign as "+" | "-"), 0);
+                                            return;
+                                        }
+                                        if (menuLevel === "wordMode") {
+                                            insertWordFilterFromCaret(chatInputRef.current!);
+                                            return;
+                                        }
+                                    }
+                                    if (e.key === "Escape") {
+                                        setShowFileSuggestions(false);
+                                        triggerRef.current = null;
+                                        setMenuLevel(null);
+                                        return;
+                                    }
+                                }
+
                                 if (
                                     e.key === "Enter" &&
                                     !e.shiftKey &&
@@ -702,9 +1263,67 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
                                     onSendMessage();
                                 }
                             }}
-                            onChange={(e) => setMessage(e.target.value)}
+                            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => {
+                                setMessage(e.target.value);
+
+                                // Check caret trigger
+                                const ta = e.target as HTMLTextAreaElement;
+                                const caret = ta.selectionStart;
+                                const trig = getTriggerAtCaret(ta.value, caret);
+                                if (trig) {
+                                    triggerRef.current = { kind: trig.kind, triggerLen: trig.triggerLen };
+                                    setShowFileSuggestions(true);
+                                    if (trig.kind === "at") {
+                                        setMenuLevel("main");
+                                        updateSuggestions("", "main");
+                                    } else if (trig.kind === "file") {
+                                        setMenuLevel("file");
+                                        updateSuggestions(trig.query || "", "file");
+                                    } else if (trig.kind === "date") {
+                                        // if there's anything after dt/ date (like dt:2023 or dt>=), go to dateMode
+                                        if (trig.query && trig.query.length > 0) {
+                                            setMenuLevel("dateMode");
+                                            updateSuggestions(trig.query || "", "dateMode");
+                                        } else {
+                                            setMenuLevel("date");
+                                            updateSuggestions("", "date");
+                                        }
+                                    } else if (trig.kind === "wordMode") {
+                                        // typed +"... or -"... -> open wordMode (single mirror suggestion)
+                                        setMenuLevel("wordMode");
+                                        updateSuggestions(trig.query || "", "wordMode");
+                                    } else {
+                                        setMenuLevel("main");
+                                        updateSuggestions(trig.query || "", "main");
+                                    }
+                                } else {
+                                    setShowFileSuggestions(false);
+                                    triggerRef.current = null;
+                                    setMenuLevel(null);
+                                }
+                            }}
                             disabled={recording}
                         />
+                        {showFileSuggestions && (
+                            <div ref={suggestionsContainerRef}>
+                                <QueryFiltersPopover
+                                    menuLevel={menuLevel}
+                                    suggestions={suggestions}
+                                    highlightIndex={highlightIndex}
+                                    setHighlightIndex={setHighlightIndex}
+                                    chatInputRef={chatInputRef}
+                                    insertSuggestionAtCaret={(_ta: HTMLTextAreaElement, s: string) => insertSuggestionAtCaret(chatInputRef.current!, s)}
+                                    insertTriggerToken={(_ta: HTMLTextAreaElement, token: string, newMenuLevel: any, levelOverride?: any) => insertTriggerToken(chatInputRef.current!, token, newMenuLevel, levelOverride)}
+                                    prepareDateOperatorInfo={(c: string) => prepareDateOperatorInfo(c)}
+                                    prepareWordOperatorInfo={(s: any) => prepareWordOperatorInfo(s)}
+                                    setDateMode={(m: any) => setDateMode(m)}
+                                    setWordMode={(m: any) => setWordMode(m)}
+                                    setMenuLevel={(m: any) => setMenuLevel(m)}
+                                    insertDateFilterFromCaret={() => insertDateFilterFromCaret(chatInputRef.current!)}
+                                    insertWordFilterFromCaret={() => insertWordFilterFromCaret(chatInputRef.current!)}
+                                />
+                            </div>
+                        )}
                     </div>
                     <div className="flex items-end pb-2">
                         {recording ? (
