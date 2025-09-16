@@ -5,7 +5,7 @@ import os
 from typing import Callable, List, Optional
 
 from khoj.database.adapters import AgentAdapters, ConversationAdapters
-from khoj.database.models import Agent, ChatMessageModel, ChatModel, KhojUser
+from khoj.database.models import Agent, ChatMessageModel, ChatModel, KhojUser, UserMemory
 from khoj.processor.conversation.utils import (
     AgentMessage,
     OperatorRun,
@@ -42,6 +42,7 @@ async def operate_environment(
     query_images: Optional[List[str]] = None,  # TODO: Handle query images
     agent: Agent = None,
     query_files: str = None,  # TODO: Handle query files
+    relevant_memories: Optional[List[UserMemory]] = None,  # TODO: Handle relevant memories
     cancellation_event: Optional[asyncio.Event] = None,
     interrupt_queue: Optional[asyncio.Queue] = None,
     abort_message: Optional[str] = ChatEvent.END_EVENT.value,
