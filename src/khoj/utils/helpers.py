@@ -664,13 +664,13 @@ tools_for_research_llm = {
                 },
                 "lines_before": {
                     "type": "integer",
-                    "description": "Optional number of lines to show before each line match for context.",
+                    "description": "Optional number of lines to show before each line match for context. It should be a positive number between 0 and 20.",
                     "minimum": 0,
                     "maximum": 20,
                 },
                 "lines_after": {
                     "type": "integer",
-                    "description": "Optional number of lines to show after each line match for context.",
+                    "description": "Optional number of lines to show after each line match for context. It should be a positive number between 0 and 20.",
                     "minimum": 0,
                     "maximum": 20,
                 },

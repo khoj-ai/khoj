@@ -93,7 +93,7 @@ def completion_with_backoff(
     model_name: str,
     temperature=0.6,
     openai_api_key=None,
-    api_base_url=None,
+    api_base_url: str | None = None,
     deepthought: bool = False,
     model_kwargs: dict = {},
     tracer: dict = {},
@@ -882,21 +882,21 @@ def is_twitter_reasoning_model(model_name: str, api_base_url: str = None) -> boo
     )
 
 
-def is_cerebras_api(api_base_url: str = None) -> bool:
+def is_cerebras_api(api_base_url: str | None = None) -> bool:
     """
     Check if the model is served over the Cerebras API
     """
     return api_base_url is not None and api_base_url.startswith("https://api.cerebras.ai/v1")
 
 
-def is_groq_api(api_base_url: str = None) -> bool:
+def is_groq_api(api_base_url: str | None = None) -> bool:
     """
     Check if the model is served over the Groq API
     """
     return api_base_url is not None and api_base_url.startswith("https://api.groq.com")
 
 
-def is_qwen_style_reasoning_model(model_name: str, api_base_url: str = None) -> bool:
+def is_qwen_style_reasoning_model(model_name: str, api_base_url: str | None = None) -> bool:
     """
     Check if the model is a Qwen style reasoning model
     """
@@ -1225,15 +1225,18 @@ def add_qwen_no_think_tag(formatted_messages: List[dict]) -> None:
                         break
 
 
-def to_openai_tools(tools: List[ToolDefinition], use_responses_api: bool, strict: bool) -> List[Dict] | None:
+def to_openai_tools(tools: List[ToolDefinition], model: str, api_base_url: str | None = None) -> List[Dict] | None:
     "Transform tool definitions from standard format to OpenAI format."
+    use_responses_api = supports_responses_api(model, api_base_url)
+    strict = not is_cerebras_api(api_base_url)
+    fields_to_exclude = ["minimum", "maximum"] if is_groq_api(api_base_url) else []
     if use_responses_api:
         openai_tools = [
             {
                 "type": "function",
                 "name": tool.name,
                 "description": tool.description,
-                "parameters": clean_response_schema(tool.schema),
+                "parameters": clean_response_schema(tool.schema, fields_to_exclude=fields_to_exclude),
                 "strict": strict,
             }
             for tool in tools
@@ -1245,7 +1248,7 @@ def to_openai_tools(tools: List[ToolDefinition], use_responses_api: bool, strict
                 "function": {
                     "name": tool.name,
                     "description": tool.description,
-                    "parameters": clean_response_schema(tool.schema),
+                    "parameters": clean_response_schema(tool.schema, fields_to_exclude=fields_to_exclude),
                     "strict": strict,
                 },
             }
@@ -1255,7 +1258,7 @@ def to_openai_tools(tools: List[ToolDefinition], use_responses_api: bool, strict
     return openai_tools or None
 
 
-def clean_response_schema(schema: BaseModel | dict) -> dict:
+def clean_response_schema(schema: BaseModel | dict, fields_to_exclude: list[str] = []) -> dict:
     """
     Format response schema to be compatible with OpenAI API.
 
@@ -1267,7 +1270,7 @@ def clean_response_schema(schema: BaseModel | dict) -> dict:
 
     # Recursively drop unsupported fields from schema passed to OpenAI API
     # See https://platform.openai.com/docs/guides/structured-outputs#supported-schemas
-    fields_to_exclude = ["minItems", "maxItems"]
+    fields_to_exclude += ["minItems", "maxItems"]
     if isinstance(schema_json, dict) and isinstance(schema_json.get("properties"), dict):
         for _, prop_value in schema_json["properties"].items():
             if isinstance(prop_value, dict):

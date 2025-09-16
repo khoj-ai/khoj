@@ -27,12 +27,12 @@ logger = logging.getLogger(__name__)
 def send_message_to_model(
     messages,
     api_key,
-    model,
+    model: str,
     response_type="text",
     response_schema=None,
     tools: list[ToolDefinition] = None,
     deepthought=False,
-    api_base_url=None,
+    api_base_url: str | None = None,
     tracer: dict = {},
 ):
     """
@@ -43,9 +43,7 @@ def send_message_to_model(
     json_support = get_structured_output_support(model, api_base_url)
     strict = not is_cerebras_api(api_base_url)
     if tools and json_support == StructuredOutputSupport.TOOL:
-        model_kwargs["tools"] = to_openai_tools(
-            tools, use_responses_api=supports_responses_api(model, api_base_url), strict=strict
-        )
+        model_kwargs["tools"] = to_openai_tools(tools, model=model, api_base_url=api_base_url)
     elif response_schema and json_support >= StructuredOutputSupport.SCHEMA:
         # Drop unsupported fields from schema passed to OpenAI APi
         cleaned_response_schema = clean_response_schema(response_schema)

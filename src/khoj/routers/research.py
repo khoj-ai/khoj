@@ -88,7 +88,7 @@ async def apick_next_tool(
     # Construct tool options for the agent to choose from
     tools = []
     tool_options_str = ""
-    agent_input_tools = agent.input_tools if agent else []
+    agent_input_tools = agent.input_tools if agent and agent.input_tools else []
     agent_tools = []
 
     # Map agent user facing tools to research tools to include in agents toolbox
