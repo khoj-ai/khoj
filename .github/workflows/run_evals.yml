@@ -60,14 +60,6 @@ on:
         required: false
         default: 'https://api.openai.com/v1'
         type: string
-      auto_read_webpage:
-        description: 'Auto read webpage on online search'
-        required: false
-        default: 'false'
-        type: choice
-        options:
-          - 'false'
-          - 'true'
       randomize:
         description: 'Randomize the sample of questions'
         required: false
