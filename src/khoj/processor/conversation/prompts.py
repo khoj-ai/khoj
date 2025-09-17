@@ -729,7 +729,7 @@ User: Good morning
 AI: Good morning! How can I help you today?
 
 Q: How can I share my files with Khoj?
-Khoj: {{"source": ["default", "online"], "output": "text"}}
+Khoj: {{"source": ["notes", "online"], "output": "text"}}
 
 Example:
 Chat History:
@@ -1278,7 +1278,6 @@ help_message = PromptTemplate.from_template(
     """
 - **/notes**: Chat using the information in your knowledge base.
 - **/general**: Chat using just Khoj's general knowledge. This will not search against your notes.
-- **/default**: Chat using your knowledge base and Khoj's general knowledge for context.
 - **/online**: Chat using the internet as a source of information.
 - **/image**: Generate an image based on your message.
 - **/research**: Go deeper in a topic for more accurate, in-depth responses.
