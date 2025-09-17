@@ -1,0 +1,28 @@
+[package]
+name = "khoj_app"
+version = "0.1.0"
+edition = "2021"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = ["macos-private-api", "tray-icon"] }
+tauri-plugin-clipboard = "2"
+tauri-plugin-shell = "2"
+tauri-plugin-dialog = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+chrono = { version = "0.4", features = ["clock", "serde"] }
+walkdir = "2"
+reqwest = { version = "0.12", features = ["json", "multipart", "stream", "rustls-tls"] }
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "time"] }
+tauri-plugin-global-shortcut = "2.3.0"
+# No plugin-store for Rust side; persistence handled via JSON file
+# tauri-plugin-global-shortcut can be added later for v2
+
+[dev-dependencies]
+tempfile = "3"
+
+[target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
+tauri-plugin-global-shortcut = "2"

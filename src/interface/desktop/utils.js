@@ -1,3 +1,9 @@
+// Tauri migration: replace Electron preload bridges with @tauri-apps/api
+import { invoke } from '@tauri-apps/api/tauri';
+import { open as openShell } from '@tauri-apps/api/shell';
+import { getVersion } from '@tauri-apps/api/app';
+import { platform as getPlatform } from '@tauri-apps/api/os';
+
 console.log(`%c %s`, "font-family:monospace", `
  __  __     __  __     ______       __        _____      __
 /\\ \\/ /    /\\ \\_\\ \\   /\\  __ \\     /\\ \\      /\\  __ \\   /\\ \\
@@ -13,19 +19,24 @@ See my source code at https://github.com/khoj-ai/khoj
 Read my operating manual at https://docs.khoj.dev
 `);
 
-
-window.appInfoAPI.getInfo((_, info) => {
-    let khojVersionElement = document.getElementById("about-page-version");
-    if (khojVersionElement) {
-        khojVersionElement.innerHTML = `<code>${info.version}</code>`;
+(async function initAboutInfo() {
+    try {
+        const ver = await getVersion();
+        const plat = await getPlatform();
+        let khojVersionElement = document.getElementById("about-page-version");
+        if (khojVersionElement) {
+            khojVersionElement.innerHTML = `<code>${ver}</code>`;
+        }
+        let khojTitleElement = document.getElementById("about-page-title");
+        if (khojTitleElement) {
+            khojTitleElement.innerHTML = '<b>Khoj for ' + (plat === 'win32' ? 'Windows' : plat === 'darwin' ? 'macOS' : 'Linux') + '</b>';
+        }
+    } catch (e) {
+        console.warn('Failed to init about info', e);
     }
-    let khojTitleElement = document.getElementById("about-page-title");
-    if (khojTitleElement) {
-        khojTitleElement.innerHTML = '<b>Khoj for ' + (info.platform === 'win32' ? 'Windows' : info.platform === 'darwin' ? 'macOS' : 'Linux') + '</b>';
-    }
-});
+})();
 
-function toggleNavMenu() {
+export function toggleNavMenu() {
     let menu = document.getElementById("khoj-nav-menu");
     menu.classList.toggle("show");
 }
@@ -40,10 +51,10 @@ document.addEventListener('click', function (event) {
     }
 });
 
-async function populateHeaderPane() {
+export async function populateHeaderPane() {
     let userInfo = null;
     try {
-        userInfo = await window.userInfoAPI.getUserInfo();
+        userInfo = await invoke('get_user_info');
     } catch (error) {
         console.log("User not logged in");
     }
@@ -78,7 +89,7 @@ async function populateHeaderPane() {
                     `}
                     <div id="khoj-nav-menu" class="khoj-nav-dropdown-content">
                         <div class="khoj-nav-username"> ${username} </div>
-                        <a onclick="window.navigateAPI.navigateToWebHome()" class="khoj-nav-link">
+                        <a href="#" class="khoj-nav-link" data-action="open-app">
                         <img class="khoj-nav-icon" src="./assets/icons/open-link.svg" alt="Open Host Url"></img>
                         Open App
                         </a>
@@ -87,4 +98,34 @@ async function populateHeaderPane() {
             ` : ''}
         </nav>
     `;
+}
+
+// Attach navigation handlers to elements created by populateHeaderPane
+export async function attachHeaderNavHandlers(root = document) {
+    const link = root.querySelector('.khoj-nav-link[data-action="open-app"]');
+    if (link) {
+        link.addEventListener('click', async (e) => {
+            e.preventDefault();
+            try {
+                const url = await invoke('get_url');
+                await openShell(url);
+            } catch (err) {
+                console.warn('Failed to open app URL', err);
+            }
+        });
+    }
+}
+
+// Open any external anchors in given container via OS shell
+export function openExternalLinksIn(root = document) {
+    root.addEventListener('click', async (e) => {
+        const a = e.target.closest('a');
+        if (!a) return;
+        const href = a.getAttribute('href') || '';
+        const isExternal = href.startsWith('http://') || href.startsWith('https://');
+        if (isExternal) {
+            e.preventDefault();
+            try { await openShell(href); } catch (err) { console.warn(err); }
+        }
+    });
 }
