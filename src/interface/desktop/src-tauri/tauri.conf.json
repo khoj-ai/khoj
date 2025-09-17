@@ -1,0 +1,70 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Khoj",
+  "version": "0.0.0",
+  "identifier": "dev.khoj.desktop",
+  "build": {
+    "beforeBuildCommand": "",
+    "beforeDevCommand": "",
+    "frontendDist": ".."
+  },
+  "app": {
+    "macOSPrivateApi": true,
+    "windows": [
+      {
+        "label": "settings",
+        "title": "Khoj",
+        "url": "settings.html",
+        "width": 800,
+        "height": 800,
+        "resizable": true,
+        "visible": true
+      },
+      {
+        "label": "about",
+        "title": "About Khoj",
+        "url": "about.html",
+        "visible": false,
+        "width": 400,
+        "height": 400
+      },
+      {
+        "label": "shortcut",
+        "title": "Khoj Mini",
+        "url": "shortcut.html",
+        "visible": false,
+        "alwaysOnTop": true,
+        "decorations": false,
+        "width": 400,
+        "height": 600
+      },
+      {
+        "label": "splash",
+        "title": "Khoj",
+        "url": "splash.html",
+        "visible": false,
+        "decorations": false,
+        "transparent": true,
+        "width": 400,
+        "height": 400
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; connect-src 'self' https://app.khoj.dev https://assets.khoj.dev https://ipapi.co; img-src 'self' data: https://*.khoj.dev https://*.googleusercontent.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com;"
+    },
+    "trayIcon": {
+      "iconPath": "assets/icons/favicon-20x20.png",
+      "iconAsTemplate": false
+    }
+  },
+  "plugins": {
+    "updater": {
+      "active": true,
+      "endpoints": [
+        "https://updates.example.com/khoj/latest.json"
+      ],
+      "dialog": true,
+      "pubkey": "PLACEHOLDER_PUBLIC_KEY_BASE64"
+    }
+  }
+}
