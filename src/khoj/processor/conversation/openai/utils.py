@@ -159,6 +159,7 @@ def completion_with_backoff(
     tool_calls: list[ToolCall] = []
     thoughts = ""
     aggregated_response = ""
+    chunk = None
     if stream:
         with client.beta.chat.completions.stream(
             messages=formatted_messages,  # type: ignore
@@ -966,6 +967,8 @@ async def astream_thought_processor(
             chunk_data = chunk.model_dump()
 
             # Skip chunks that don't have the required object field or have invalid values
+            if "object" in chunk_data and chunk_data.get("object") == "":
+                chunk_data["object"] = "chat.completion.chunk"
             if not chunk_data.get("object") or chunk_data.get("object") != "chat.completion.chunk":
                 logger.warning(f"Skipping invalid chunk with object field: {chunk_data.get('object', 'missing')}")
                 continue
