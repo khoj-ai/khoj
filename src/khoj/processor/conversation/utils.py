@@ -84,6 +84,7 @@ model_to_prompt_size = {
     "claude-3-7-sonnet-20250219": 60000,
     "claude-3-7-sonnet-latest": 60000,
     "claude-3-5-haiku-20241022": 60000,
+    "claude-haiku-4-5-20251001": 60000,
     "claude-sonnet-4-0": 60000,
     "claude-sonnet-4-20250514": 60000,
     "claude-opus-4-0": 60000,

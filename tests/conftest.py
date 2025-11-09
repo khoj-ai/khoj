@@ -248,7 +248,7 @@ def chat_client_builder(search_config, user, index_content=True, require_auth=Fa
     elif chat_provider == ChatModel.ModelType.GOOGLE:
         online_chat_model = ChatModelFactory(name="gemini-2.5-flash", model_type="google")
     elif chat_provider == ChatModel.ModelType.ANTHROPIC:
-        online_chat_model = ChatModelFactory(name="claude-3-5-haiku-20241022", model_type="anthropic")
+        online_chat_model = ChatModelFactory(name="claude-haiku-4-5-20251001", model_type="anthropic")
     if online_chat_model:
         online_chat_model.ai_model_api = AiModelApiFactory(api_key=get_chat_api_key(chat_provider))
         UserConversationProcessorConfigFactory(user=user, setting=online_chat_model)
