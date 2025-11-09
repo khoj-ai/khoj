@@ -14,7 +14,6 @@ from khoj.database.models import (
     Agent,
     ChatMessageModel,
     KhojUser,
-    ServerChatSettings,
     WebScraper,
 )
 from khoj.processor.conversation import prompts
@@ -40,9 +39,6 @@ GOOGLE_SEARCH_ENGINE_ID = os.getenv("GOOGLE_SEARCH_ENGINE_ID")
 SERPER_DEV_API_KEY = os.getenv("SERPER_DEV_API_KEY")
 AUTO_READ_WEBPAGE = is_env_var_true("KHOJ_AUTO_READ_WEBPAGE")
 SERPER_DEV_URL = "https://google.serper.dev/search"
-
-JINA_SEARCH_API_URL = "https://s.jina.ai/"
-JINA_API_KEY = os.getenv("JINA_API_KEY")
 
 FIRECRAWL_API_KEY = os.getenv("FIRECRAWL_API_KEY")
 FIRECRAWL_USE_LLM_EXTRACT = is_env_var_true("FIRECRAWL_USE_LLM_EXTRACT")
@@ -119,9 +115,6 @@ async def search_online(
     if FIRECRAWL_API_KEY:
         search_engine = "Firecrawl"
         search_engines.append((search_engine, search_with_firecrawl))
-    if JINA_API_KEY:
-        search_engine = "Jina"
-        search_engines.append((search_engine, search_with_jina))
     if SEARXNG_URL:
         search_engine = "Searxng"
         search_engines.append((search_engine, search_with_searxng))
@@ -442,8 +435,6 @@ async def read_webpage(
         return await read_webpage_with_firecrawl(url, api_key, api_url), None
     elif scraper_type == WebScraper.WebScraperType.OLOSTEP:
         return await read_webpage_with_olostep(url, api_key, api_url), None
-    elif scraper_type == WebScraper.WebScraperType.JINA:
-        return await read_webpage_with_jina(url, api_key, api_url), None
     else:
         return await read_webpage_at_url(url), None
 
@@ -520,19 +511,6 @@ async def read_webpage_with_olostep(web_url: str, api_key: str, api_url: str) ->
             return response_json["markdown_content"]
 
 
-async def read_webpage_with_jina(web_url: str, api_key: str, api_url: str) -> str:
-    headers = {"Accept": "application/json", "X-Timeout": "30", "X-With-Generated-Alt": "true"}
-    data = {"url": web_url}
-    if api_key:
-        headers["Authorization"] = f"Bearer {api_key}"
-
-    async with aiohttp.ClientSession() as session:
-        async with session.post(api_url, json=data, headers=headers, timeout=WEBPAGE_REQUEST_TIMEOUT) as response:
-            response.raise_for_status()
-            content = await response.text()
-            return content
-
-
 async def read_webpage_with_firecrawl(web_url: str, api_key: str, api_url: str) -> str:
     firecrawl_api_url = f"{api_url}/v1/scrape"
     headers = {"Content-Type": "application/json", "Authorization": f"Bearer {api_key}"}
@@ -590,51 +568,6 @@ Collate only relevant information from the website to answer the target query an
             response.raise_for_status()
             response_json = await response.json()
             return response_json["data"]["extract"]["relevant_extract"]
-
-
-async def search_with_jina(query: str, location: LocationData) -> Tuple[str, Dict[str, List[Dict]]]:
-    # First check for jina scraper configuration in database
-    default_jina_scraper = (
-        await ServerChatSettings.objects.filter()
-        .prefetch_related("web_scraper")
-        .filter(web_scraper__type=WebScraper.WebScraperType.JINA)
-        .afirst()
-    )
-    if default_jina_scraper and default_jina_scraper.web_scraper:
-        jina_scraper = default_jina_scraper.web_scraper
-    else:
-        # Fallback to first configured Jina scraper in DB if no server settings
-        jina_scraper = await WebScraper.objects.filter(type=WebScraper.WebScraperType.JINA).afirst()
-
-    # Get API key from DB scraper config or environment variable
-    data = {"q": query}
-    headers = {"Accept": "application/json", "X-Respond-With": "no-content"}
-    api_key = jina_scraper.api_key if jina_scraper and jina_scraper.api_key else JINA_API_KEY
-
-    if api_key:
-        headers["Authorization"] = f"Bearer {api_key}"
-
-    async with aiohttp.ClientSession() as session:
-        async with session.post(
-            JINA_SEARCH_API_URL, json=data, headers=headers, timeout=WEBPAGE_REQUEST_TIMEOUT
-        ) as response:
-            if response.status != 200:
-                error_text = await response.text()
-                logger.error(f"Jina search failed: {error_text}")
-                return query, {}
-            response_json = await response.json()
-            parsed_response = [
-                {
-                    "title": item["title"],
-                    "content": item.get("content"),
-                    # rename description -> snippet for consistency
-                    "snippet": item["description"],
-                    # rename url -> link for consistency
-                    "link": item["url"],
-                }
-                for item in response_json["data"]
-            ]
-            return query, {"organic": parsed_response}
 
 
 def deduplicate_organic_results(online_results: dict) -> dict:
