@@ -142,6 +142,8 @@ def completion_with_backoff(
             else:
                 updated_messages.append(message)
         formatted_messages = updated_messages
+    elif "kimi-k2-thinking" in model_name.lower():
+        stream_processor = in_stream_thought_processor
     elif is_qwen_style_reasoning_model(model_name, api_base_url):
         stream_processor = in_stream_thought_processor
         # Reasoning is enabled by default. Disable when deepthought is False.
@@ -341,6 +343,8 @@ async def chat_completion_with_backoff(
             else:
                 updated_messages.append(message)
         formatted_messages = updated_messages
+    elif "kimi-k2-thinking" in model_name.lower():
+        stream_processor = ain_stream_thought_processor
     elif is_qwen_style_reasoning_model(model_name, api_base_url):
         stream_processor = ain_stream_thought_processor
         # Reasoning is enabled by default. Disable when deepthought is False.

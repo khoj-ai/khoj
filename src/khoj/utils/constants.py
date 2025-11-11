@@ -79,7 +79,10 @@ model_to_cost: Dict[str, Dict[str, float]] = {
     "grok-4": {"input": 3.0, "cache_read": 0.75, "output": 15.0},
     "grok-4-fast": {"input": 0.20, "cache_read": 0.05, "output": 0.50},
     # Groq pricing
-    "moonshotai/kimi-k2-instruct": {"input": 1.00, "output": 3.00},
+    "moonshotai/kimi-k2-instruct-0905": {"input": 1.00, "output": 3.00},
     "openai/gpt-oss-120b": {"input": 0.15, "output": 0.75},
     "openai/gpt-oss-20b": {"input": 0.10, "output": 0.50},
+    # Miscellaneous
+    # Moonshot AI, Baseten pricing for Kimi-K2-Thinking
+    "moonshotai/kimi-k2-thinking": {"input": 0.60, "output": 2.50},
 }
