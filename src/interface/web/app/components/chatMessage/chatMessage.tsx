@@ -316,7 +316,7 @@ function chooseIconFromHeader(header: string, iconColor: string) {
         return <Folder className={`${classNames}`} />;
     }
 
-    if (compareHeader.includes("read")) {
+    if (compareHeader.includes("browsing")) {
         return <Book className={`${classNames}`} />;
     }
 

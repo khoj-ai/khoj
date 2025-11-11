@@ -126,7 +126,7 @@ async def search_online(
 
     if send_status_func:
         subqueries_str = "\n- " + "\n- ".join(subqueries)
-        async for event in send_status_func(f"**Searching the Internet for**: {subqueries_str}"):
+        async for event in send_status_func(f"**Searching the web for**: {subqueries_str}"):
             yield {ChatEvent.STATUS: event}
 
     response_dict = {}
@@ -169,7 +169,7 @@ async def search_online(
         logger.info(f"Reading web pages at: {webpages.keys()}")
         if send_status_func:
             webpage_links_str = "\n- " + "\n- ".join(webpages.keys())
-            async for event in send_status_func(f"**Reading web pages**: {webpage_links_str}"):
+            async for event in send_status_func(f"**Browsing**: {webpage_links_str}"):
                 yield {ChatEvent.STATUS: event}
     tasks = [
         read_webpage_and_extract_content(
@@ -486,7 +486,7 @@ async def read_webpages_content(
     logger.info(f"Reading web pages at: {urls}")
     if send_status_func:
         webpage_links_str = "\n- " + "\n- ".join(list(urls))
-        async for event in send_status_func(f"**Reading web pages**: {webpage_links_str}"):
+        async for event in send_status_func(f"**Browsing**: {webpage_links_str}"):
             yield {ChatEvent.STATUS: event}
     tasks = [read_webpage_and_extract_content({query}, url, user=user, agent=agent, tracer=tracer) for url in urls]
     results = await asyncio.gather(*tasks)
