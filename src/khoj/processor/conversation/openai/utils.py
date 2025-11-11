@@ -237,14 +237,18 @@ def completion_with_backoff(
         chunk = chunk.chunk
 
     # Calculate cost of chat
-    input_tokens = chunk.usage.prompt_tokens if hasattr(chunk, "usage") and chunk.usage else 0
-    output_tokens = chunk.usage.completion_tokens if hasattr(chunk, "usage") and chunk.usage else 0
-    cost = (
-        chunk.usage.model_extra.get("estimated_cost", 0) if hasattr(chunk, "usage") and chunk.usage else 0
-    )  # Estimated costs returned by DeepInfra API
+    input_tokens, output_tokens, cache_read_tokens, cost = 0, 0, 0, 0
+    if hasattr(chunk, "usage") and chunk.usage:
+        input_tokens = chunk.usage.prompt_tokens
+        output_tokens = chunk.usage.completion_tokens
+        if hasattr(chunk.usage, "prompt_tokens_details") and chunk.usage.prompt_tokens_details:
+            cache_read_tokens = chunk.usage.prompt_tokens_details.cached_tokens
+        if hasattr(chunk.usage, "completion_tokens_details") and chunk.usage.completion_tokens_details:
+            output_tokens += chunk.usage.completion_tokens_details.reasoning_tokens
+        cost = chunk.usage.model_extra.get("estimated_cost", 0)  # Estimated costs returned by DeepInfra API
 
     tracer["usage"] = get_chat_usage_metrics(
-        model_name, input_tokens, output_tokens, usage=tracer.get("usage"), cost=cost
+        model_name, input_tokens, output_tokens, cache_read_tokens, usage=tracer.get("usage"), cost=cost
     )
 
     # Validate the response. If empty, raise an error to retry.
@@ -392,15 +396,19 @@ async def chat_completion_with_backoff(
                 yield response_chunk
 
     # Calculate cost of chat after stream finishes
-    input_tokens, output_tokens, cost = 0, 0, 0
+    input_tokens, output_tokens, cache_read_tokens, cost = 0, 0, 0, 0
     if final_chunk and hasattr(final_chunk, "usage") and final_chunk.usage:
         input_tokens = final_chunk.usage.prompt_tokens
         output_tokens = final_chunk.usage.completion_tokens
+        if hasattr(final_chunk.usage, "prompt_tokens_details") and final_chunk.usage.prompt_tokens_details:
+            cache_read_tokens = final_chunk.usage.prompt_tokens_details.cached_tokens
+        if hasattr(final_chunk.usage, "completion_tokens_details") and final_chunk.usage.completion_tokens_details:
+            output_tokens += final_chunk.usage.completion_tokens_details.reasoning_tokens
         # Estimated costs returned by DeepInfra API
         if final_chunk.usage.model_extra and "estimated_cost" in final_chunk.usage.model_extra:
             cost = final_chunk.usage.model_extra.get("estimated_cost", 0)
     tracer["usage"] = get_chat_usage_metrics(
-        model_name, input_tokens, output_tokens, usage=tracer.get("usage"), cost=cost
+        model_name, input_tokens, output_tokens, cache_read_tokens, usage=tracer.get("usage"), cost=cost
     )
 
     # Validate the response. If empty, raise an error to retry.
