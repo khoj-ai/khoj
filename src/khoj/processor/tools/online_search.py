@@ -33,35 +33,23 @@ from khoj.utils.rawconfig import LocationData
 
 logger = logging.getLogger(__name__)
 
+# Google Search API configurations
 GOOGLE_SEARCH_API_KEY = os.getenv("GOOGLE_SEARCH_API_KEY")
 GOOGLE_SEARCH_ENGINE_ID = os.getenv("GOOGLE_SEARCH_ENGINE_ID")
+# Serper Dev API configurations
 SERPER_DEV_API_KEY = os.getenv("SERPER_DEV_API_KEY")
-AUTO_READ_WEBPAGE = is_env_var_true("KHOJ_AUTO_READ_WEBPAGE")
 SERPER_DEV_URL = "https://google.serper.dev/search"
-
+# Firecrawl API configurations
 FIRECRAWL_API_KEY = os.getenv("FIRECRAWL_API_KEY")
-
+# SearXNG API configurations
 SEARXNG_URL = os.getenv("KHOJ_SEARXNG_URL")
-
+# Exa API credentials
 EXA_API_KEY = os.getenv("EXA_API_KEY")
 
+# Whether to automatically read web pages from search results
+AUTO_READ_WEBPAGE = is_env_var_true("KHOJ_AUTO_READ_WEBPAGE")
 # Timeout for web search and webpage read HTTP requests
 WEBPAGE_REQUEST_TIMEOUT = 60  # seconds
-
-OLOSTEP_QUERY_PARAMS = {
-    "timeout": 35,  # seconds
-    "waitBeforeScraping": 0,  # seconds
-    "saveHtml": "False",
-    "saveMarkdown": "True",
-    "removeCSSselectors": "default",
-    "htmlTransformer": "none",
-    "removeImages": "True",
-    "fastLane": "True",
-    # Similar to Stripe's API, the expand parameters avoid the need to make a second API call
-    # to retrieve the dataset (from the dataset API) if you only need the markdown or html.
-    "expandMarkdown": "True",
-    "expandHtml": "False",
-}
 
 
 async def search_online(
@@ -567,7 +555,20 @@ async def read_webpage_at_url(web_url: str) -> str:
 
 async def read_webpage_with_olostep(web_url: str, api_key: str, api_url: str) -> str:
     headers = {"Authorization": f"Bearer {api_key}"}
-    web_scraping_params: Dict[str, Union[str, int, bool]] = OLOSTEP_QUERY_PARAMS.copy()  # type: ignore
+    web_scraping_params: Dict[str, Union[str, int, bool]] = {
+        "timeout": 35,  # seconds
+        "waitBeforeScraping": 0,  # seconds
+        "saveHtml": "False",
+        "saveMarkdown": "True",
+        "removeCSSselectors": "default",
+        "htmlTransformer": "none",
+        "removeImages": "True",
+        "fastLane": "True",
+        # Similar to Stripe's API, the expand parameters avoid the need to make a second API call
+        # to retrieve the dataset (from the dataset API) if you only need the markdown or html.
+        "expandMarkdown": "True",
+        "expandHtml": "False",
+    }
     web_scraping_params["url"] = web_url
 
     async with aiohttp.ClientSession() as session:
