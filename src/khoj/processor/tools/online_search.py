@@ -16,7 +16,6 @@ from khoj.database.models import (
     KhojUser,
     WebScraper,
 )
-from khoj.processor.conversation import prompts
 from khoj.routers.helpers import (
     ChatEvent,
     extract_relevant_info,
@@ -41,7 +40,6 @@ AUTO_READ_WEBPAGE = is_env_var_true("KHOJ_AUTO_READ_WEBPAGE")
 SERPER_DEV_URL = "https://google.serper.dev/search"
 
 FIRECRAWL_API_KEY = os.getenv("FIRECRAWL_API_KEY")
-FIRECRAWL_USE_LLM_EXTRACT = is_env_var_true("FIRECRAWL_USE_LLM_EXTRACT")
 
 SEARXNG_URL = os.getenv("KHOJ_SEARXNG_URL")
 
@@ -500,12 +498,8 @@ async def read_webpages_content(
     yield response
 
 
-async def read_webpage(
-    url, scraper_type=None, api_key=None, api_url=None, subqueries=None, agent=None
-) -> Tuple[str | None, str | None]:
-    if scraper_type == WebScraper.WebScraperType.FIRECRAWL and FIRECRAWL_USE_LLM_EXTRACT:
-        return None, await query_webpage_with_firecrawl(url, subqueries, api_key, api_url, agent)
-    elif scraper_type == WebScraper.WebScraperType.FIRECRAWL:
+async def read_webpage(url, scraper_type=None, api_key=None, api_url=None) -> Tuple[str | None, str | None]:
+    if scraper_type == WebScraper.WebScraperType.FIRECRAWL:
         return await read_webpage_with_firecrawl(url, api_key, api_url), None
     elif scraper_type == WebScraper.WebScraperType.OLOSTEP:
         return await read_webpage_with_olostep(url, api_key, api_url), None
@@ -536,9 +530,7 @@ async def read_webpage_and_extract_content(
             # Read the web page
             if is_none_or_empty(content):
                 with timer(f"Reading web page with {scraper.type} at '{url}' took", logger, log_level=logging.INFO):
-                    content, extracted_info = await read_webpage(
-                        url, scraper.type, scraper.api_key, scraper.api_url, subqueries, agent
-                    )
+                    content, extracted_info = await read_webpage(url, scraper.type, scraper.api_key, scraper.api_url)
 
             # Extract relevant information from the web page
             if is_none_or_empty(extracted_info):
@@ -622,44 +614,6 @@ async def read_webpage_with_firecrawl(web_url: str, api_key: str, api_url: str) 
             response.raise_for_status()
             response_json = await response.json()
             return response_json["data"]["markdown"]
-
-
-async def query_webpage_with_firecrawl(
-    web_url: str, queries: set[str], api_key: str, api_url: str, agent: Agent = None
-) -> str:
-    firecrawl_api_url = f"{api_url}/v1/scrape"
-    headers = {"Content-Type": "application/json", "Authorization": f"Bearer {api_key}"}
-    schema = {
-        "type": "object",
-        "properties": {
-            "relevant_extract": {"type": "string"},
-        },
-        "required": [
-            "relevant_extract",
-        ],
-    }
-
-    personality_context = (
-        prompts.personality_context.format(personality=agent.personality) if agent and agent.personality else ""
-    )
-    system_prompt = f"""
-{prompts.system_prompt_extract_relevant_information}
-
-{personality_context}
-User Query: {", ".join(queries)}
-
-Collate only relevant information from the website to answer the target query and in the provided JSON schema.
-""".strip()
-
-    params = {"url": web_url, "formats": ["extract"], "extract": {"systemPrompt": system_prompt, "schema": schema}}
-
-    async with aiohttp.ClientSession() as session:
-        async with session.post(
-            firecrawl_api_url, json=params, headers=headers, timeout=WEBPAGE_REQUEST_TIMEOUT
-        ) as response:
-            response.raise_for_status()
-            response_json = await response.json()
-            return response_json["data"]["extract"]["relevant_extract"]
 
 
 def deduplicate_organic_results(online_results: dict) -> dict:
