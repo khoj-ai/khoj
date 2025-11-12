@@ -813,7 +813,7 @@ def is_web_search_enabled():
         for search_config in [
             "GOOGLE_SEARCH_API_KEY",
             "SERPER_DEV_API_KEY",
-            "JINA_API_KEY",
+            "EXA_API_KEY",
             "FIRECRAWL_API_KEY",
             "KHOJ_SEARXNG_URL",
         ]

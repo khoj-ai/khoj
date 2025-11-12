@@ -156,7 +156,7 @@ async def search_online(
             link = organic.get("link")
             if link in webpages and idx < max_webpages_to_read:
                 webpages[link]["queries"].add(subquery)
-            # Content of web pages is directly available when Jina is used for search.
+            # Content of web pages can be directly available when Exa is used for search.
             elif idx < max_webpages_to_read:
                 webpages[link] = {"queries": {subquery}, "content": organic.get("content")}
             # Only keep webpage content for up to max_webpages_to_read organic results.
@@ -199,7 +199,8 @@ async def search_with_exa(query: str, location: LocationData) -> Tuple[str, Dict
         Tuple containing the original query and a dictionary of search results
     """
     # Set up API endpoint and headers
-    exa_search_api_endpoint = "https://api.exa.ai/search"
+    exa_api_base = os.getenv("EXA_API_URL", "https://api.exa.ai")
+    exa_search_api_endpoint = f"{exa_api_base}/search"
     headers = {"Content-Type": "application/json", "x-api-key": EXA_API_KEY}
 
     # Prepare request payload
@@ -507,6 +508,8 @@ async def read_webpage(
         return await read_webpage_with_firecrawl(url, api_key, api_url), None
     elif scraper_type == WebScraper.WebScraperType.OLOSTEP:
         return await read_webpage_with_olostep(url, api_key, api_url), None
+    elif scraper_type == WebScraper.WebScraperType.EXA:
+        return await read_webpage_with_exa(url, api_key, api_url), None
     else:
         return await read_webpage_at_url(url), None
 
@@ -581,6 +584,23 @@ async def read_webpage_with_olostep(web_url: str, api_key: str, api_url: str) ->
             response.raise_for_status()
             response_json = await response.json()
             return response_json["markdown_content"]
+
+
+async def read_webpage_with_exa(web_url: str, api_key: str, api_url: str) -> str:
+    exa_api_url = f"{api_url}/contents"
+    headers = {"Content-Type": "application/json", "x-api-key": api_key}
+    params = {
+        "urls": [web_url],
+        "text": True,
+        "livecrawl": "fallback",
+        "livecrawlTimeout": 15000,
+    }
+
+    async with aiohttp.ClientSession() as session:
+        async with session.post(exa_api_url, json=params, headers=headers, timeout=WEBPAGE_REQUEST_TIMEOUT) as response:
+            response.raise_for_status()
+            response_json = await response.json()
+            return response_json["results"][0]["text"]
 
 
 async def read_webpage_with_firecrawl(web_url: str, api_key: str, api_url: str) -> str:

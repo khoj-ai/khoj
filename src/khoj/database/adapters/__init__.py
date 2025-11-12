@@ -1437,6 +1437,16 @@ class ConversationAdapters:
             enabled_scrapers = [scraper async for scraper in WebScraper.objects.all().order_by("priority").aiterator()]
         if not enabled_scrapers:
             # Use scrapers enabled via environment variables
+            if os.getenv("EXA_API_KEY"):
+                api_url = os.getenv("EXA_API_URL", "https://api.exa.ai")
+                enabled_scrapers.append(
+                    WebScraper(
+                        type=WebScraper.WebScraperType.EXA,
+                        name=WebScraper.WebScraperType.EXA.capitalize(),
+                        api_key=os.getenv("EXA_API_KEY"),
+                        api_url=api_url,
+                    )
+                )
             if os.getenv("OLOSTEP_API_KEY"):
                 api_url = os.getenv("OLOSTEP_API_URL", "https://agent.olostep.com/olostep-p2p-incomingAPI")
                 enabled_scrapers.append(
@@ -1457,17 +1467,6 @@ class ConversationAdapters:
                         api_url=api_url,
                     )
                 )
-            # Jina is the default fallback scrapers to use as it does not require an API key
-            api_url = os.getenv("JINA_READER_API_URL", "https://r.jina.ai/")
-            enabled_scrapers.append(
-                WebScraper(
-                    type=WebScraper.WebScraperType.JINA,
-                    name=WebScraper.WebScraperType.JINA.capitalize(),
-                    api_key=os.getenv("JINA_API_KEY"),
-                    api_url=api_url,
-                )
-            )
-
             # Only enable the direct web page scraper by default in self-hosted single user setups.
             # Useful for reading webpages on your intranet.
             if state.anonymous_mode or in_debug_mode():

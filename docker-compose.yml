@@ -95,14 +95,14 @@ services:
       # Uncomment appropriate lines below to enable web results with Khoj
       # Ensure you set your provider specific API keys.
       # ---
-      # Free, Slower API. Does both web search and webpage read. Get API key from https://jina.ai/
-      # - JINA_API_KEY=your_jina_api_key
       # Paid, Fast API. Only does web search. Get API key from https://serper.dev/
       # - SERPER_DEV_API_KEY=your_serper_dev_api_key
-      # Paid, Fast, Open API. Only does webpage read. Get API key from https://firecrawl.dev/
-      # - FIRECRAWL_API_KEY=your_firecrawl_api_key
-      # Paid, Fast, Higher Read Success API. Only does webpage read. Get API key from https://olostep.com/
+      # Paid, Higher Read Success API. Only does webpage read. Get API key from https://olostep.com/
       # - OLOSTEP_API_KEY=your_olostep_api_key
+      # Paid, Open API. Does both web search and webpage read. Get API key from https://firecrawl.dev/
+      # - FIRECRAWL_API_KEY=your_firecrawl_api_key
+      # Paid, Fast API. Does both web search and webpage read. Get API key from https://exa.ai/
+      # - EXA_API_KEY=your_exa_api_key
       #
       # Uncomment the necessary lines below to make your instance publicly accessible.
       # Proceed with caution, especially if you are using anonymous mode.

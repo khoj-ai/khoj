@@ -393,7 +393,7 @@ class WebScraper(DbBaseModel):
     class WebScraperType(models.TextChoices):
         FIRECRAWL = "Firecrawl"
         OLOSTEP = "Olostep"
-        JINA = "Jina"
+        EXA = "Exa"
         DIRECT = "Direct"
 
     name = models.CharField(
@@ -404,7 +404,7 @@ class WebScraper(DbBaseModel):
         unique=True,
         help_text="Friendly name. If not set, it will be set to the type of the scraper.",
     )
-    type = models.CharField(max_length=20, choices=WebScraperType.choices, default=WebScraperType.JINA)
+    type = models.CharField(max_length=20, choices=WebScraperType.choices, default=WebScraperType.DIRECT)
     api_key = models.CharField(
         max_length=200,
         default=None,
@@ -436,8 +436,8 @@ class WebScraper(DbBaseModel):
                 self.api_url = os.getenv("FIRECRAWL_API_URL", "https://api.firecrawl.dev")
             elif self.type == self.WebScraperType.OLOSTEP:
                 self.api_url = os.getenv("OLOSTEP_API_URL", "https://agent.olostep.com/olostep-p2p-incomingAPI")
-            elif self.type == self.WebScraperType.JINA:
-                self.api_url = os.getenv("JINA_READER_API_URL", "https://r.jina.ai/")
+            elif self.type == self.WebScraperType.EXA:
+                self.api_url = os.getenv("EXA_API_URL", "https://api.exa.ai")
         if self.api_key is None:
             if self.type == self.WebScraperType.FIRECRAWL:
                 self.api_key = os.getenv("FIRECRAWL_API_KEY")
@@ -447,8 +447,10 @@ class WebScraper(DbBaseModel):
                 self.api_key = os.getenv("OLOSTEP_API_KEY")
                 if self.api_key is None:
                     error["api_key"] = "Set API key to use Olostep. Get API key from https://olostep.com/."
-            elif self.type == self.WebScraperType.JINA:
-                self.api_key = os.getenv("JINA_API_KEY")
+            elif self.type == self.WebScraperType.EXA:
+                self.api_key = os.getenv("EXA_API_KEY")
+                if self.api_key is None:
+                    error["api_key"] = "Set API key to use Exa. Get API key from https://exa.ai/."
         if error:
             raise ValidationError(error)
 
