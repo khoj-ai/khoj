@@ -267,7 +267,8 @@ async def search_with_firecrawl(query: str, location: LocationData) -> Tuple[str
         Tuple containing the original query and a dictionary of search results
     """
     # Set up API endpoint and headers
-    firecrawl_api_url = "https://api.firecrawl.dev/v1/search"
+    firecrawl_api_base = os.getenv("FIRECRAWL_API_URL", "https://api.firecrawl.dev")
+    firecrawl_api_url = f"{firecrawl_api_base}/v2/search"
     headers = {"Content-Type": "application/json", "Authorization": f"Bearer {FIRECRAWL_API_KEY}"}
 
     # Prepare request payload
@@ -303,7 +304,7 @@ async def search_with_firecrawl(query: str, location: LocationData) -> Tuple[str
 
                 # Transform Firecrawl response to match the expected format
                 organic_results = []
-                for item in response_json.get("data", []):
+                for item in response_json.get("data", {}).get("web", []):
                     organic_results.append(
                         {
                             "title": item["title"],
@@ -604,15 +605,14 @@ async def read_webpage_with_exa(web_url: str, api_key: str, api_url: str) -> str
 
 
 async def read_webpage_with_firecrawl(web_url: str, api_key: str, api_url: str) -> str:
-    firecrawl_api_url = f"{api_url}/v1/scrape"
+    firecrawl_api_url = f"{api_url}/v2/scrape"
     headers = {"Content-Type": "application/json", "Authorization": f"Bearer {api_key}"}
     params = {
         "url": web_url,
         "formats": ["markdown"],
         "excludeTags": ["script", ".ad"],
         "removeBase64Images": True,
-        "proxy": "auto",
-        "maxAge": 3600000,  # accept upto 1 hour old cached content for speed
+        "maxAge": 86400000,  # accept upto 1 day old cached content for speed
     }
 
     async with aiohttp.ClientSession() as session:
