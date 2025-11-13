@@ -97,15 +97,15 @@ async def search_online(
     if SERPER_DEV_API_KEY:
         search_engine = "Serper"
         search_engines.append((search_engine, search_with_serper))
-    if GOOGLE_SEARCH_API_KEY and GOOGLE_SEARCH_ENGINE_ID:
-        search_engine = "Google"
-        search_engines.append((search_engine, search_with_google))
-    if FIRECRAWL_API_KEY:
-        search_engine = "Firecrawl"
-        search_engines.append((search_engine, search_with_firecrawl))
     if EXA_API_KEY:
         search_engine = "Exa"
         search_engines.append((search_engine, search_with_exa))
+    if FIRECRAWL_API_KEY:
+        search_engine = "Firecrawl"
+        search_engines.append((search_engine, search_with_firecrawl))
+    if GOOGLE_SEARCH_API_KEY and GOOGLE_SEARCH_ENGINE_ID:
+        search_engine = "Google"
+        search_engines.append((search_engine, search_with_google))
     if SEARXNG_URL:
         search_engine = "Searxng"
         search_engines.append((search_engine, search_with_searxng))
