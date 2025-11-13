@@ -322,15 +322,15 @@ async def acheck_if_safe_prompt(system_prompt: str, user: KhojUser = None, lax: 
 
     class SafetyCheck(BaseModel):
         safe: bool
-        reason: str
+        reason: Optional[str] = ""
 
     with timer("Chat actor: Check if safe prompt", logger):
-        response = await send_message_to_model_wrapper(
-            safe_prompt_check, response_type="json_object", response_schema=SafetyCheck, fast_model=True, user=user
-        )
-
-        response = response.text.strip()
         try:
+            response = await send_message_to_model_wrapper(
+                safe_prompt_check, response_type="json_object", response_schema=SafetyCheck, fast_model=True, user=user
+            )
+
+            response = response.text.strip()
             response = json.loads(clean_json(response))
             is_safe = str(response.get("safe", "true")).lower() == "true"
             if not is_safe:
