@@ -560,7 +560,7 @@ async def research(
                 )
             if this_iteration.warning:
                 results_data += f"\n<warning>\n{this_iteration.warning}\n</warning>"
-            results_data += f"\n</results>\n</iteration_{current_iteration}_results>"
+            results_data += f"\n</iteration_{current_iteration}_results>"
 
             # intermediate_result = await extract_relevant_info(this_iteration.query, results_data, agent)
             this_iteration.summarizedResult = results_data
