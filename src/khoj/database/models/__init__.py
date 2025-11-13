@@ -806,3 +806,12 @@ class DataStore(DbBaseModel):
     value = models.JSONField(default=dict)
     private = models.BooleanField(default=False)
     owner = models.ForeignKey(KhojUser, on_delete=models.CASCADE, default=None, null=True, blank=True)
+
+
+class McpServer(DbBaseModel):
+    name = models.CharField(max_length=50, unique=True)
+    path = models.CharField(max_length=200, unique=True)
+    api_key = models.CharField(max_length=4000, blank=True, null=True)
+
+    def __str__(self):
+        return self.name

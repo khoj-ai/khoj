@@ -7,7 +7,7 @@ from typing import Callable, Dict, List, Optional
 
 import yaml
 
-from khoj.database.adapters import AgentAdapters, EntryAdapters
+from khoj.database.adapters import AgentAdapters, EntryAdapters, McpServerAdapters
 from khoj.database.models import Agent, ChatMessageModel, KhojUser
 from khoj.processor.conversation import prompts
 from khoj.processor.conversation.utils import (
@@ -19,6 +19,7 @@ from khoj.processor.conversation.utils import (
     load_complex_json,
 )
 from khoj.processor.operator import operate_environment
+from khoj.processor.tools.mcp import MCPClient
 from khoj.processor.tools.online_search import read_webpages_content, search_online
 from khoj.processor.tools.run_code import run_code
 from khoj.routers.helpers import (
@@ -61,6 +62,7 @@ async def apick_next_tool(
     max_document_searches: int = 7,
     max_online_searches: int = 3,
     max_webpages_to_read: int = 3,
+    mcp_clients: List[MCPClient] = [],
     send_status_func: Optional[Callable] = None,
     tracer: dict = {},
 ):
@@ -143,6 +145,23 @@ async def apick_next_tool(
                     schema=tool_data.schema,
                 )
             )
+
+    # Get MCP tools
+    for mcp_client in mcp_clients:
+        try:
+            mcp_tools = await mcp_client.get_tools()
+            for mcp_tool in mcp_tools:
+                qualified_tool_name = f"{mcp_client.name}/{mcp_tool.name}"
+                tool_options_str += f'- "{qualified_tool_name}": "{mcp_tool.description}"\n'
+                tools.append(
+                    ToolDefinition(
+                        name=qualified_tool_name,
+                        description=mcp_tool.description,
+                        schema=mcp_tool.inputSchema,
+                    )
+                )
+        except Exception as e:
+            logger.warning(f'Failed to get tools from MCP server "{mcp_client.name}", so skipping: {e}.')
 
     today = datetime.today()
     location_data = f"{location}" if location else "Unknown"
@@ -240,6 +259,10 @@ async def research(
     current_iteration = 0
     MAX_ITERATIONS = int(os.getenv("KHOJ_RESEARCH_ITERATIONS", 5))
 
+    # Construct MCP clients
+    mcp_servers = await McpServerAdapters.aget_all_mcp_servers()
+    mcp_clients = [MCPClient(server.name, server.path, server.api_key) for server in mcp_servers]
+
     # Incorporate previous partial research into current research chat history
     research_conversation_history = [chat for chat in deepcopy(conversation_history) if chat.message]
     if current_iteration := len(previous_iterations) > 0:
@@ -277,6 +300,7 @@ async def research(
         code_results: Dict = dict()
         document_results: List[Dict[str, str]] = []
         operator_results: OperatorRun = None
+        mcp_results: List = []
         this_iteration = ResearchIteration(query=query)
 
         async for result in apick_next_tool(
@@ -293,6 +317,7 @@ async def research(
             max_document_searches=max_document_searches,
             max_online_searches=max_online_searches,
             max_webpages_to_read=max_webpages_to_read,
+            mcp_clients=mcp_clients,
             send_status_func=send_status_func,
             tracer=tracer,
         ):
@@ -540,13 +565,41 @@ async def research(
                 this_iteration.warning = f"Error searching with regex: {e}"
                 logger.error(this_iteration.warning, exc_info=True)
 
+        elif "/" in this_iteration.query.name:
+            try:
+                # Identify MCP client to use
+                server_name, tool_name = this_iteration.query.name.split("/", 1)
+                mcp_client = next((client for client in mcp_clients if client.name == server_name), None)
+                if not mcp_client:
+                    raise ValueError(f"Could not find MCP server with name {server_name}")
+
+                # Invoke tool on the identified MCP server
+                mcp_results = await mcp_client.run_tool(tool_name, this_iteration.query.args)
+
+                # Record tool result in context
+                if this_iteration.context is None:
+                    this_iteration.context = []
+                this_iteration.context += mcp_results
+                async for result in send_status_func(f"**Used MCP Tool**: {tool_name} on {mcp_client.name}"):
+                    yield result
+            except Exception as e:
+                this_iteration.warning = f"Error using MCP tool: {e}"
+                logger.error(this_iteration.warning, exc_info=True)
+
         else:
             # No valid tools. This is our exit condition.
             current_iteration = MAX_ITERATIONS
 
         current_iteration += 1
 
-        if document_results or online_results or code_results or operator_results or this_iteration.warning:
+        if (
+            document_results
+            or online_results
+            or code_results
+            or operator_results
+            or mcp_results
+            or this_iteration.warning
+        ):
             results_data = f"\n<iteration_{current_iteration}_results>"
             if document_results:
                 results_data += f"\n<document_references>\n{yaml.dump(document_results, allow_unicode=True, sort_keys=False, default_flow_style=False)}\n</document_references>"
@@ -558,6 +611,8 @@ async def research(
                 results_data += (
                     f"\n<browser_operator_results>\n{operator_results.response}\n</browser_operator_results>"
                 )
+            if mcp_results:
+                results_data += f"\n<mcp_tool_results>\n{yaml.dump(mcp_results, allow_unicode=True, sort_keys=False, default_flow_style=False)}\n</mcp_tool_results>"
             if this_iteration.warning:
                 results_data += f"\n<warning>\n{this_iteration.warning}\n</warning>"
             results_data += f"\n</iteration_{current_iteration}_results>"
@@ -568,3 +623,7 @@ async def research(
         this_iteration.summarizedResult = this_iteration.summarizedResult or "Failed to get results."
         previous_iterations.append(this_iteration)
         yield this_iteration
+
+    # Close MCP client connections
+    for mcp_client in mcp_clients:
+        await mcp_client.close()
