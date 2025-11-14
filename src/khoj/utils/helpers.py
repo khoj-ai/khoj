@@ -5,6 +5,7 @@ import copy
 import datetime
 import io
 import ipaddress
+import json
 import logging
 import os
 import platform
@@ -31,6 +32,7 @@ import openai
 import psutil
 import pyjson5
 import requests
+import tiktoken
 import torch
 from asgiref.sync import sync_to_async
 from email_validator import EmailNotValidError, EmailUndeliverableError, validate_email
@@ -41,6 +43,7 @@ from magika import Magika
 from PIL import Image
 from pydantic import BaseModel
 from pytz import country_names, country_timezones
+from transformers import AutoTokenizer, PreTrainedTokenizer, PreTrainedTokenizerFast
 
 from khoj.utils import constants
 
@@ -974,6 +977,64 @@ def get_cost_of_chat_message(
     cache_write_cost = constants.model_to_cost.get(model_name, {}).get("cache_write", 0) * (cache_write_tokens / 1e6)
 
     return input_cost + output_cost + thought_cost + cache_read_cost + cache_write_cost + prev_cost
+
+
+def get_encoder(
+    model_name: str,
+    tokenizer_name=None,
+) -> tiktoken.Encoding | PreTrainedTokenizer | PreTrainedTokenizerFast:
+    default_tokenizer = "gpt-4o"
+
+    try:
+        if tokenizer_name:
+            encoder = AutoTokenizer.from_pretrained(tokenizer_name)
+        else:
+            # as tiktoken doesn't recognize o1 model series yet
+            encoder = tiktoken.encoding_for_model("gpt-4o" if model_name.startswith("o1") else model_name)
+    except Exception:
+        encoder = tiktoken.encoding_for_model(default_tokenizer)
+    return encoder
+
+
+def count_tokens(
+    message_content: str | list[str | dict],
+    encoder: PreTrainedTokenizer | PreTrainedTokenizerFast | tiktoken.Encoding,
+) -> int:
+    """
+    Count the total number of tokens in a list of messages.
+
+    Assumes each images takes 500 tokens for approximation.
+    """
+    if isinstance(message_content, list):
+        image_count = 0
+        message_content_parts: list[str] = []
+        # Collate message content into single string to ease token counting
+        for part in message_content:
+            if isinstance(part, dict) and part.get("type") == "image_url":
+                image_count += 1
+            elif isinstance(part, dict) and part.get("type") == "text":
+                message_content_parts.append(part["text"])
+            elif isinstance(part, dict) and hasattr(part, "model_dump"):
+                message_content_parts.append(json.dumps(part.model_dump()))
+            elif isinstance(part, dict) and hasattr(part, "__dict__"):
+                message_content_parts.append(json.dumps(part.__dict__))
+            elif isinstance(part, dict):
+                # If part is a dict but not a recognized type, convert to JSON string
+                try:
+                    message_content_parts.append(json.dumps(part))
+                except (TypeError, ValueError) as e:
+                    logger.warning(f"Failed to serialize part {part} to JSON: {e}. Skipping.")
+                    image_count += 1  # Treat as an image/binary if serialization fails
+            elif isinstance(part, str):
+                message_content_parts.append(part)
+            else:
+                logger.warning(f"Unknown message type: {part}. Skipping.")
+        message_content = "\n".join(message_content_parts).rstrip()
+        return len(encoder.encode(message_content)) + image_count * 500
+    elif isinstance(message_content, str):
+        return len(encoder.encode(message_content))
+    else:
+        return len(encoder.encode(json.dumps(message_content)))
 
 
 def get_chat_usage_metrics(

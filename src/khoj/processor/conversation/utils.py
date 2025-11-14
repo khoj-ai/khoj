@@ -14,11 +14,9 @@ from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Union
 import PIL.Image
 import pyjson5
 import requests
-import tiktoken
 import yaml
 from langchain_core.messages.chat import ChatMessage
 from pydantic import BaseModel, ConfigDict, ValidationError
-from transformers import AutoTokenizer, PreTrainedTokenizer, PreTrainedTokenizerFast
 
 from khoj.database.adapters import ConversationAdapters
 from khoj.database.models import (
@@ -32,9 +30,10 @@ from khoj.search_filter.base_filter import BaseFilter
 from khoj.search_filter.date_filter import DateFilter
 from khoj.search_filter.file_filter import FileFilter
 from khoj.search_filter.word_filter import WordFilter
-from khoj.utils import state
 from khoj.utils.helpers import (
     ConversationCommand,
+    count_tokens,
+    get_encoder,
     is_none_or_empty,
     is_promptrace_enabled,
     merge_dicts,
@@ -722,72 +721,6 @@ def generate_chatml_messages_with_context(
 
     # Return messages in chronological order
     return messages
-
-
-def get_encoder(
-    model_name: str,
-    tokenizer_name=None,
-) -> tiktoken.Encoding | PreTrainedTokenizer | PreTrainedTokenizerFast:
-    default_tokenizer = "gpt-4o"
-
-    try:
-        if tokenizer_name:
-            if tokenizer_name in state.pretrained_tokenizers:
-                encoder = state.pretrained_tokenizers[tokenizer_name]
-            else:
-                encoder = AutoTokenizer.from_pretrained(tokenizer_name)
-                state.pretrained_tokenizers[tokenizer_name] = encoder
-        else:
-            # as tiktoken doesn't recognize o1 model series yet
-            encoder = tiktoken.encoding_for_model("gpt-4o" if model_name.startswith("o1") else model_name)
-    except Exception:
-        encoder = tiktoken.encoding_for_model(default_tokenizer)
-        if state.verbose > 2:
-            logger.debug(
-                f"Fallback to default chat model tokenizer: {default_tokenizer}.\nConfigure tokenizer for model: {model_name} in Khoj settings to improve context stuffing."
-            )
-    return encoder
-
-
-def count_tokens(
-    message_content: str | list[str | dict],
-    encoder: PreTrainedTokenizer | PreTrainedTokenizerFast | tiktoken.Encoding,
-) -> int:
-    """
-    Count the total number of tokens in a list of messages.
-
-    Assumes each images takes 500 tokens for approximation.
-    """
-    if isinstance(message_content, list):
-        image_count = 0
-        message_content_parts: list[str] = []
-        # Collate message content into single string to ease token counting
-        for part in message_content:
-            if isinstance(part, dict) and part.get("type") == "image_url":
-                image_count += 1
-            elif isinstance(part, dict) and part.get("type") == "text":
-                message_content_parts.append(part["text"])
-            elif isinstance(part, dict) and hasattr(part, "model_dump"):
-                message_content_parts.append(json.dumps(part.model_dump()))
-            elif isinstance(part, dict) and hasattr(part, "__dict__"):
-                message_content_parts.append(json.dumps(part.__dict__))
-            elif isinstance(part, dict):
-                # If part is a dict but not a recognized type, convert to JSON string
-                try:
-                    message_content_parts.append(json.dumps(part))
-                except (TypeError, ValueError) as e:
-                    logger.warning(f"Failed to serialize part {part} to JSON: {e}. Skipping.")
-                    image_count += 1  # Treat as an image/binary if serialization fails
-            elif isinstance(part, str):
-                message_content_parts.append(part)
-            else:
-                logger.warning(f"Unknown message type: {part}. Skipping.")
-        message_content = "\n".join(message_content_parts).rstrip()
-        return len(encoder.encode(message_content)) + image_count * 500
-    elif isinstance(message_content, str):
-        return len(encoder.encode(message_content))
-    else:
-        return len(encoder.encode(json.dumps(message_content)))
 
 
 def count_total_tokens(
