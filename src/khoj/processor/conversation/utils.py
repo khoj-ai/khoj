@@ -790,7 +790,9 @@ def count_tokens(
         return len(encoder.encode(json.dumps(message_content)))
 
 
-def count_total_tokens(messages: list[ChatMessage], encoder, system_message: Optional[ChatMessage]) -> Tuple[int, int]:
+def count_total_tokens(
+    messages: list[ChatMessage], encoder, system_message: Optional[list[ChatMessage]] = None
+) -> Tuple[int, int]:
     """Count total tokens in messages including system message"""
     system_message_tokens = (
         sum([count_tokens(message.content, encoder) for message in system_message]) if system_message else 0
