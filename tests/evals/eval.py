@@ -477,7 +477,7 @@ def evaluate_response_with_gemini(
     Ground Truth: {ground_truth}
 
     Provide your evaluation in the following json format:
-    {"explanation:[How you made the decision?)", "decision:(TRUE if response contains key information, FALSE otherwise)"}
+    {"explanation:<1 short sentence on how you made the decision>", "decision:<TRUE if response contains key information, FALSE otherwise>"}
     """
     gemini_api_url = (
         f"https://generativelanguage.googleapis.com/v1beta/models/{eval_model}:generateContent?key={GEMINI_API_KEY}"
