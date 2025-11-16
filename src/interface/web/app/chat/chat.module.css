@@ -1,5 +1,6 @@
 div.main {
     height: 100%;
+    overflow: hidden;
     color: hsla(var(--foreground));
     margin-left: auto;
     margin-right: auto;
@@ -127,6 +128,7 @@ div.chatTitleWrapper {
 
 /* Print-specific styles for chat layout */
 @media print {
+
     /* Chat container adjustments */
     div.main {
         height: auto !important;

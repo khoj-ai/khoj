@@ -164,19 +164,36 @@ export function AppSidebar(props: AppSidebarProps) {
                                     </SidebarMenuButton>
                                 </SidebarMenuItem>
                             }
-                            {items.map((item) => (
-                                <SidebarMenuItem key={item.title} className="p-0 list-none m-0">
-                                    <SidebarMenuButton asChild>
-                                        <a
-                                            href={item.url}
-                                            className="flex items-center gap-2 no-underline"
-                                        >
-                                            <item.icon />
-                                            <span>{item.title}</span>
-                                        </a>
-                                    </SidebarMenuButton>
-                                </SidebarMenuItem>
-                            ))}
+                            {items.map((item) => {
+                                // Map title to shortcut label
+                                const labelMap: Record<string, string> = {
+                                    Home: "Alt+H",
+                                    Agents: "Alt+A",
+                                    Automations: "Alt+U",
+                                    Search: "Alt+K",
+                                    Settings: "Alt+,",
+                                };
+                                const shortcut = labelMap[item.title];
+
+                                return (
+                                    <SidebarMenuItem key={item.title} className="p-0 list-none m-0">
+                                        <SidebarMenuButton asChild>
+                                            <a
+                                                href={item.url}
+                                                className="flex items-center gap-2 no-underline justify-between w-full"
+                                            >
+                                                <span className="flex items-center gap-2">
+                                                    <item.icon />
+                                                    <span>{item.title}</span>
+                                                </span>
+                                                {shortcut && (
+                                                    <kbd className="ml-2 rounded px-2 py-0.5 border text-xs font-mono bg-surface">{shortcut}</kbd>
+                                                )}
+                                            </a>
+                                        </SidebarMenuButton>
+                                    </SidebarMenuItem>
+                                );
+                            })}
                         </SidebarMenu>
                     </SidebarGroupContent>
                     <AllConversations
