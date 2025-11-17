@@ -324,6 +324,7 @@ async def acheck_if_safe_prompt(system_prompt: str, user: KhojUser = None, lax: 
         safe: bool
         reason: Optional[str] = ""
 
+    response = None
     with timer("Chat actor: Check if safe prompt", logger):
         try:
             response = await send_message_to_model_wrapper(
