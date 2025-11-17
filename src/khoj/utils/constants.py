@@ -51,8 +51,9 @@ model_to_cost: Dict[str, Dict[str, float]] = {
     "gemini-2.0-flash": {"input": 0.10, "output": 0.40},
     "gemini-2.0-flash-lite": {"input": 0.0075, "output": 0.30},
     "gemini-2.5-flash-lite": {"input": 0.10, "output": 0.40},
-    "gemini-2.5-flash": {"input": 0.30, "cache_read_tokens": 0.075, "output": 2.50},
-    "gemini-2.5-pro": {"input": 1.25, "cache_read_tokens": 0.31, "output": 10.0},
+    "gemini-2.5-flash": {"input": 0.30, "cache_read_tokens": 0.03, "output": 2.50},
+    "gemini-2.5-pro": {"input": 1.25, "cache_read_tokens": 0.125, "output": 10.0},
+    "gemini-3-pro-preview": {"input": 2.00, "cache_read_tokens": 0.20, "output": 12.0},
     # Anthropic Pricing: https://www.anthropic.com/pricing#anthropic-api
     "claude-3-5-haiku-20241022": {"input": 1.0, "output": 5.0, "cache_read": 0.08, "cache_write": 1.0},
     "claude-3-5-haiku@20241022": {"input": 1.0, "output": 5.0, "cache_read": 0.08, "cache_write": 1.0},

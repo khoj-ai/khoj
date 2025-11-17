@@ -70,6 +70,7 @@ model_to_prompt_size = {
     "gpt-5-mini-2025-08-07": 120000,
     "gpt-5-nano-2025-08-07": 120000,
     # Google Models
+    "gemini-3-pro-preview": 120000,
     "gemini-2.5-flash": 120000,
     "gemini-2.5-flash-lite": 120000,
     "gemini-2.5-pro": 60000,

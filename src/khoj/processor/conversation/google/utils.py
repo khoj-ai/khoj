@@ -203,8 +203,11 @@ def gemini_completion_with_backoff(
         response_schema = clean_response_schema(model_kwargs["response_schema"])
 
     thinking_config = None
-    if deepthought and is_reasoning_model(model_name):
+    if deepthought and model_name.startswith("gemini-2.5"):
         thinking_config = gtypes.ThinkingConfig(thinking_budget=MAX_REASONING_TOKENS_GEMINI, include_thoughts=True)
+    elif model_name.startswith("gemini-3"):
+        thinking_level = gtypes.ThinkingLevel.HIGH if deepthought else gtypes.ThinkingLevel.LOW
+        thinking_config = gtypes.ThinkingConfig(thinking_level=thinking_level, include_thoughts=True)
 
     max_output_tokens = MAX_OUTPUT_TOKENS_FOR_STANDARD_GEMINI
     if is_reasoning_model(model_name):
@@ -321,8 +324,11 @@ async def gemini_chat_completion_with_backoff(
     formatted_messages, system_instruction = format_messages_for_gemini(messages, system_prompt)
 
     thinking_config = None
-    if deepthought and is_reasoning_model(model_name):
+    if deepthought and model_name.startswith("gemini-2.5"):
         thinking_config = gtypes.ThinkingConfig(thinking_budget=MAX_REASONING_TOKENS_GEMINI, include_thoughts=True)
+    elif model_name.startswith("gemini-3"):
+        thinking_level = gtypes.ThinkingLevel.HIGH if deepthought else gtypes.ThinkingLevel.LOW
+        thinking_config = gtypes.ThinkingConfig(thinking_level=thinking_level, include_thoughts=True)
 
     max_output_tokens = MAX_OUTPUT_TOKENS_FOR_STANDARD_GEMINI
     if is_reasoning_model(model_name):
@@ -563,7 +569,7 @@ def is_reasoning_model(model_name: str) -> bool:
     """
     Check if the model is a reasoning model.
     """
-    return model_name.startswith("gemini-2.5")
+    return model_name.startswith("gemini-2.5") or model_name.startswith("gemini-3")
 
 
 def to_gemini_tools(tools: List[ToolDefinition]) -> List[gtypes.ToolDict] | None:
