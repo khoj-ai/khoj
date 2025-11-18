@@ -142,7 +142,7 @@ def completion_with_backoff(
             else:
                 updated_messages.append(message)
         formatted_messages = updated_messages
-    elif "kimi-k2-thinking" in model_name.lower():
+    elif is_instream_thinking_model(model_name):
         stream_processor = in_stream_thought_processor
     elif is_qwen_style_reasoning_model(model_name, api_base_url):
         stream_processor = in_stream_thought_processor
@@ -343,7 +343,7 @@ async def chat_completion_with_backoff(
             else:
                 updated_messages.append(message)
         formatted_messages = updated_messages
-    elif "kimi-k2-thinking" in model_name.lower():
+    elif is_instream_thinking_model(model_name):
         stream_processor = ain_stream_thought_processor
     elif is_qwen_style_reasoning_model(model_name, api_base_url):
         stream_processor = ain_stream_thought_processor
@@ -907,6 +907,14 @@ def is_groq_api(api_base_url: str | None = None) -> bool:
     Check if the model is served over the Groq API
     """
     return api_base_url is not None and api_base_url.startswith("https://api.groq.com")
+
+
+def is_instream_thinking_model(model_name: str) -> bool:
+    """
+    Check if the model uses in-stream thinking style, i.e., <think>...</think> in output
+    """
+    instream_thinking_model = ["kimi-k2-thinking", "minimax-m2"]
+    return any(prefix in model_name.lower() for prefix in instream_thinking_model)
 
 
 def is_qwen_style_reasoning_model(model_name: str, api_base_url: str | None = None) -> bool:
