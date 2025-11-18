@@ -312,7 +312,11 @@ function chooseIconFromHeader(header: string, iconColor: string) {
         return <Toolbox className={`${classNames}`} />;
     }
 
-    if (compareHeader.includes("notes")) {
+    if (
+        compareHeader.includes("notes") ||
+        compareHeader.includes("documents") ||
+        compareHeader.includes("files")
+    ) {
         return <Folder className={`${classNames}`} />;
     }
 
