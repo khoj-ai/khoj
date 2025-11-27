@@ -11,10 +11,14 @@ from enum import Enum
 from io import BytesIO
 from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Union
 
+import httpx
 import PIL.Image
 import pyjson5
 import requests
 import yaml
+from anthropic import APIError as AnthropicAPIError
+from anthropic import RateLimitError as AnthropicRateLimitError
+from google.genai import errors as gerrors
 from langchain_core.messages.chat import ChatMessage
 from pydantic import BaseModel, ConfigDict, ValidationError
 
@@ -91,6 +95,66 @@ model_to_prompt_size = {
     "claude-opus-4-20250514": 60000,
 }
 model_to_tokenizer: Dict[str, str] = {}
+
+
+class RetryableModelError(Exception):
+    """
+    Exception raised when a chat model fails with a retryable error.
+    This is used to trigger fallback to the next model in the priority list.
+
+    Wraps provider-specific retryable errors like:
+    - OpenAI: RateLimitError, InternalServerError, APITimeoutError
+    - Anthropic: RateLimitError, APIError
+    - Google/Gemini: API errors with codes 429, 502, 503, 504
+    """
+
+    def __init__(self, message: str, original_exception: Exception = None, model_name: str = None):
+        super().__init__(message)
+        self.original_exception = original_exception
+        self.model_name = model_name
+
+    def __str__(self):
+        model_info = f" (model: {self.model_name})" if self.model_name else ""
+        return f"{super().__str__()}{model_info}"
+
+
+def is_retryable_exception(exception: BaseException) -> bool:
+    """
+    Check if an exception is retryable and should trigger fallback to another model.
+    """
+    # OpenAI exceptions
+    if hasattr(exception, "__module__") and exception.__module__ and "openai" in exception.__module__:
+        import openai
+
+        if isinstance(
+            exception,
+            (
+                openai._exceptions.APITimeoutError,
+                openai._exceptions.RateLimitError,
+                openai._exceptions.InternalServerError,
+            ),
+        ):
+            return True
+
+    # Anthropic exceptions
+    if isinstance(exception, (AnthropicRateLimitError, AnthropicAPIError)):
+        return True
+
+    # Google/Gemini exceptions
+    if isinstance(exception, (gerrors.APIError, gerrors.ClientError)):
+        # Check for specific error codes that are retryable
+        if hasattr(exception, "code") and exception.code in [429, 502, 503, 504]:
+            return True
+
+    # Network errors
+    if isinstance(exception, (httpx.TimeoutException, httpx.NetworkError)):
+        return True
+
+    # Empty or no response by model over API results in ValueError
+    if isinstance(exception, ValueError):
+        return True
+
+    return False
 
 
 class AgentMessage(BaseModel):

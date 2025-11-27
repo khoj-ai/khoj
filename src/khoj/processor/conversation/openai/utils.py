@@ -84,7 +84,7 @@ def _extract_text_for_instructions(content: Union[str, List, Dict, None]) -> str
         | retry_if_exception_type(ValueError)
     ),
     wait=wait_random_exponential(min=1, max=10),
-    stop=stop_after_attempt(3),
+    stop=stop_after_attempt(2),
     before_sleep=before_sleep_log(logger, logging.DEBUG),
     reraise=True,
 )
@@ -438,7 +438,7 @@ async def chat_completion_with_backoff(
         | retry_if_exception_type(ValueError)
     ),
     wait=wait_random_exponential(min=1, max=10),
-    stop=stop_after_attempt(3),
+    stop=stop_after_attempt(2),
     before_sleep=before_sleep_log(logger, logging.DEBUG),
     reraise=True,
 )

@@ -24,7 +24,7 @@ from khoj.utils.helpers import ToolDefinition
 logger = logging.getLogger(__name__)
 
 
-def send_message_to_model(
+def openai_send_message_to_model(
     messages,
     api_key,
     model: str,

@@ -1420,6 +1420,71 @@ class ConversationAdapters:
         return max_tokens
 
     @staticmethod
+    async def aget_chat_models_with_fallbacks(slot: ServerChatSettings.ChatModelSlot) -> list[ChatModel]:
+        """
+        Get chat models for a specific subscription, speed preference from all ServerChatSettings, ordered by priority.
+        Used for fallback logic when a chat model fails.
+
+        Args:
+            slot: The chat model slot to get based on user subscription, speed preference (e.g., THINK_FREE_FAST, CHAT_DEFAULT)
+
+        Returns:
+            List of ChatModel objects ordered by ServerChatSettings priority (lower first)
+        """
+        # Map slot enum to field name and prefetch related
+        slot_field = slot.value
+        prefetch_fields = [slot_field, f"{slot_field}__ai_model_api"]
+
+        # Get all server chat settings ordered by priority
+        all_settings = [
+            settings
+            async for settings in ServerChatSettings.objects.filter()
+            .prefetch_related(*prefetch_fields)
+            .order_by("priority")
+            .aiterator()
+        ]
+
+        # Extract the chat model for the requested slot from each settings
+        chat_models: list[ChatModel] = []
+        seen_model_ids: set[int] = set()
+        for settings in all_settings:
+            chat_model = getattr(settings, slot_field, None)
+            if chat_model and chat_model.id not in seen_model_ids:
+                chat_models.append(chat_model)
+                seen_model_ids.add(chat_model.id)
+
+        return chat_models
+
+    @staticmethod
+    async def aget_chat_model_slot(user: KhojUser = None, fast: Optional[bool] = None):
+        """
+        Determine which chat model slot to use based on user subscription and speed preference.
+
+        Args:
+            user: The user making the request
+            fast: Trinary flag for speed preference (True=fast, False=deep, None=default)
+
+        Returns:
+            The appropriate ChatModelSlot enum value, or None if no slot matches
+        """
+        is_subscribed = await ais_user_subscribed(user) if user else False
+
+        if is_subscribed:
+            if fast is True:
+                return ServerChatSettings.ChatModelSlot.THINK_PAID_FAST
+            elif fast is False:
+                return ServerChatSettings.ChatModelSlot.THINK_PAID_DEEP
+            else:
+                return ServerChatSettings.ChatModelSlot.CHAT_ADVANCED
+        else:
+            if fast is True:
+                return ServerChatSettings.ChatModelSlot.THINK_FREE_FAST
+            elif fast is False:
+                return ServerChatSettings.ChatModelSlot.THINK_FREE_DEEP
+            else:
+                return ServerChatSettings.ChatModelSlot.CHAT_DEFAULT
+
+    @staticmethod
     async def aget_server_webscraper():
         server_chat_settings = await ServerChatSettings.objects.filter().prefetch_related("web_scraper").afirst()
         if server_chat_settings is not None and server_chat_settings.web_scraper is not None:

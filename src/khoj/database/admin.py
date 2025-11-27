@@ -287,6 +287,7 @@ class SearchModelConfigAdmin(unfold_admin.ModelAdmin):
 @admin.register(ServerChatSettings)
 class ServerChatSettingsAdmin(unfold_admin.ModelAdmin):
     list_display = (
+        "priority",
         "chat_default",
         "chat_advanced",
         "think_free_fast",
@@ -295,6 +296,7 @@ class ServerChatSettingsAdmin(unfold_admin.ModelAdmin):
         "think_paid_deep",
         "web_scraper",
     )
+    ordering = ("priority",)
 
 
 @admin.register(WebScraper)

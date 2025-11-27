@@ -89,19 +89,21 @@ from khoj.processor.conversation.google.gemini_chat import (
 )
 from khoj.processor.conversation.openai.gpt import (
     converse_openai,
-    send_message_to_model,
+    openai_send_message_to_model,
 )
 from khoj.processor.conversation.utils import (
     ChatEvent,
     OperatorRun,
     ResearchIteration,
     ResponseWithThought,
+    RetryableModelError,
     clean_json,
     clean_mermaidjs,
     construct_chat_history,
     construct_question_history,
     defilter_query,
     generate_chatml_messages_with_context,
+    is_retryable_exception,
 )
 from khoj.processor.speech.text_to_speech import is_eleven_labs_enabled
 from khoj.routers.email import is_resend_enabled, send_task_email
@@ -1452,61 +1454,26 @@ async def execute_search(
     return results
 
 
-async def send_message_to_model_wrapper(
-    # Context
-    query: str,
-    query_files: str = None,
-    query_images: List[str] = None,
-    context: str = "",
-    chat_history: list[ChatMessageModel] = [],
-    system_message: str = "",
-    # Model Config
-    response_type: str = "text",
-    response_schema: BaseModel = None,
-    tools: List[ToolDefinition] = None,
-    deepthought: bool = False,
-    fast_model: Optional[bool] = None,
-    agent_chat_model: ChatModel = None,
-    # User
-    user: KhojUser = None,
-    # Tracer
-    tracer: dict = {},
-):
-    chat_model: ChatModel = await ConversationAdapters.aget_default_chat_model(user, agent_chat_model, fast=fast_model)
-    vision_available = chat_model.vision_enabled
-    if not vision_available and query_images:
-        logger.warning(f"Vision is not enabled for default model: {chat_model.name}.")
-        vision_enabled_config = await ConversationAdapters.aget_vision_enabled_config()
-        if vision_enabled_config:
-            chat_model = vision_enabled_config
-            vision_available = True
-    if vision_available and query_images:
-        logger.info(f"Using {chat_model.name} model to understand {len(query_images)} images.")
-
-    max_tokens = await ConversationAdapters.aget_max_context_size(chat_model, user)
-    chat_model_name = chat_model.name
-    tokenizer = chat_model.tokenizer
+def send_message_to_model(
+    chat_model: ChatModel,
+    truncated_messages: List[ChatMessage],
+    response_type: str,
+    response_schema: BaseModel,
+    tools: List[ToolDefinition],
+    deepthought: bool,
+    tracer: dict,
+) -> ResponseWithThought:
+    """
+    Call a specific chat model with the given parameters.
+    This is a helper function used by send_message_to_model_wrapper for the fallback loop.
+    """
     model_type = chat_model.model_type
-    vision_available = chat_model.vision_enabled
+    chat_model_name = chat_model.name
     api_key = chat_model.ai_model_api.api_key
     api_base_url = chat_model.ai_model_api.api_base_url
 
-    truncated_messages = generate_chatml_messages_with_context(
-        user_message=query,
-        query_files=query_files,
-        query_images=query_images,
-        context_message=context,
-        chat_history=chat_history,
-        system_message=system_message,
-        model_name=chat_model_name,
-        model_type=model_type,
-        tokenizer_name=tokenizer,
-        max_prompt_size=max_tokens,
-        vision_enabled=vision_available,
-    )
-
     if model_type == ChatModel.ModelType.OPENAI:
-        return send_message_to_model(
+        return openai_send_message_to_model(
             messages=truncated_messages,
             api_key=api_key,
             model=chat_model_name,
@@ -1542,7 +1509,101 @@ async def send_message_to_model_wrapper(
             tracer=tracer,
         )
     else:
-        raise HTTPException(status_code=500, detail="Invalid conversation config")
+        raise HTTPException(status_code=500, detail=f"Invalid model type: {model_type}")
+
+
+async def send_message_to_model_wrapper(
+    # Context
+    query: str,
+    query_files: str = None,
+    query_images: List[str] = None,
+    context: str = "",
+    chat_history: list[ChatMessageModel] = [],
+    system_message: str = "",
+    # Model Config
+    response_type: str = "text",
+    response_schema: BaseModel = None,
+    tools: List[ToolDefinition] = None,
+    deepthought: bool = False,
+    fast_model: Optional[bool] = None,
+    agent_chat_model: ChatModel = None,
+    # User
+    user: KhojUser = None,
+    # Tracer
+    tracer: dict = {},
+):
+    # Get primary chat model
+    primary_chat_model: ChatModel = await ConversationAdapters.aget_default_chat_model(
+        user, agent_chat_model, fast=fast_model
+    )
+    vision_available = primary_chat_model.vision_enabled
+
+    # Handle vision model override if needed
+    if not vision_available and query_images:
+        logger.warning(f"Vision is not enabled for default model: {primary_chat_model.name}.")
+        vision_enabled_config = await ConversationAdapters.aget_vision_enabled_config()
+        if vision_enabled_config:
+            primary_chat_model = vision_enabled_config
+            vision_available = True
+    if vision_available and query_images:
+        logger.info(f"Using {primary_chat_model.name} model to understand {len(query_images)} images.")
+
+    # Get fallback models for the appropriate slot
+    slot = await ConversationAdapters.aget_chat_model_slot(user, fast=fast_model)
+    fallback_models = await ConversationAdapters.aget_chat_models_with_fallbacks(slot)
+    # Filter out the primary model from fallbacks to avoid duplicate attempts
+    fallback_models = [m for m in fallback_models if m.id != primary_chat_model.id]
+
+    # Build list of models to try: primary first, then fallbacks
+    models_to_try = [primary_chat_model] + fallback_models
+
+    last_exception: Optional[Exception] = None
+    for i, chat_model in enumerate(models_to_try):
+        is_last_model = i == len(models_to_try) - 1
+
+        # Prepare messages for this specific model
+        max_tokens = await ConversationAdapters.aget_max_context_size(chat_model, user)
+        truncated_messages = generate_chatml_messages_with_context(
+            user_message=query,
+            query_files=query_files,
+            query_images=query_images,
+            context_message=context,
+            chat_history=chat_history,
+            system_message=system_message,
+            model_name=chat_model.name,
+            model_type=chat_model.model_type,
+            tokenizer_name=chat_model.tokenizer,
+            max_prompt_size=max_tokens,
+            vision_enabled=chat_model.vision_enabled if not query_images else vision_available,
+        )
+
+        try:
+            return send_message_to_model(
+                chat_model=chat_model,
+                truncated_messages=truncated_messages,
+                response_type=response_type,
+                response_schema=response_schema,
+                tools=tools,
+                deepthought=deepthought,
+                tracer=tracer,
+            )
+        except Exception as e:
+            last_exception = e
+            if is_retryable_exception(e):
+                if is_last_model:
+                    logger.error(f"All chat models failed. Last error from {chat_model.name}: {e}")
+                else:
+                    logger.warning(f"Chat model {chat_model.name} failed with retryable error: {e}. Trying next model.")
+                    continue
+            # Non-retryable errors should be raised immediately
+            raise
+
+    # If we get here, all models failed with retryable errors
+    raise RetryableModelError(
+        message=f"All {len(models_to_try)} chat models failed",
+        original_exception=last_exception,
+        model_name=models_to_try[-1].name if models_to_try else None,
+    )
 
 
 def send_message_to_model_wrapper_sync(
@@ -1581,7 +1642,7 @@ def send_message_to_model_wrapper_sync(
     )
 
     if model_type == ChatModel.ModelType.OPENAI:
-        return send_message_to_model(
+        return openai_send_message_to_model(
             messages=truncated_messages,
             api_key=api_key,
             api_base_url=api_base_url,

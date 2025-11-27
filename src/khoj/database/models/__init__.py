@@ -468,6 +468,16 @@ class WebScraper(DbBaseModel):
 
 
 class ServerChatSettings(DbBaseModel):
+    class ChatModelSlot(models.TextChoices):
+        """Enum for the different chat model slots in ServerChatSettings"""
+
+        CHAT_DEFAULT = "chat_default"
+        CHAT_ADVANCED = "chat_advanced"
+        THINK_FREE_FAST = "think_free_fast"
+        THINK_FREE_DEEP = "think_free_deep"
+        THINK_PAID_FAST = "think_paid_fast"
+        THINK_PAID_DEEP = "think_paid_deep"
+
     chat_default = models.ForeignKey(
         ChatModel, on_delete=models.CASCADE, default=None, null=True, blank=True, related_name="chat_default"
     )
@@ -489,6 +499,13 @@ class ServerChatSettings(DbBaseModel):
     web_scraper = models.ForeignKey(
         WebScraper, on_delete=models.CASCADE, default=None, null=True, blank=True, related_name="web_scraper"
     )
+    priority = models.IntegerField(
+        default=None,
+        null=True,
+        blank=True,
+        unique=True,
+        help_text="Priority of the server chat settings. Lower numbers run first.",
+    )
 
     def clean(self):
         error = {}
@@ -503,6 +520,11 @@ class ServerChatSettings(DbBaseModel):
 
     def save(self, *args, **kwargs):
         self.clean()
+
+        if self.priority is None:
+            max_priority = ServerChatSettings.objects.aggregate(models.Max("priority"))["priority__max"]
+            self.priority = max_priority + 1 if max_priority else 1
+
         super().save(*args, **kwargs)
 
 
