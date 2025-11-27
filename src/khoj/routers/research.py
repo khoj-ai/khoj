@@ -243,14 +243,14 @@ async def research(
     conversation_history: List[ChatMessageModel],
     previous_iterations: List[ResearchIteration],
     query_images: List[str],
-    agent: Agent = None,
-    send_status_func: Optional[Callable] = None,
+    query_files: str = None,
     user_name: str = None,
     location: LocationData = None,
-    query_files: str = None,
+    send_status_func: Optional[Callable] = None,
     cancellation_event: Optional[asyncio.Event] = None,
     interrupt_queue: Optional[asyncio.Queue] = None,
     abort_message: str = ChatEvent.END_EVENT.value,
+    agent: Agent = None,
     tracer: dict = {},
 ):
     max_document_searches = 7
@@ -356,10 +356,10 @@ async def research(
                 location_data=location,
                 send_status_func=send_status_func,
                 query_images=query_images,
+                query_files=query_files,
                 previous_inferred_queries=previous_inferred_queries,
                 agent=agent,
                 tracer=tracer,
-                query_files=query_files,
             ):
                 if isinstance(result, dict) and ChatEvent.STATUS in result:
                     yield result[ChatEvent.STATUS]
@@ -424,7 +424,6 @@ async def research(
                     **this_iteration.query.args,
                     user=user,
                     send_status_func=send_status_func,
-                    # max_webpages_to_read=max_webpages_to_read,
                     agent=agent,
                     tracer=tracer,
                 ):
@@ -459,8 +458,8 @@ async def research(
                     user=user,
                     send_status_func=send_status_func,
                     query_images=query_images,
-                    agent=agent,
                     query_files=query_files,
+                    agent=agent,
                     tracer=tracer,
                 ):
                     if isinstance(result, dict) and ChatEvent.STATUS in result:

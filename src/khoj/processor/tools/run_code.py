@@ -56,9 +56,9 @@ async def run_code(
     user: KhojUser,
     send_status_func: Optional[Callable] = None,
     query_images: List[str] = None,
+    query_files: str = None,
     agent: Agent = None,
     sandbox_url: str = SANDBOX_URL,
-    query_files: str = None,
     tracer: dict = {},
 ):
     # Generate Code

@@ -64,6 +64,7 @@ async def search_online(
     query_images: List[str] = None,
     query_files: str = None,
     previous_subqueries: Set = set(),
+    fast_model: bool = True,
     agent: Agent = None,
     tracer: dict = {},
 ):
@@ -82,6 +83,7 @@ async def search_online(
         query_images=query_images,
         query_files=query_files,
         max_queries=max_online_searches,
+        fast_model=fast_model,
         agent=agent,
         tracer=tracer,
     )
@@ -432,9 +434,10 @@ async def read_webpages(
     user: KhojUser,
     send_status_func: Optional[Callable] = None,
     query_images: List[str] = None,
+    query_files: str = None,
+    fast_model: bool = True,
     agent: Agent = None,
     max_webpages_to_read: int = 1,
-    query_files: str = None,
     tracer: dict = {},
 ):
     "Infer web pages to read from the query and extract relevant information from them"
@@ -446,8 +449,9 @@ async def read_webpages(
         location,
         user,
         query_images,
-        agent=agent,
         query_files=query_files,
+        fast_model=fast_model,
+        agent=agent,
         tracer=tracer,
     )
     async for result in read_webpages_content(

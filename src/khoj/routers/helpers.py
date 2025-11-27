@@ -415,7 +415,7 @@ async def aget_data_sources_and_output_format(
             query_images=query_images,
             response_type="json_object",
             response_schema=PickTools,
-            fast_model=False,
+            fast_model=True,
             agent_chat_model=agent_chat_model,
             user=user,
             tracer=tracer,
@@ -467,8 +467,9 @@ async def infer_webpage_urls(
     location_data: LocationData,
     user: KhojUser,
     query_images: List[str] = None,
-    agent: Agent = None,
     query_files: str = None,
+    fast_model: bool = True,
+    agent: Agent = None,
     tracer: dict = {},
 ) -> List[str]:
     """
@@ -505,7 +506,7 @@ async def infer_webpage_urls(
             query_images=query_images,
             response_type="json_object",
             response_schema=WebpageUrls,
-            fast_model=False,
+            fast_model=fast_model,
             agent_chat_model=agent_chat_model,
             user=user,
             tracer=tracer,
@@ -534,6 +535,7 @@ async def generate_online_subqueries(
     query_images: List[str] = None,
     query_files: str = None,
     max_queries: int = 3,
+    fast_model: bool = True,
     agent: Agent = None,
     tracer: dict = {},
 ) -> Set[str]:
@@ -571,7 +573,7 @@ async def generate_online_subqueries(
             query_images=query_images,
             response_type="json_object",
             response_schema=OnlineQueries,
-            fast_model=False,
+            fast_model=fast_model,
             agent_chat_model=agent_chat_model,
             user=user,
             tracer=tracer,
@@ -737,9 +739,9 @@ async def generate_summary_from_files(
     file_filters: List[str],
     chat_history: List[ChatMessageModel] = [],
     query_images: List[str] = None,
+    query_files: str = None,
     agent: Agent = None,
     send_status_func: Optional[Callable] = None,
-    query_files: str = None,
     tracer: dict = {},
 ):
     try:
@@ -797,10 +799,10 @@ async def generate_excalidraw_diagram(
     note_references: List[Dict[str, Any]],
     online_results: Optional[dict] = None,
     query_images: List[str] = None,
+    query_files: str = None,
     user: KhojUser = None,
     agent: Agent = None,
     send_status_func: Optional[Callable] = None,
-    query_files: str = None,
     tracer: dict = {},
 ):
     if send_status_func:
@@ -814,9 +816,9 @@ async def generate_excalidraw_diagram(
         note_references=note_references,
         online_results=online_results,
         query_images=query_images,
+        query_files=query_files,
         user=user,
         agent=agent,
-        query_files=query_files,
         tracer=tracer,
     )
 
@@ -849,9 +851,9 @@ async def generate_better_diagram_description(
     note_references: List[Dict[str, Any]],
     online_results: Optional[dict] = None,
     query_images: List[str] = None,
+    query_files: str = None,
     user: KhojUser = None,
     agent: Agent = None,
-    query_files: str = None,
     tracer: dict = {},
 ) -> str:
     """
@@ -959,10 +961,10 @@ async def generate_mermaidjs_diagram(
     note_references: List[Dict[str, Any]],
     online_results: Optional[dict] = None,
     query_images: List[str] = None,
+    query_files: str = None,
     user: KhojUser = None,
     agent: Agent = None,
     send_status_func: Optional[Callable] = None,
-    query_files: str = None,
     tracer: dict = {},
 ):
     if send_status_func:
@@ -976,9 +978,9 @@ async def generate_mermaidjs_diagram(
         note_references=note_references,
         online_results=online_results,
         query_images=query_images,
+        query_files=query_files,
         user=user,
         agent=agent,
-        query_files=query_files,
         tracer=tracer,
     )
 
@@ -1005,9 +1007,9 @@ async def generate_better_mermaidjs_diagram_description(
     note_references: List[Dict[str, Any]],
     online_results: Optional[dict] = None,
     query_images: List[str] = None,
+    query_files: str = None,
     user: KhojUser = None,
     agent: Agent = None,
-    query_files: str = None,
     tracer: dict = {},
 ) -> str:
     """
@@ -1099,9 +1101,9 @@ async def generate_better_image_prompt(
     online_results: Optional[dict] = None,
     model_type: Optional[str] = None,
     query_images: Optional[List[str]] = None,
+    query_files: str = "",
     user: KhojUser = None,
     agent: Agent = None,
-    query_files: str = "",
     tracer: dict = {},
 ) -> dict:
     """
@@ -1148,7 +1150,7 @@ async def generate_better_image_prompt(
             system_message=enhance_image_system_message,
             response_type="json_object",
             response_schema=ImagePromptResponse,
-            fast_model=False,
+            fast_model=True,
             agent_chat_model=agent_chat_model,
             user=user,
             tracer=tracer,
@@ -1175,9 +1177,10 @@ async def search_documents(
     location_data: LocationData = None,
     send_status_func: Optional[Callable] = None,
     query_images: Optional[List[str]] = None,
-    previous_inferred_queries: Set = set(),
-    agent: Agent = None,
     query_files: str = None,
+    previous_inferred_queries: Set = set(),
+    fast_model: bool = True,
+    agent: Agent = None,
     tracer: dict = {},
 ):
     # Initialize Variables
@@ -1228,6 +1231,7 @@ async def search_documents(
             personality_context=personality_context,
             location_data=location_data,
             chat_history=chat_history,
+            fast_model=fast_model,
             agent=agent,
             tracer=tracer,
         )
@@ -1280,6 +1284,7 @@ async def extract_questions(
     location_data: LocationData = None,
     chat_history: List[ChatMessageModel] = [],
     max_queries: int = 5,
+    fast_model: bool = True,
     agent: Agent = None,
     tracer: dict = {},
 ):
@@ -1334,7 +1339,7 @@ async def extract_questions(
         system_message=system_prompt,
         response_type="json_object",
         response_schema=DocumentQueries,
-        fast_model=False,
+        fast_model=fast_model,
         agent_chat_model=agent_chat_model,
         user=user,
         tracer=tracer,
