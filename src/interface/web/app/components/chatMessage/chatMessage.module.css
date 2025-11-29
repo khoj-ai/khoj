@@ -127,7 +127,9 @@ div.imageWrapper img {
 }
 
 div.khoj div.imageWrapper img {
-    height: 512px;
+    max-height: 512px;
+    height: auto;
+    object-fit: contain;
 }
 
 div.khoj div.imageWrapper {
