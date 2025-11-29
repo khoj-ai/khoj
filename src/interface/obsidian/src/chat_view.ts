@@ -2589,11 +2589,59 @@ export class KhojChatView extends KhojPaneView {
         return [];
     }
 
-    private hideFileFilterDropdown() {
-        if (this.fileFilterDropdown) {
+    private onChatInput()
+onChatInput() {
+	if (this.fileFilterDropdown) {
             this.fileFilterDropdown.style.display = "none";
             this.selectedFileFilterIndex = -1;
         }
+
+		    private async showFileFilterDropdown(inputEl: HTMLTextAreaElement, filterQuery: string) {
+        // Fetch files if not already loaded
+        if (this.fileFilterSuggestions.length === 0) {
+            this.fileFilterSuggestions = await this.fetchUserFiles();
+        }
+
+        // Filter files based on query
+        const filteredFiles = filterQuery
+            ? this.fileFilterSuggestions.filter(f => f.toLowerCase().includes(filterQuery.toLowerCase()))
+            : this.fileFilterSuggestions;
+
+        if (filteredFiles.length === 0) {
+            this.hideFileFilterDropdown();
+            return;
+        }
+
+        // Create dropdown if it doesn't exist
+        if (!this.fileFilterDropdown) {
+            this.fileFilterDropdown = this.contentEl.createDiv({ cls: "khoj-file-filter-dropdown" });
+            this.fileFilterDropdown.style.position = "absolute";
+            this.fileFilterDropdown.style.zIndex = "1000";
+        }
+
+        // Position dropdown above input
+        const inputRect = inputEl.getBoundingClientRect();
+        const containerRect = this.contentEl.getBoundingClientRect();
+        this.fileFilterDropdown.style.left = `${inputRect.left - containerRect.left}px`;
+        this.fileFilterDropdown.style.bottom = `${containerRect.bottom - inputRect.top + 4}px`;
+        this.fileFilterDropdown.style.width = `${inputRect.width}px`;
+
+        // Clear and populate dropdown
+        this.fileFilterDropdown.empty();
+        filteredFiles.slice(0, 10).forEach((file, index) => {
+            const option = this.fileFilterDropdown!.createDiv({ cls: "khoj-file-filter-option" });
+            option.textContent = file.split('/').pop() || file;
+            option.title = file;
+            option.addEventListener('click', () => {
+                // Replace file: pattern with selected file
+                inputEl.value = inputEl.value.replace(/file:\S*$/, `file:"${file}" `);
+                this.hideFileFilterDropdown();
+                inputEl.focus();
+            });
+        });
+
+        this.fileFilterDropdown.style.display = "block";
+    }
     }
     }
 }
