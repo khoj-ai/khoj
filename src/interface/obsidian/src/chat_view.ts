@@ -2572,5 +2572,28 @@ export class KhojChatView extends KhojPaneView {
             this.modeDropdown.style.display = "none";
             this.selectedOptionIndex = -1;
         }
+
+		    // File filter autocomplete methods
+    private async fetchUserFiles(): Promise<string[]> {
+        try {
+            const response = await fetch(`${this.setting.khojUrl}/api/content/files`, {
+                headers: { 'Authorization': `Bearer ${this.setting.khojApiKey}` }
+            });
+            if (response.ok) {
+                const data = await response.json();
+                return data.files?.map((f: any) => f.file_name) || [];
+            }
+        } catch (error) {
+            console.error('Error fetching files:', error);
+        }
+        return [];
+    }
+
+    private hideFileFilterDropdown() {
+        if (this.fileFilterDropdown) {
+            this.fileFilterDropdown.style.display = "none";
+            this.selectedFileFilterIndex = -1;
+        }
+    }
     }
 }
