@@ -16,6 +16,7 @@ import {
 } from "@/app/components/referencePanel/referencePanel";
 import { renderCodeGenImageInline } from "@/app/common/chatFunctions";
 import { fileLinksPlugin } from "@/app/components/chatMessage/fileLinksPlugin";
+import { imageValidationPlugin } from "@/app/components/chatMessage/imageValidationPlugin";
 import FileContentSnippet from "@/app/components/chatMessage/FileContentSnippet";
 import { useFileContent } from "@/app/components/chatMessage/useFileContent";
 
@@ -75,6 +76,7 @@ md.use(mditHljs, {
 });
 
 md.use(fileLinksPlugin);
+md.use(imageValidationPlugin);
 
 export interface Context {
     compiled: string;
