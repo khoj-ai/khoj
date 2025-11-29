@@ -95,6 +95,10 @@ export class KhojChatView extends KhojPaneView {
     private modeDropdown: HTMLElement | null = null;
     private selectedOptionIndex: number = -1;
     private isStreaming: boolean = false; // Flag to track streaming state
+	    // File filter autocomplete properties
+    private fileFilterDropdown: HTMLElement | null = null;
+    private fileFilterSuggestions: string[] = [];
+    private selectedFileFilterIndex: number = -1;
 
     // Disabled retry logic for now. Can re-enable once:
     // 1. Handle chat history clutter
