@@ -1854,6 +1854,15 @@ export class KhojChatView extends KhojPaneView {
             this.hideModeDropdown();
         }
 
+		        // Check for file: filter pattern and show file filter dropdown
+        const fileFilterMatch = chatInput.value.match(/file:(\S*)$/);
+        if (fileFilterMatch) {
+            const filterQuery = fileFilterMatch[1] || '';
+            this.showFileFilterDropdown(chatInput, filterQuery);
+        } else if (this.fileFilterDropdown) {
+            this.hideFileFilterDropdown();
+        }
+
         this.autoResize();
     }
 
