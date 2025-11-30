@@ -112,8 +112,6 @@ async def text_to_image(
                 webp_image_bytes = generate_image_with_openai(
                     image_prompt, text_to_image_config, text2image_model, image_shape
                 )
-            elif text_to_image_config.model_type == TextToImageModelConfig.ModelType.STABILITYAI:
-                webp_image_bytes = generate_image_with_stability(image_prompt, text_to_image_config, text2image_model)
             elif text_to_image_config.model_type == TextToImageModelConfig.ModelType.REPLICATE:
                 webp_image_bytes = generate_image_with_replicate(
                     image_prompt, text_to_image_config, text2image_model, image_shape
@@ -218,35 +216,6 @@ def generate_image_with_openai(
     image = response.data[0].b64_json
     # Decode base64 png and convert it to webp for faster loading
     return convert_image_to_webp(base64.b64decode(image))
-
-
-@retry(
-    retry=retry_if_exception_type(requests.RequestException),
-    wait=wait_random_exponential(min=1, max=10),
-    stop=stop_after_attempt(3),
-    before_sleep=before_sleep_log(logger, logging.DEBUG),
-    reraise=True,
-)
-def generate_image_with_stability(
-    improved_image_prompt: str, text_to_image_config: TextToImageModelConfig, text2image_model: str
-):
-    "Generate image using Stability AI"
-
-    # Call Stability AI API to generate image
-    response = requests.post(
-        "https://api.stability.ai/v2beta/stable-image/generate/sd3",
-        headers={"authorization": f"Bearer {text_to_image_config.api_key}", "accept": "image/*"},
-        files={"none": ""},
-        data={
-            "prompt": improved_image_prompt,
-            "model": text2image_model,
-            "mode": "text-to-image",
-            "output_format": "png",
-            "aspect_ratio": "1:1",
-        },
-    )
-    # Convert png to webp for faster loading
-    return convert_image_to_webp(response.content)
 
 
 @retry(

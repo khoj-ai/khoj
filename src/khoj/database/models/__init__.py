@@ -575,7 +575,6 @@ class SearchModelConfig(DbBaseModel):
 class TextToImageModelConfig(DbBaseModel):
     class ModelType(models.TextChoices):
         OPENAI = "openai"
-        STABILITYAI = "stability-ai"
         REPLICATE = "replicate"
         GOOGLE = "google"
 
