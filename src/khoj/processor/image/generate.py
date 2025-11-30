@@ -391,8 +391,8 @@ def format_messages_for_gemini(
                 for image_data in chat.images:
                     if image_data.startswith("http"):
                         image = get_image_from_url(image_data, type="bytes")
-                else:
-                    image = get_image_from_base64(image_data, type="bytes")
+                    else:
+                        image = get_image_from_base64(image_data, type="bytes")
                 parts.append(gtypes.Part.from_bytes(data=image.content, mime_type=image.type))
             else:
                 parts.append(gtypes.Part.from_text(text="This is the message you previously sent:"))
