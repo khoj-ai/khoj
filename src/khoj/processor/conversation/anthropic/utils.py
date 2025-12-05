@@ -85,6 +85,8 @@ def anthropic_completion_with_backoff(
         # Cache tool definitions
         last_tool = model_kwargs["tools"][-1]
         last_tool["cache_control"] = {"type": "ephemeral"}
+        # Disable parallel tool call until we add support for it
+        model_kwargs["tool_choice"] = {"type": "auto", "disable_parallel_tool_use": True}
     elif response_schema:
         tool = create_tool_definition(response_schema)
         model_kwargs["tools"] = [
