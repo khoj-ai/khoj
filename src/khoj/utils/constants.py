@@ -72,6 +72,8 @@ model_to_cost: Dict[str, Dict[str, float]] = {
     "claude-sonnet-4-5-20250929": {"input": 3.0, "output": 15.0, "cache_read": 0.3, "cache_write": 3.75},
     "claude-haiku-4-5": {"input": 1.0, "output": 5.0, "cache_read": 0.08, "cache_write": 1.0},
     "claude-haiku-4-5-20251001": {"input": 1.0, "output": 5.0, "cache_read": 0.08, "cache_write": 1.0},
+    "claude-opus-4-5": {"input": 5.0, "output": 25.0, "cache_read": 1.50, "cache_write": 6.25},
+    "claude-opus-4-5-20251101": {"input": 5.0, "output": 25.0, "cache_read": 1.50, "cache_write": 6.25},
     # Grok pricing: https://docs.x.ai/docs/models
     "grok-3": {"input": 3.0, "output": 15.0},
     "grok-3-latest": {"input": 3.0, "output": 15.0},

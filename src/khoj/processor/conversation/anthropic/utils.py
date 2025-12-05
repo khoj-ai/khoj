@@ -39,7 +39,7 @@ anthropic_async_clients: Dict[str, anthropic.AsyncAnthropic | anthropic.AsyncAnt
 
 DEFAULT_MAX_TOKENS_ANTHROPIC = 8000
 MAX_REASONING_TOKENS_ANTHROPIC = 12000
-REASONING_MODELS = ["claude-3-7", "claude-sonnet-4", "claude-opus-4"]
+REASONING_MODELS = ["claude-3-7", "claude-sonnet-4", "claude-opus-4", "claude-haiku-4"]
 
 
 @retry(
