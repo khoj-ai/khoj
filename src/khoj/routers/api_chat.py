@@ -1621,7 +1621,9 @@ async def process_chat_request(
             interrupt_queue,
         )
         async for event in response_iterator:
-            if event.startswith("{") and event.endswith("}"):
+            if not event:
+                continue
+            elif event.startswith("{") and event.endswith("}"):
                 evt_json = json.loads(event)
                 if evt_json["type"] == ChatEvent.END_LLM_RESPONSE.value:
                     # Flush remaining buffer content on end llm response event
