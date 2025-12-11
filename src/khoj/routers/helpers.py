@@ -949,9 +949,34 @@ async def generate_excalidraw_diagram_from_description(
                 raise AssertionError(f"Invalid response for generating Excalidraw diagram: {response}")
         except Exception:
             raise AssertionError(f"Invalid response for generating Excalidraw diagram: {raw_response_text}")
-        if not response or not isinstance(response["elements"], List) or not isinstance(response["elements"][0], Dict):
-            # TODO Some additional validation here that it's a valid Excalidraw diagram
-            raise AssertionError(f"Invalid response for improving diagram description: {response}")
+        # Validate Excalidraw diagram structure
+        if not response or not isinstance(response["elements"], List):
+            raise AssertionError(f"Invalid response: 'elements' must be a list: {response}")
+
+        if len(response["elements"]) == 0:
+            raise AssertionError(f"Invalid response: 'elements' list is empty: {response}")
+
+        # Validate each element has required Excalidraw fields
+        required_fields = ["type", "id", "x", "y"]
+        for idx, element in enumerate(response["elements"]):
+            if not isinstance(element, Dict):
+                raise AssertionError(f"Invalid element at index {idx}: must be a dictionary: {element}")
+
+            missing_fields = [field for field in required_fields if field not in element]
+            if missing_fields:
+                raise AssertionError(
+                    f"Invalid element at index {idx}: missing required fields {missing_fields}: {element}"
+                )
+
+            # Validate field types
+            if not isinstance(element["type"], str):
+                raise AssertionError(f"Invalid element at index {idx}: 'type' must be a string: {element}")
+            if not isinstance(element["id"], str):
+                raise AssertionError(f"Invalid element at index {idx}: 'id' must be a string: {element}")
+            if not isinstance(element["x"], (int, float)):
+                raise AssertionError(f"Invalid element at index {idx}: 'x' must be a number: {element}")
+            if not isinstance(element["y"], (int, float)):
+                raise AssertionError(f"Invalid element at index {idx}: 'y' must be a number: {element}")
 
     return response
 
