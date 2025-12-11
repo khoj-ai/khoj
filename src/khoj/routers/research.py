@@ -209,27 +209,43 @@ async def apick_next_tool(
 
     try:
         # Try parse the response as function call response to infer next tool to use.
-        # TODO: Handle multiple tool calls.
         response_text = response.text
-        parsed_response = [ToolCall(**item) for item in load_complex_json(response_text)][0]
+        parsed_responses = [ToolCall(**item) for item in load_complex_json(response_text)]
     except Exception:
         # Otherwise assume the model has decided to end the research run and respond to the user.
-        parsed_response = ToolCall(name=ConversationCommand.Text, args={"response": response_text}, id=None)
+        parsed_responses = [ToolCall(name=ConversationCommand.Text, args={"response": response_text}, id=None)]
 
-    # If we have a valid response, extract the tool and query.
-    warning = None
-    logger.info(f"Response for determining relevant tools: {parsed_response.name}({parsed_response.args})")
+    # Handle multiple tool calls - log info and use first valid one
+    if len(parsed_responses) > 1:
+        logger.info(f"Model requested {len(parsed_responses)} tool calls. Processing first valid tool call.")
+        if send_status_func:
+            async for event in send_status_func(f"**Processing {len(parsed_responses)} tool requests**"):
+                yield {ChatEvent.STATUS: event}
 
-    # Detect selection of previously used query, tool combination.
+    # Detect previously used query, tool combinations to avoid repetition
     previous_tool_query_combinations = {
         (i.query.name, dict_to_tuple(i.query.args))
         for i in previous_iterations
         if i.warning is None and isinstance(i.query, ToolCall)
     }
-    if (parsed_response.name, dict_to_tuple(parsed_response.args)) in previous_tool_query_combinations:
+
+    # Find first non-repeated tool call or use first one
+    parsed_response = None
+    warning = None
+    for tool_call in parsed_responses:
+        if (tool_call.name, dict_to_tuple(tool_call.args)) not in previous_tool_query_combinations:
+            parsed_response = tool_call
+            break
+
+    # If all tool calls are repeated, use first one with warning
+    if not parsed_response:
+        parsed_response = parsed_responses[0]
         warning = f"Repeated tool, query combination detected. You've already called {parsed_response.name} with args: {parsed_response.args}. Try something different."
-    # Only send client status updates if we'll execute this iteration and model has thoughts to share.
-    elif send_status_func and not is_none_or_empty(response.thought):
+
+    logger.info(f"Selected tool: {parsed_response.name}({parsed_response.args})")
+
+    # Send client status updates if model has thoughts to share
+    if send_status_func and not is_none_or_empty(response.thought) and not warning:
         async for event in send_status_func(response.thought):
             yield {ChatEvent.STATUS: event}
 

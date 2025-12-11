@@ -39,9 +39,9 @@ async def operate_environment(
     previous_trajectory: Optional[OperatorRun] = None,
     environment_type: EnvironmentType = EnvironmentType.COMPUTER,
     send_status_func: Optional[Callable] = None,
-    query_images: Optional[List[str]] = None,  # TODO: Handle query images
+    query_images: Optional[List[str]] = None,
     agent: Agent = None,
-    query_files: str = None,  # TODO: Handle query files
+    query_files: str = None,
     cancellation_event: Optional[asyncio.Event] = None,
     interrupt_queue: Optional[asyncio.Queue] = None,
     abort_message: Optional[str] = ChatEvent.END_EVENT.value,
@@ -77,6 +77,8 @@ async def operate_environment(
             max_context,
             chat_history,
             previous_trajectory,
+            query_images,
+            query_files,
             tracer,
         )
     # TODO: Remove once OpenAI Operator Agent is useful
@@ -89,6 +91,8 @@ async def operate_environment(
             max_context,
             chat_history,
             previous_trajectory,
+            query_images,
+            query_files,
             tracer,
         )
     # TODO: Remove once Binary Operator Agent is useful
@@ -110,6 +114,8 @@ async def operate_environment(
             max_context,
             chat_history,
             previous_trajectory,
+            query_images,
+            query_files,
             tracer,
         )
     else:

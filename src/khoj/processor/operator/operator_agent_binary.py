@@ -43,6 +43,8 @@ class BinaryOperatorAgent(OperatorAgent):
         max_context: int,
         chat_history: List[AgentMessage] = [],
         previous_trajectory: Optional[OperatorRun] = None,
+        query_images: Optional[List[str]] = None,
+        query_files: Optional[str] = None,
         tracer: dict = {},
     ):
         super().__init__(
@@ -53,6 +55,8 @@ class BinaryOperatorAgent(OperatorAgent):
             max_context,
             chat_history,
             previous_trajectory,
+            query_images,
+            query_files,
             tracer,
         )  # Use reasoning model for primary tracking
         self.reasoning_model = reasoning_model

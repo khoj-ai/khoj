@@ -101,12 +101,12 @@ class NotionToEntries(TextToEntries):
             with timer("Processing response", logger=logger):
                 pages_or_databases = response.get("results", [])
 
-                # Get all pages content
+                # Get all pages and database content
                 for p_or_d in pages_or_databases:
                     with timer(f"Processing {p_or_d['object']} {p_or_d['id']}", logger=logger):
                         if p_or_d["object"] == "database":
-                            # TODO: Handle databases
-                            continue
+                            database_entries = self.process_database(p_or_d)
+                            current_entries.extend(database_entries)
                         elif p_or_d["object"] == "page":
                             page_entries = self.process_page(p_or_d)
                             current_entries.extend(page_entries)
@@ -114,6 +114,36 @@ class NotionToEntries(TextToEntries):
         current_entries = TextToEntries.split_entries_by_max_tokens(current_entries, max_tokens=256)
 
         return self.update_entries_with_ids(current_entries, user=user)
+
+    def process_database(self, database):
+        """Process a Notion database by querying all its pages and processing each one."""
+        database_id = database["id"]
+        database_entries = []
+
+        try:
+            # Query the database to get all pages within it
+            query_params = {"page_size": 100}
+            while True:
+                response = self.session.post(
+                    f"https://api.notion.com/v1/databases/{database_id}/query",
+                    json=query_params,
+                ).json()
+
+                # Process each page from the database
+                for page in response.get("results", []):
+                    if page.get("object") == "page":
+                        page_entries = self.process_page(page)
+                        database_entries.extend(page_entries)
+
+                # Handle pagination
+                if not response.get("has_more", False):
+                    break
+                query_params["start_cursor"] = response["next_cursor"]
+
+        except Exception as e:
+            logger.error(f"Error processing database {database_id}: {e}", exc_info=True)
+
+        return database_entries
 
     def process_page(self, page):
         page_id = page["id"]

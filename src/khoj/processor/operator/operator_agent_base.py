@@ -37,12 +37,16 @@ class OperatorAgent(ABC):
         max_context: int,
         chat_history: List[AgentMessage] = [],
         previous_trajectory: Optional[OperatorRun] = None,
+        query_images: Optional[List[str]] = None,
+        query_files: Optional[str] = None,
         tracer: dict = {},
     ):
         self.query = query
         self.vision_model = vision_model
         self.environment_type = environment_type
         self.max_iterations = max_iterations
+        self.query_images = query_images
+        self.query_files = query_files
         self.tracer = tracer
         self.summarize_prompt = f"Use the results of our research to provide a comprehensive, self-contained answer for the target query:\n{query}."
 
@@ -52,7 +56,17 @@ class OperatorAgent(ABC):
             if previous_trajectory.trajectory and previous_trajectory.trajectory[-1].role == "assistant":
                 previous_trajectory.trajectory.pop()
             self.messages += previous_trajectory.trajectory
-        self.messages += [AgentMessage(role="user", content=query)]
+
+        # Construct initial user message with images and files
+        from khoj.processor.conversation.utils import construct_structured_message
+        initial_message_content = construct_structured_message(
+            message=query,
+            images=query_images,
+            model_type=vision_model.model_type,
+            vision_enabled=vision_model.vision_enabled,
+            attached_file_context=query_files,
+        )
+        self.messages += [AgentMessage(role="user", content=initial_message_content)]
 
         # Context compression parameters
         self.context_compress_trigger = 2e3  # heuristic to determine compression trigger
