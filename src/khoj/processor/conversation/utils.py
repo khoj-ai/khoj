@@ -245,8 +245,37 @@ def construct_iteration_history(
     if query_message_content:
         iteration_history.append(ChatMessageModel(by="you", message=query_message_content))
 
+    # Group iterations: parallel tool calls share the same raw_response (only first has it)
+    # We need to group them so one assistant message has all tool_use blocks and
+    # one user message has all tool_results
+    current_group_raw_response = None
+    current_group_tool_results = []
+
+    def flush_group():
+        """Output the current group as assistant message + user message with tool results"""
+        nonlocal current_group_raw_response, current_group_tool_results
+        if current_group_raw_response and current_group_tool_results:
+            iteration_history.append(
+                ChatMessageModel(
+                    by="khoj",
+                    message=current_group_raw_response,
+                    intent=Intent(type="tool_call", query=query),
+                )
+            )
+            iteration_history.append(
+                ChatMessageModel(
+                    by="you",
+                    intent=Intent(type="tool_result"),
+                    message=current_group_tool_results,
+                )
+            )
+        current_group_raw_response = None
+        current_group_tool_results = []
+
     for iteration in previous_iterations:
         if not iteration.query or isinstance(iteration.query, str):
+            # Flush any pending group before adding non-tool message
+            flush_group()
             iteration_history.append(
                 ChatMessageModel(
                     by="you",
@@ -256,25 +285,36 @@ def construct_iteration_history(
                 )
             )
             continue
-        iteration_history += [
-            ChatMessageModel(
-                by="khoj",
-                message=iteration.raw_response or [iteration.query.__dict__],
-                intent=Intent(type="tool_call", query=query),
-            ),
-            ChatMessageModel(
-                by="you",
-                intent=Intent(type="tool_result"),
-                message=[
-                    {
-                        "type": "tool_result",
-                        "id": iteration.query.id,
-                        "name": iteration.query.name,
-                        "content": iteration.summarizedResult,
-                    }
-                ],
-            ),
-        ]
+
+        # If this iteration has raw_response, it starts a new group of parallel tool calls
+        if iteration.raw_response:
+            # Flush previous group if exists
+            flush_group()
+            current_group_raw_response = iteration.raw_response
+
+        # If no raw_response and no current group, create a fallback single-tool response
+        elif not current_group_raw_response:
+            current_group_raw_response = [
+                {
+                    "type": "tool_use",
+                    "id": iteration.query.id,
+                    "name": iteration.query.name,
+                    "input": iteration.query.args,
+                }
+            ]
+
+        # Add tool result to current group
+        current_group_tool_results.append(
+            {
+                "type": "tool_result",
+                "id": iteration.query.id,
+                "name": iteration.query.name,
+                "content": iteration.summarizedResult,
+            }
+        )
+
+    # Flush any remaining group
+    flush_group()
 
     return iteration_history
 
