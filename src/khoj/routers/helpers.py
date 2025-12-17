@@ -3057,7 +3057,7 @@ async def view_file_content(
     start_line: Optional[int] = None,
     end_line: Optional[int] = None,
     user: KhojUser = None,
-):
+) -> AsyncGenerator[List[Dict[str, str]], None]:
     """
     View the contents of a file from the user's document database with optional line range specification.
     """
