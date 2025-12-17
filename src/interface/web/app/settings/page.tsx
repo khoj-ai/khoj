@@ -460,51 +460,6 @@ export default function SettingsView() {
         }
     };
 
-    const enableFreeTrial = async () => {
-        const formatDate = (dateString: Date) => {
-            const date = new Date(dateString);
-            return new Intl.DateTimeFormat("en-US", {
-                day: "2-digit",
-                month: "short",
-                year: "numeric",
-            }).format(date);
-        };
-
-        try {
-            const response = await fetch(`/api/subscription/trial`, {
-                method: "POST",
-            });
-            if (!response.ok) throw new Error("Failed to enable free trial");
-
-            const responseBody = await response.json();
-
-            // Set updated user settings
-            if (responseBody.trial_enabled && userConfig) {
-                let newUserConfig = userConfig;
-                newUserConfig.subscription_state = SubscriptionStates.TRIAL;
-                const renewalDate = new Date(
-                    Date.now() + userConfig.length_of_free_trial * 24 * 60 * 60 * 1000,
-                );
-                newUserConfig.subscription_renewal_date = formatDate(renewalDate);
-                newUserConfig.subscription_enabled_trial_at = new Date().toISOString();
-                setUserConfig(newUserConfig);
-
-                // Notify user of free trial
-                toast({
-                    title: "🎉 Trial Enabled",
-                    description: `Your free trial will end on ${newUserConfig.subscription_renewal_date}`,
-                });
-            }
-        } catch (error) {
-            console.error("Error enabling free trial:", error);
-            toast({
-                title: "⚠️ Failed to Enable Free Trial",
-                description:
-                    "Failed to enable free trial. Try again or contact us at team@khoj.dev",
-            });
-        }
-    };
-
     const saveName = async () => {
         if (!name) return;
         try {
@@ -912,7 +867,7 @@ export default function SettingsView() {
                                                                 Resubscribe
                                                             </Button>
                                                         )) ||
-                                                        (userConfig.subscription_enabled_trial_at && (
+                                                        (
                                                             <Button
                                                                 variant="outline"
                                                                 className="text-primary/80 hover:text-primary"
@@ -929,18 +884,6 @@ export default function SettingsView() {
                                                                     className="h-5 w-5 mr-2"
                                                                 />
                                                                 Subscribe
-                                                            </Button>
-                                                        )) || (
-                                                            <Button
-                                                                variant="outline"
-                                                                className="text-primary/80 hover:text-primary"
-                                                                onClick={enableFreeTrial}
-                                                            >
-                                                                <ArrowCircleUp
-                                                                    weight="bold"
-                                                                    className="h-5 w-5 mr-2"
-                                                                />
-                                                                Enable Trial
                                                             </Button>
                                                         )}
                                                 </CardFooter>
