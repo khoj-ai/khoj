@@ -375,6 +375,7 @@
 
     body {
         @apply bg-background text-foreground;
+        /* Prevent page-level scrolling - moved to chat-specific styles to avoid hiding scrollbars on other pages */
     }
 
     h1 {

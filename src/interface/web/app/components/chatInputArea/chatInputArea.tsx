@@ -111,6 +111,7 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
 
     const [progressValue, setProgressValue] = useState(0);
     const [isDragAndDropping, setIsDragAndDropping] = useState(false);
+    const [isDraggingOver, setIsDraggingOver] = useState(false);
 
     const [showCommandList, setShowCommandList] = useState(false);
     const [useResearchMode, setUseResearchMode] = useState<boolean>(
@@ -118,6 +119,7 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
     );
 
     const chatInputRef = ref as React.MutableRefObject<HTMLTextAreaElement>;
+    const commandRef = useRef<HTMLDivElement | null>(null);
     useEffect(() => {
         if (!uploading) {
             setProgressValue(0);
@@ -236,10 +238,21 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
     function handleDragAndDropFiles(event: React.DragEvent<HTMLDivElement>) {
         event.preventDefault();
         setIsDragAndDropping(false);
+        setIsDraggingOver(false);
 
         if (!event.dataTransfer.files) return;
 
         uploadFiles(event.dataTransfer.files);
+    }
+
+    function handlePaste(event: React.ClipboardEvent<HTMLDivElement>) {
+        if (!event.clipboardData) return;
+        const files = event.clipboardData.files;
+        if (files && files.length > 0) {
+            // Prevent default only when handling files so simple text paste remains intact
+            event.preventDefault();
+            uploadFiles(files);
+        }
     }
 
     function uploadFiles(files: FileList) {
@@ -321,8 +334,8 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
         } catch (error) {
             setError(
                 "Error converting files. " +
-                    error +
-                    ". Please try again, or contact team@khoj.dev if the issue persists.",
+                error +
+                ". Please try again, or contact team@khoj.dev if the issue persists.",
             );
             console.error("Error converting files:", error);
             return [];
@@ -421,11 +434,18 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
     function handleDragOver(event: React.DragEvent<HTMLDivElement>) {
         event.preventDefault();
         setIsDragAndDropping(true);
+        setIsDraggingOver(true);
+    }
+
+    function handleDragEnter(event: React.DragEvent<HTMLDivElement>) {
+        event.preventDefault();
+        setIsDraggingOver(true);
     }
 
     function handleDragLeave(event: React.DragEvent<HTMLDivElement>) {
         event.preventDefault();
         setIsDragAndDropping(false);
+        setIsDraggingOver(false);
     }
 
     function removeImageUpload(index: number) {
@@ -514,7 +534,7 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
                             sideOffset={props.conversationId ? 0 : 80}
                             alignOffset={0}
                         >
-                            <Command className="max-w-full">
+                            <Command ref={commandRef} className="max-w-full">
                                 <CommandInput
                                     placeholder="Type a command or search..."
                                     value={message}
@@ -643,10 +663,12 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
                         ))}
                 </div>
                 <div
-                    className={`${styles.actualInputArea} justify-between dark:bg-neutral-700 relative ${isDragAndDropping && "animate-pulse"}`}
+                    className={`${styles.actualInputArea} justify-between dark:bg-neutral-700 relative ${isDragAndDropping && "animate-pulse"} ${isDraggingOver ? styles.dragOver : ""}`}
                     onDragOver={handleDragOver}
+                    onDragEnter={handleDragEnter}
                     onDragLeave={handleDragLeave}
                     onDrop={handleDragAndDropFiles}
+                    onPaste={handlePaste}
                 >
                     <input
                         type="file"
@@ -689,6 +711,43 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
                             autoFocus={true}
                             value={message}
                             onKeyDown={(e) => {
+                                // When the slash command menu is visible, forward ArrowUp/ArrowDown
+                                // key events to the Command component so it can handle selection.
+                                // We dispatch a cloned KeyboardEvent on the Command DOM node and
+                                // then prevent the textarea from moving the caret.
+                                if (showCommandList && (e.key === "ArrowUp" || e.key === "ArrowDown")) {
+                                    if (commandRef.current) {
+                                        const forwardedEvent = new window.KeyboardEvent(e.type, {
+                                            key: e.key,
+                                            code: (e as any).code,
+                                            bubbles: true,
+                                            cancelable: true,
+                                            shiftKey: e.shiftKey,
+                                            ctrlKey: e.ctrlKey,
+                                            altKey: e.altKey,
+                                            metaKey: e.metaKey,
+                                        });
+                                        // Dispatch the cloned event on the Command element so the
+                                        // Command component's internal handler receives it.
+                                        commandRef.current.dispatchEvent(forwardedEvent);
+                                    }
+                                    // Prevent the textarea caret from moving after dispatching.
+                                    e.preventDefault();
+                                }
+
+                                // If the slash command menu is open, Enter should select the highlighted command
+                                if (showCommandList && e.key === "Enter" && !e.shiftKey) {
+                                    e.preventDefault();
+                                    const selectedEl = commandRef.current?.querySelector(
+                                        '[data-selected="true"]',
+                                    ) as HTMLElement | null;
+                                    if (selectedEl) {
+                                        selectedEl.click();
+                                    }
+                                    setShowCommandList(false);
+                                    return;
+                                }
+
                                 if (
                                     e.key === "Enter" &&
                                     !e.shiftKey &&

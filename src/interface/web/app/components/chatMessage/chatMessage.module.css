@@ -143,7 +143,7 @@ div.khoj div.imagesContainer {
     overflow-x: hidden;
 }
 
-div.chatMessageContainer > img {
+div.chatMessageContainer>img {
     width: auto;
     height: auto;
     max-width: 100%;
@@ -233,6 +233,45 @@ div.trainOfThoughtElement {
     display: grid;
     grid-template-columns: auto 1fr;
     align-items: start;
+}
+
+/* Ensure selection highlight is visible inside chat messages */
+.chatMessage *::selection,
+.chatMessage ::selection,
+.chatMessage *::-moz-selection,
+.chatMessage ::-moz-selection {
+    background: rgba(59, 130, 246, 0.35) !important;
+    color: inherit !important;
+    -webkit-text-fill-color: unset !important;
+}
+
+.dark .chatMessage *::selection,
+.dark .chatMessage ::selection,
+.dark .chatMessage *::-moz-selection,
+.dark .chatMessage ::-moz-selection {
+    background: rgba(99, 102, 241, 0.45) !important;
+    color: inherit !important;
+    -webkit-text-fill-color: unset !important;
+}
+
+/* Footer controls visibility toggle to avoid DOM mount/unmount while preserving selection */
+.chatFooterInner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    transition: opacity 120ms ease, transform 120ms ease;
+}
+
+.hiddenControls {
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(4px);
+}
+
+.visibleControls {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0);
 }
 
 div.trainOfThoughtElement ol,

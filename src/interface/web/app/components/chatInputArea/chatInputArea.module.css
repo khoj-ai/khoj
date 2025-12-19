@@ -2,3 +2,10 @@ div.actualInputArea {
     display: grid;
     grid-template-columns: auto 1fr auto auto;
 }
+
+/* Highlight when dragging files over the input area */
+.dragOver {
+    outline: 2px dashed rgba(59, 130, 246, 0.6);
+    /* blue-500 with transparency */
+    border-radius: 8px;
+}
