@@ -73,7 +73,7 @@ export async function updateContentIndex(vault: Vault, setting: KhojSetting, las
             if (fileTypeToExtension.image.includes(file.extension)) return setting.syncFileType.images;
             return false;
         })
-        // Filter files based on specified folders
+        // Filter files based on specified folders (include)
         .filter(file => {
             // If no folders are specified, sync all files
             if (setting.syncFolders.length === 0) return true;
@@ -81,11 +81,34 @@ export async function updateContentIndex(vault: Vault, setting: KhojSetting, las
             return setting.syncFolders.some(folder =>
                 file.path.startsWith(folder + '/') || file.path === folder
             );
+        })
+        // Filter out excluded folders
+        .filter(file => {
+            // If no folders are excluded, include all files
+            if (setting.excludeFolders.length === 0) return true;
+            // Exclude files in any of the excluded folders
+            return !setting.excludeFolders.some(folder =>
+                file.path.startsWith(folder + '/') || file.path === folder
+            );
         });
+
+    // Log total eligible files
+    console.log(`Khoj: Found ${files.length} eligible files in vault`);
 
     let countOfFilesToIndex = 0;
     let countOfFilesToDelete = 0;
     lastSync = lastSync.size > 0 ? lastSync : new Map<TFile, number>();
+
+    // Count files that need indexing (modified since last sync or regenerating)
+    const filesToSync = regenerate
+        ? files
+        : files.filter(file => file.stat.mtime >= (lastSync.get(file) ?? 0));
+
+    // Show notice with file counts when user triggers sync
+    if (userTriggered) {
+        new Notice(`🔄 Syncing ${filesToSync.length} of ${files.length} files to Khoj...`);
+    }
+    console.log(`Khoj: ${filesToSync.length} files to sync (${files.length} total eligible)`);
 
     // Add all files to index as multipart form data
     let fileData = [];
@@ -233,8 +256,9 @@ export async function updateContentIndex(vault: Vault, setting: KhojSetting, las
     if (error_message) {
         new Notice(error_message);
     } else {
-        if (userTriggered) new Notice('✅ Updated Khoj index.');
-        console.log(`✅ Refreshed Khoj content index. Updated: ${countOfFilesToIndex} files, Deleted: ${countOfFilesToDelete} files.`);
+        const summary = `Updated ${countOfFilesToIndex}, deleted ${countOfFilesToDelete} files`;
+        if (userTriggered) new Notice(`✅ ${summary}`);
+        console.log(`✅ Refreshed Khoj content index. ${summary}.`);
     }
 
     return lastSync;

@@ -36,6 +36,7 @@ export interface KhojSetting {
     syncFileType: SyncFileTypes;
     userInfo: UserInfo | null;
     syncFolders: string[];
+    excludeFolders: string[];
     syncInterval: number;
     autoVoiceResponse: boolean;
     fileAccessMode: 'none' | 'read' | 'write';
@@ -57,6 +58,7 @@ export const DEFAULT_SETTINGS: KhojSetting = {
     },
     userInfo: null,
     syncFolders: [],
+    excludeFolders: [],
     syncInterval: 60,
     autoVoiceResponse: true,
     fileAccessMode: 'read',
@@ -273,11 +275,11 @@ export class KhojSettingTab extends PluginSettingTab {
                     this.plugin.restartSyncTimer();
                 }));
 
-        // Add setting to manage sync folders
-        const syncFoldersContainer = containerEl.createDiv('sync-folders-container');
-        new Setting(syncFoldersContainer)
-            .setName('Sync Folders')
-            .setDesc('Specify folders to sync (leave empty to sync entire vault)')
+        // Add setting to manage include folders
+        const includeFoldersContainer = containerEl.createDiv('include-folders-container');
+        new Setting(includeFoldersContainer)
+            .setName('Include Folders')
+            .setDesc('Folders to sync (leave empty to sync entire vault)')
             .addButton(button => button
                 .setButtonText('Add Folder')
                 .onClick(() => {
@@ -285,15 +287,42 @@ export class KhojSettingTab extends PluginSettingTab {
                         if (!this.plugin.settings.syncFolders.includes(folder)) {
                             this.plugin.settings.syncFolders.push(folder);
                             this.plugin.saveSettings();
-                            this.updateFolderList(folderListEl);
+                            this.updateIncludeFolderList(includeFolderListEl);
                         }
                     });
                     modal.open();
                 }));
 
-        // Create a list to display selected folders
-        const folderListEl = syncFoldersContainer.createDiv('folder-list');
-        this.updateFolderList(folderListEl);
+        // Create a list to display selected include folders
+        const includeFolderListEl = includeFoldersContainer.createDiv('folder-list');
+        this.updateIncludeFolderList(includeFolderListEl);
+
+        // Add setting to manage exclude folders
+        const excludeFoldersContainer = containerEl.createDiv('exclude-folders-container');
+        new Setting(excludeFoldersContainer)
+            .setName('Exclude Folders')
+            .setDesc('Folders to exclude from sync (takes precedence over includes)')
+            .addButton(button => button
+                .setButtonText('Add Folder')
+                .onClick(() => {
+                    const modal = new FolderSuggestModal(this.app, (folder: string) => {
+                        // Don't allow excluding root folder
+                        if (folder === '') {
+                            new Notice('Cannot exclude the root folder');
+                            return;
+                        }
+                        if (!this.plugin.settings.excludeFolders.includes(folder)) {
+                            this.plugin.settings.excludeFolders.push(folder);
+                            this.plugin.saveSettings();
+                            this.updateExcludeFolderList(excludeFolderListEl);
+                        }
+                    });
+                    modal.open();
+                }));
+
+        // Create a list to display selected exclude folders
+        const excludeFolderListEl = excludeFoldersContainer.createDiv('folder-list');
+        this.updateExcludeFolderList(excludeFolderListEl);
 
         let indexVaultSetting = new Setting(containerEl);
         indexVaultSetting
@@ -441,19 +470,52 @@ export class KhojSettingTab extends PluginSettingTab {
         });
     }
 
-    // Helper method to update the folder list display
-    private updateFolderList(containerEl: HTMLElement) {
+    // Helper method to update the include folder list display
+    private updateIncludeFolderList(containerEl: HTMLElement) {
+        this.updateFolderList(
+            containerEl,
+            this.plugin.settings.syncFolders,
+            'Including entire vault',
+            async (folder) => {
+                this.plugin.settings.syncFolders = this.plugin.settings.syncFolders.filter(f => f !== folder);
+                await this.plugin.saveSettings();
+                this.updateIncludeFolderList(containerEl);
+            }
+        );
+    }
+
+    // Helper method to update the exclude folder list display
+    private updateExcludeFolderList(containerEl: HTMLElement) {
+        this.updateFolderList(
+            containerEl,
+            this.plugin.settings.excludeFolders,
+            'No folders excluded',
+            async (folder) => {
+                this.plugin.settings.excludeFolders = this.plugin.settings.excludeFolders.filter(f => f !== folder);
+                await this.plugin.saveSettings();
+                this.updateExcludeFolderList(containerEl);
+            }
+        );
+    }
+
+    // Shared helper to render a folder list with remove buttons
+    private updateFolderList(
+        containerEl: HTMLElement,
+        folders: string[],
+        emptyText: string,
+        onRemove: (folder: string) => void
+    ) {
         containerEl.empty();
-        if (this.plugin.settings.syncFolders.length === 0) {
+        if (folders.length === 0) {
             containerEl.createEl('div', {
-                text: 'Syncing entire vault',
+                text: emptyText,
                 cls: 'folder-list-empty'
             });
             return;
         }
 
         const list = containerEl.createEl('ul', { cls: 'folder-list' });
-        this.plugin.settings.syncFolders.forEach(folder => {
+        folders.forEach(folder => {
             const item = list.createEl('li', { cls: 'folder-list-item' });
             item.createSpan({ text: folder });
 
@@ -461,11 +523,7 @@ export class KhojSettingTab extends PluginSettingTab {
                 cls: 'folder-list-remove',
                 text: '×'
             });
-            removeButton.addEventListener('click', async () => {
-                this.plugin.settings.syncFolders = this.plugin.settings.syncFolders.filter(f => f !== folder);
-                await this.plugin.saveSettings();
-                this.updateFolderList(containerEl);
-            });
+            removeButton.addEventListener('click', () => onRemove(folder));
         });
     }
 }
