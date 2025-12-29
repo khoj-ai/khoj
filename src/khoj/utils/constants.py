@@ -3,6 +3,7 @@ from typing import Dict
 
 app_root_directory = Path(__file__).parent.parent.parent
 web_directory = app_root_directory / "khoj/interface/web/"
+home_directory = web_directory / "home/"
 next_js_directory = app_root_directory / "khoj/interface/built/"
 pypi_static_directory = app_root_directory / "khoj/interface/compiled/"
 assetlinks_file_path = web_directory / ".well-known/assetlinks.json"

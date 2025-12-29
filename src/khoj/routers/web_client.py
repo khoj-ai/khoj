@@ -8,17 +8,23 @@ from starlette.authentication import requires
 
 from khoj.database.adapters import get_user_github_config
 from khoj.routers.helpers import get_next_url, get_user_config
-from khoj.utils import constants
+from khoj.utils import constants, state
 from khoj.utils.rawconfig import GithubContentConfig, GithubRepoConfig
 
 # Initialize Router
 web_client = APIRouter()
 templates = Jinja2Templates([constants.web_directory, constants.next_js_directory, constants.pypi_static_directory])
+home_templates = Jinja2Templates([constants.home_directory])
 
 
 # Create Routes
 @web_client.get("/", response_class=FileResponse)
 def index(request: Request):
+    # Redirect unauthenticated users to /home landing page when not in anonymous mode
+    # Skip redirect if user explicitly navigated from home page (indicated by query param)
+    if not state.anonymous_mode and not request.user.is_authenticated:
+        if "v" not in request.query_params:
+            return RedirectResponse(url="/home")
     return templates.TemplateResponse("index.html", context={"request": request})
 
 
@@ -26,6 +32,21 @@ def index(request: Request):
 @requires(["authenticated"], redirect="login_page")
 def index_post(request: Request):
     return templates.TemplateResponse("index.html", context={"request": request})
+
+
+@web_client.get("/home", response_class=HTMLResponse)
+def home_page(request: Request):
+    """Serve the landing page for unauthenticated users"""
+    # If user is authenticated, redirect to main app
+    if request.user.is_authenticated:
+        return RedirectResponse(url="/")
+    return home_templates.TemplateResponse("index.html", context={"request": request})
+
+
+@web_client.get("/home/{file_path:path}", response_class=FileResponse)
+def home_static_files(file_path: str):
+    """Serve static files from the home landing page directory"""
+    return FileResponse(constants.home_directory / file_path)
 
 
 @web_client.get("/search", response_class=FileResponse)
