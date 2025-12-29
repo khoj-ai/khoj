@@ -1,6 +1,5 @@
 # System Packages
 import json
-import os
 
 from fastapi import APIRouter, Request
 from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
@@ -56,16 +55,10 @@ def login_page(request: Request):
     next_url = get_next_url(request)
     if request.user.is_authenticated:
         return RedirectResponse(url=next_url)
-    google_client_id = os.environ.get("GOOGLE_CLIENT_ID")
-    redirect_uri = str(request.app.url_path_for("auth_post"))
-    return templates.TemplateResponse(
-        "login.html",
-        context={
-            "request": request,
-            "google_client_id": google_client_id,
-            "redirect_uri": f"{redirect_uri}?next={next_url}",
-        },
-    )
+    # Redirect to main app which shows the login popup for unauthenticated users
+    # Append v=app to prevent redirect loop back to /home
+    redirect_url = f"/?v=app&next={next_url}" if next_url != "/" else "/?v=app"
+    return RedirectResponse(url=redirect_url)
 
 
 @web_client.get("/agents", response_class=HTMLResponse)
