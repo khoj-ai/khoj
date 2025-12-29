@@ -5,6 +5,7 @@ import logging
 import mimetypes
 import os
 import re
+import uuid
 from pathlib import Path
 from typing import Any, Callable, List, NamedTuple, Optional
 
@@ -271,6 +272,21 @@ async def execute_e2b(code: str, input_files: list[dict]) -> dict[str, Any]:
                 # Text files - encode utf-8 string as base64
                 b64_data = content
             output_files.append({"filename": f.name, "b64_data": b64_data})
+
+        # Collect output files from execution results
+        # Repect ordering of output result types to disregard text output associated with images
+        downloaded_dataset = {f["b64_data"] for f in output_files}
+        output_result_types = ["png", "jpeg", "svg", "text", "markdown", "json"]
+        for result in execution.results:
+            if getattr(result, "chart", None):
+                continue
+            for result_type in output_result_types:
+                b64_data = getattr(result, result_type, None)
+                # Generate random filename if not already downloaded
+                if b64_data and b64_data not in downloaded_dataset:
+                    filename = f"/tmp/{uuid.uuid4()}.{result_type}"
+                    output_files.append({"filename": filename, "b64_data": b64_data})
+                    break
 
         # collect logs
         success = not execution.error and not execution.logs.stderr
