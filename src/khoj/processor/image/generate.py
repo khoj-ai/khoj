@@ -324,8 +324,9 @@ def generate_image_with_google(
         contents = format_messages_for_gemini(improved_image_prompt, text2image_model, chat_history, query_images)
 
         # Configure image generation settings
+        image_size = "2K" if text2image_model.startswith("gemini-3") else None
         config = gtypes.GenerateContentConfig(
-            response_modalities=["IMAGE"], image_config=gtypes.ImageConfig(aspect_ratio=None)
+            response_modalities=["IMAGE"], image_config=gtypes.ImageConfig(aspect_ratio=None, image_size=image_size)
         )
 
         # Call the Gemini API to generate the image
