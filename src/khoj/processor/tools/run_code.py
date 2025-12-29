@@ -42,6 +42,7 @@ logger = logging.getLogger(__name__)
 
 SANDBOX_URL = os.getenv("KHOJ_TERRARIUM_URL")
 DEFAULT_E2B_TEMPLATE = "pmt2o0ghpang8gbiys57"
+HOME_DIR = "/home/user"
 
 
 class GeneratedCode(NamedTuple):
@@ -147,6 +148,7 @@ async def generate_python_code(
         chat_history=chat_history_str,
         context=context,
         has_network_access=network_access_context,
+        home_dir=HOME_DIR,
         current_date=utc_date,
         location=location,
         username=username,
@@ -243,7 +245,7 @@ async def execute_e2b(code: str, input_files: list[dict]) -> dict[str, Any]:
 
         # Note stored files before execution to identify new files created during execution
         E2bFile = NamedTuple("E2bFile", [("name", str), ("path", str)])
-        original_files = {E2bFile(f.name, f.path) for f in await sandbox.files.list("~")}
+        original_files = {E2bFile(f.name, f.path) for f in await sandbox.files.list(HOME_DIR, depth=1)}
 
         # Execute code from main.py file
         execution = await sandbox.run_code(code=code, timeout=60)
@@ -253,7 +255,7 @@ async def execute_e2b(code: str, input_files: list[dict]) -> dict[str, Any]:
         image_file_ext = {".png", ".jpeg", ".jpg", ".svg"}
 
         # Identify new files created during execution
-        new_files = set(E2bFile(f.name, f.path) for f in await sandbox.files.list("~")) - original_files
+        new_files = set(E2bFile(f.name, f.path) for f in await sandbox.files.list(HOME_DIR, depth=1)) - original_files
 
         # Read newly created files in parallel
         def read_format(f):
@@ -274,17 +276,17 @@ async def execute_e2b(code: str, input_files: list[dict]) -> dict[str, Any]:
             output_files.append({"filename": f.name, "b64_data": b64_data})
 
         # Collect output files from execution results
-        # Repect ordering of output result types to disregard text output associated with images
-        downloaded_dataset = {f["b64_data"] for f in output_files}
+        # Respect ordering of output result types to disregard text output associated with images
+        downloaded_datatypes = {f["filename"].split(".")[-1] for f in output_files}
         output_result_types = ["png", "jpeg", "svg", "text", "markdown", "json"]
         for result in execution.results:
             if getattr(result, "chart", None):
                 continue
             for result_type in output_result_types:
-                b64_data = getattr(result, result_type, None)
-                # Generate random filename if not already downloaded
-                if b64_data and b64_data not in downloaded_dataset:
-                    filename = f"/tmp/{uuid.uuid4()}.{result_type}"
+                if b64_data := getattr(result, result_type, None):
+                    if result_type in downloaded_datatypes:
+                        break
+                    filename = f"{HOME_DIR}/{uuid.uuid4()}.{result_type}"
                     output_files.append({"filename": filename, "b64_data": b64_data})
                     break
 
