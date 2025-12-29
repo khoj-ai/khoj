@@ -279,7 +279,7 @@ export class KhojSettingTab extends PluginSettingTab {
         const includeFoldersContainer = containerEl.createDiv('include-folders-container');
         new Setting(includeFoldersContainer)
             .setName('Include Folders')
-            .setDesc('Folders to include in sync (empty = entire vault)')
+            .setDesc('Folders to sync (leave empty to sync entire vault)')
             .addButton(button => button
                 .setButtonText('Add Folder')
                 .onClick(() => {
@@ -301,7 +301,7 @@ export class KhojSettingTab extends PluginSettingTab {
         const excludeFoldersContainer = containerEl.createDiv('exclude-folders-container');
         new Setting(excludeFoldersContainer)
             .setName('Exclude Folders')
-            .setDesc('Folders to exclude from sync')
+            .setDesc('Folders to exclude from sync (takes precedence over includes)')
             .addButton(button => button
                 .setButtonText('Add Folder')
                 .onClick(() => {
@@ -472,45 +472,50 @@ export class KhojSettingTab extends PluginSettingTab {
 
     // Helper method to update the include folder list display
     private updateIncludeFolderList(containerEl: HTMLElement) {
-        containerEl.empty();
-        if (this.plugin.settings.syncFolders.length === 0) {
-            containerEl.createEl('div', {
-                text: 'Including entire vault',
-                cls: 'folder-list-empty'
-            });
-            return;
-        }
-
-        const list = containerEl.createEl('ul', { cls: 'folder-list' });
-        this.plugin.settings.syncFolders.forEach(folder => {
-            const item = list.createEl('li', { cls: 'folder-list-item' });
-            item.createSpan({ text: folder });
-
-            const removeButton = item.createEl('button', {
-                cls: 'folder-list-remove',
-                text: '×'
-            });
-            removeButton.addEventListener('click', async () => {
+        this.updateFolderList(
+            containerEl,
+            this.plugin.settings.syncFolders,
+            'Including entire vault',
+            async (folder) => {
                 this.plugin.settings.syncFolders = this.plugin.settings.syncFolders.filter(f => f !== folder);
                 await this.plugin.saveSettings();
                 this.updateIncludeFolderList(containerEl);
-            });
-        });
+            }
+        );
     }
 
     // Helper method to update the exclude folder list display
     private updateExcludeFolderList(containerEl: HTMLElement) {
+        this.updateFolderList(
+            containerEl,
+            this.plugin.settings.excludeFolders,
+            'No folders excluded',
+            async (folder) => {
+                this.plugin.settings.excludeFolders = this.plugin.settings.excludeFolders.filter(f => f !== folder);
+                await this.plugin.saveSettings();
+                this.updateExcludeFolderList(containerEl);
+            }
+        );
+    }
+
+    // Shared helper to render a folder list with remove buttons
+    private updateFolderList(
+        containerEl: HTMLElement,
+        folders: string[],
+        emptyText: string,
+        onRemove: (folder: string) => void
+    ) {
         containerEl.empty();
-        if (this.plugin.settings.excludeFolders.length === 0) {
+        if (folders.length === 0) {
             containerEl.createEl('div', {
-                text: 'No folders excluded',
+                text: emptyText,
                 cls: 'folder-list-empty'
             });
             return;
         }
 
         const list = containerEl.createEl('ul', { cls: 'folder-list' });
-        this.plugin.settings.excludeFolders.forEach(folder => {
+        folders.forEach(folder => {
             const item = list.createEl('li', { cls: 'folder-list-item' });
             item.createSpan({ text: folder });
 
@@ -518,11 +523,7 @@ export class KhojSettingTab extends PluginSettingTab {
                 cls: 'folder-list-remove',
                 text: '×'
             });
-            removeButton.addEventListener('click', async () => {
-                this.plugin.settings.excludeFolders = this.plugin.settings.excludeFolders.filter(f => f !== folder);
-                await this.plugin.saveSettings();
-                this.updateExcludeFolderList(containerEl);
-            });
+            removeButton.addEventListener('click', () => onRemove(folder));
         });
     }
 }
