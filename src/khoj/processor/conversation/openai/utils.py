@@ -58,6 +58,8 @@ openai_async_clients: Dict[str, openai.AsyncOpenAI] = {}
 # Default completion tokens
 # Reduce premature termination, especially when streaming structured responses
 MAX_COMPLETION_TOKENS = 16000
+# Groq API has a lower limit for max_completion_tokens
+GROQ_MAX_COMPLETION_TOKENS = 8192
 
 
 def _extract_text_for_instructions(content: Union[str, List, Dict, None]) -> str:
@@ -115,7 +117,10 @@ def completion_with_backoff(
 
     model_kwargs["temperature"] = temperature
     model_kwargs["top_p"] = model_kwargs.get("top_p", 0.95)
-    model_kwargs["max_completion_tokens"] = model_kwargs.get("max_completion_tokens", MAX_COMPLETION_TOKENS)
+    default_max_tokens = GROQ_MAX_COMPLETION_TOKENS if is_groq_api(api_base_url) else MAX_COMPLETION_TOKENS
+    model_kwargs["max_completion_tokens"] = min(
+        model_kwargs.get("max_completion_tokens", default_max_tokens), default_max_tokens
+    )
 
     formatted_messages = format_message_for_api(messages, model_name, api_base_url)
 
@@ -308,7 +313,10 @@ async def chat_completion_with_backoff(
         model_kwargs.pop("stream_options", None)
 
     model_kwargs["top_p"] = model_kwargs.get("top_p", 0.95)
-    model_kwargs["max_completion_tokens"] = model_kwargs.get("max_completion_tokens", MAX_COMPLETION_TOKENS)
+    default_max_tokens = GROQ_MAX_COMPLETION_TOKENS if is_groq_api(api_base_url) else MAX_COMPLETION_TOKENS
+    model_kwargs["max_completion_tokens"] = min(
+        model_kwargs.get("max_completion_tokens", default_max_tokens), default_max_tokens
+    )
 
     formatted_messages = format_message_for_api(messages, model_name, api_base_url)
 
