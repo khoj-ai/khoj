@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
+import { Switch } from "@/components/ui/switch";
 
 import {
     DropdownMenu,
@@ -335,6 +336,8 @@ export default function SettingsView() {
         PhoneNumberValidationState.Verified,
     );
     const [memories, setMemories] = useState<UserMemorySchema[]>([]);
+    const [enableMemory, setEnableMemory] = useState<boolean>(true);
+    const [serverMemoryMode, setServerMemoryMode] = useState<string>("enabled_default_on");
     const [isExporting, setIsExporting] = useState(false);
     const [exportProgress, setExportProgress] = useState(0);
     const [exportedConversations, setExportedConversations] = useState(0);
@@ -359,6 +362,8 @@ export default function SettingsView() {
         );
         setName(initialUserConfig?.given_name);
         setNotionToken(initialUserConfig?.notion_token ?? null);
+        setEnableMemory(initialUserConfig?.enable_memory ?? true);
+        setServerMemoryMode(initialUserConfig?.server_memory_mode ?? "enabled_default_on");
     }, [initialUserConfig]);
 
     const sendOTP = async () => {
@@ -686,6 +691,29 @@ export default function SettingsView() {
             toast({
                 title: "Error",
                 description: "Failed to update memory. Please try again.",
+                variant: "destructive"
+            });
+        }
+    };
+
+    const handleToggleMemory = async (enabled: boolean) => {
+        try {
+            const response = await fetch(`/api/user/memory?enable_memory=${enabled}`, {
+                method: 'PATCH',
+            });
+            if (!response.ok) throw new Error('Failed to update memory setting');
+            setEnableMemory(enabled);
+            toast({
+                title: enabled ? "Memory enabled" : "Memory disabled",
+                description: enabled
+                    ? "Khoj will learn and remember from your conversations."
+                    : "Khoj will no longer learn or remember from your conversations.",
+            });
+        } catch (error) {
+            console.error('Error toggling memory:', error);
+            toast({
+                title: "Error",
+                description: "Failed to update memory setting. Please try again.",
                 variant: "destructive"
             });
         }
@@ -1292,6 +1320,25 @@ export default function SettingsView() {
                                                     <p className="pb-4 text-gray-400">
                                                         View and manage your long-term memories
                                                     </p>
+                                                    <div className="flex items-center justify-between">
+                                                        <label
+                                                            htmlFor="enable-memory"
+                                                            className={`text-sm font-medium leading-none ${serverMemoryMode === "disabled" ? "text-gray-400" : ""}`}
+                                                        >
+                                                            Enable Memory
+                                                        </label>
+                                                        <Switch
+                                                            id="enable-memory"
+                                                            checked={enableMemory}
+                                                            onCheckedChange={(checked) => handleToggleMemory(checked)}
+                                                            disabled={serverMemoryMode === "disabled"}
+                                                        />
+                                                    </div>
+                                                    {serverMemoryMode === "disabled" && (
+                                                        <p className="text-xs text-gray-400 mt-2">
+                                                            Memory has been disabled by the server administrator.
+                                                        </p>
+                                                    )}
                                                 </CardContent>
                                                 <CardFooter className="flex flex-wrap gap-4">
                                                     <Dialog onOpenChange={(open) => open && fetchMemories()}>

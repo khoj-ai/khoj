@@ -8,7 +8,7 @@ from django.db import migrations, models
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("database", "0094_serverchatsettings_think_free_deep_and_more"),
+        ("database", "0098_alter_texttoimagemodelconfig_model_type"),
     ]
 
     operations = [
@@ -59,5 +59,24 @@ class Migration(migrations.Migration):
             options={
                 "abstract": False,
             },
+        ),
+        migrations.AddField(
+            model_name="userconversationconfig",
+            name="enable_memory",
+            field=models.BooleanField(default=True),
+        ),
+        migrations.AddField(
+            model_name="serverchatsettings",
+            name="memory_mode",
+            field=models.CharField(
+                choices=[
+                    ("disabled", "Disabled"),
+                    ("enabled_default_off", "Enabled, default off"),
+                    ("enabled_default_on", "Enabled, default on"),
+                ],
+                default="enabled_default_on",
+                help_text="Server-level memory feature configuration. Disabled overrides user preference.",
+                max_length=20,
+            ),
         ),
     ]

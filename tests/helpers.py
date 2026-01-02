@@ -15,6 +15,7 @@ from khoj.database.models import (
     KhojUser,
     ProcessLock,
     SearchModelConfig,
+    ServerChatSettings,
     Subscription,
     UserConversationConfig,
 )
@@ -277,3 +278,10 @@ class ProcessLockFactory(factory.django.DjangoModelFactory):
         model = ProcessLock
 
     name = "test_lock"
+
+
+class ServerChatSettingsFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = ServerChatSettings
+
+    memory_mode = ServerChatSettings.MemoryMode.ENABLED_DEFAULT_ON

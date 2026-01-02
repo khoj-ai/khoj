@@ -297,6 +297,7 @@ class ServerChatSettingsAdmin(unfold_admin.ModelAdmin):
         "think_paid_fast",
         "think_paid_deep",
         "web_scraper",
+        "memory_mode",
     )
     ordering = ("priority",)
 

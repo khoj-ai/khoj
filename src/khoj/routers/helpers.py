@@ -68,6 +68,7 @@ from khoj.database.models import (
     NotionConfig,
     ProcessLock,
     RateLimitRecord,
+    ServerChatSettings,
     Subscription,
     TextToImageModelConfig,
     UserMemory,
@@ -1036,6 +1037,10 @@ async def ai_update_memories(
     """
     Updates the memories for a given user, based on their latest input query.
     """
+    # Skip memory updates if memory is disabled for the user
+    if not await ConversationAdapters.ais_memory_enabled(user):
+        return
+
     memory_update = await extract_facts_from_query(
         user=user, conversation_history=conversation_history, existing_facts=memories, agent=agent, tracer=tracer
     )
@@ -2905,6 +2910,13 @@ def get_user_config(user: KhojUser, request: Request, is_detailed: bool = False)
     selected_chat_model_config = ConversationAdapters.get_chat_model(
         user
     ) or ConversationAdapters.get_default_chat_model(user)
+    server_chat_settings = ServerChatSettings.objects.first()
+    server_memory_mode = (
+        server_chat_settings.memory_mode
+        if server_chat_settings
+        else ServerChatSettings.MemoryMode.ENABLED_DEFAULT_ON.value  # type: ignore[attr-defined]
+    )
+    enable_memory = ConversationAdapters.is_memory_enabled(user)
     chat_models = ConversationAdapters.get_conversation_processor_options().all()
     chat_model_options = list()
     for chat_model in chat_models:
@@ -2961,6 +2973,8 @@ def get_user_config(user: KhojUser, request: Request, is_detailed: bool = False)
         "enabled_content_source": enabled_content_sources,
         "has_documents": has_documents,
         "notion_token": notion_token,
+        "enable_memory": enable_memory,
+        "server_memory_mode": server_memory_mode,
         # user model settings
         "chat_model_options": chat_model_options,
         "selected_chat_model_config": selected_chat_model_config.id if selected_chat_model_config else None,

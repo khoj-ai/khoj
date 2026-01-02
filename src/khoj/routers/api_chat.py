@@ -963,12 +963,13 @@ async def event_generator(
         location = LocationData(city=city, region=region, country=country, country_code=country_code)
     chat_history = conversation.messages
 
-    # Get most recent memories and long term relevant memories
-    recent_memories = await UserMemoryAdapters.pull_memories(user=user, agent=agent)
-    long_term_memories = await UserMemoryAdapters.search_memories(query=q, user=user, agent=agent)
-
-    # Create a de-duped set of memories
-    relevant_memories = list({m.id: m for m in recent_memories + long_term_memories}.values())
+    # Get most recent memories and long term relevant memories if memory is enabled
+    relevant_memories = []
+    if await ConversationAdapters.ais_memory_enabled(user):
+        recent_memories = await UserMemoryAdapters.pull_memories(user=user, agent=agent)
+        long_term_memories = await UserMemoryAdapters.search_memories(query=q, user=user, agent=agent)
+        # Create a de-duped set of memories
+        relevant_memories = list({m.id: m for m in recent_memories + long_term_memories}.values())
 
     # If interrupted message in DB
     if last_message := await conversation.pop_message(interrupted=True):

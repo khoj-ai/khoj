@@ -478,6 +478,13 @@ class ServerChatSettings(DbBaseModel):
         THINK_PAID_FAST = "think_paid_fast"
         THINK_PAID_DEEP = "think_paid_deep"
 
+    class MemoryMode(models.TextChoices):
+        """Enum for server-level memory feature configuration"""
+
+        DISABLED = "disabled", "Disabled"
+        ENABLED_DEFAULT_OFF = "enabled_default_off", "Enabled, default off"
+        ENABLED_DEFAULT_ON = "enabled_default_on", "Enabled, default on"
+
     chat_default = models.ForeignKey(
         ChatModel, on_delete=models.CASCADE, default=None, null=True, blank=True, related_name="chat_default"
     )
@@ -505,6 +512,12 @@ class ServerChatSettings(DbBaseModel):
         blank=True,
         unique=True,
         help_text="Priority of the server chat settings. Lower numbers run first.",
+    )
+    memory_mode = models.CharField(
+        max_length=20,
+        choices=MemoryMode.choices,
+        default=MemoryMode.ENABLED_DEFAULT_ON,
+        help_text="Server-level memory feature configuration. Disabled overrides user preference.",
     )
 
     def clean(self):
@@ -629,6 +642,7 @@ class SpeechToTextModelOptions(DbBaseModel):
 class UserConversationConfig(DbBaseModel):
     user = models.OneToOneField(KhojUser, on_delete=models.CASCADE)
     setting = models.ForeignKey(ChatModel, on_delete=models.CASCADE, default=None, null=True, blank=True)
+    enable_memory = models.BooleanField(default=True)
 
 
 class UserVoiceModelConfig(DbBaseModel):

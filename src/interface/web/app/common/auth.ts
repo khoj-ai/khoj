@@ -63,6 +63,8 @@ export interface UserConfig {
     enabled_content_source: SyncedContent;
     has_documents: boolean;
     notion_token: string | null;
+    enable_memory: boolean;
+    server_memory_mode: "disabled" | "enabled_default_off" | "enabled_default_on";
     // user model settings
     search_model_options: ModelOptions[];
     selected_search_model_config: number;

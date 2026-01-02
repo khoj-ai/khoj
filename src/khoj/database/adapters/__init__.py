@@ -1614,6 +1614,85 @@ class ConversationAdapters:
         return config.setting
 
     @staticmethod
+    async def ais_memory_enabled(user: KhojUser) -> bool:
+        """
+        Check if memory is enabled for the user based on server config and user preference.
+
+        Logic:
+        - If server memory_mode is DISABLED: return False (overrides user preference)
+        - If server memory_mode is ENABLED_DEFAULT_OFF: use user preference if set, else False
+        - If server memory_mode is ENABLED_DEFAULT_ON: use user preference if set, else True
+        - If no server config exists: default to True
+        """
+        # Get server-level memory configuration
+        server_settings = await ServerChatSettings.objects.afirst()
+        if server_settings:
+            memory_mode = server_settings.memory_mode
+            # Disabled mode overrides all user preferences
+            if memory_mode == ServerChatSettings.MemoryMode.DISABLED:
+                return False
+
+            # Get user preference
+            user_config = await UserConversationConfig.objects.filter(user=user).afirst()
+
+            if memory_mode == ServerChatSettings.MemoryMode.ENABLED_DEFAULT_OFF:
+                # User must explicitly opt-in; check if user has set a preference
+                if user_config is None:
+                    return False  # Default off for new users
+                return user_config.enable_memory
+
+            # ENABLED_DEFAULT_ON: use user preference if set, else True
+            if user_config is None:
+                return True  # Default on for new users
+            return user_config.enable_memory
+
+        # No server config - default behavior (enabled, default on)
+        user_config = await UserConversationConfig.objects.filter(user=user).afirst()
+        if user_config is None:
+            return True
+        return user_config.enable_memory
+
+    @staticmethod
+    def is_memory_enabled(user: KhojUser) -> bool:
+        """
+        Sync version of ais_memory_enabled.
+        Check if memory is enabled for the user based on server config and user preference.
+
+        Logic:
+        - If server memory_mode is DISABLED: return False (overrides user preference)
+        - If server memory_mode is ENABLED_DEFAULT_OFF: use user preference if set, else False
+        - If server memory_mode is ENABLED_DEFAULT_ON: use user preference if set, else True
+        - If no server config exists: default to True
+        """
+        # Get server-level memory configuration
+        server_settings = ServerChatSettings.objects.first()
+        if server_settings:
+            memory_mode = server_settings.memory_mode
+            # Disabled mode overrides all user preferences
+            if memory_mode == ServerChatSettings.MemoryMode.DISABLED:
+                return False
+
+            # Get user preference
+            user_config = UserConversationConfig.objects.filter(user=user).first()
+
+            if memory_mode == ServerChatSettings.MemoryMode.ENABLED_DEFAULT_OFF:
+                # User must explicitly opt-in; check if user has set a preference
+                if user_config is None:
+                    return False  # Default off for new users
+                return user_config.enable_memory
+
+            # ENABLED_DEFAULT_ON: use user preference if set, else True
+            if user_config is None:
+                return True  # Default on for new users
+            return user_config.enable_memory
+
+        # No server config - default behavior (enabled, default on)
+        user_config = UserConversationConfig.objects.filter(user=user).first()
+        if user_config is None:
+            return True
+        return user_config.enable_memory
+
+    @staticmethod
     async def get_speech_to_text_config():
         return await SpeechToTextModelOptions.objects.filter().prefetch_related("ai_model_api").afirst()
 
