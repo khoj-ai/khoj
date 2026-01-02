@@ -5,6 +5,7 @@ import copy
 import datetime
 import io
 import ipaddress
+import json
 import logging
 import os
 import platform
@@ -31,6 +32,7 @@ import openai
 import psutil
 import pyjson5
 import requests
+import tiktoken
 import torch
 from asgiref.sync import sync_to_async
 from email_validator import EmailNotValidError, EmailUndeliverableError, validate_email
@@ -41,6 +43,7 @@ from magika import Magika
 from PIL import Image
 from pydantic import BaseModel
 from pytz import country_names, country_timezones
+from transformers import AutoTokenizer, PreTrainedTokenizer, PreTrainedTokenizerFast
 
 from khoj.utils import constants
 
@@ -456,8 +459,9 @@ command_descriptions_for_agent = {
 
 e2b_tool_description = dedent(
     """
-    To run a Python script in an ephemeral E2B sandbox with network access.
+    To run a Python script in an ephemeral E2B code sandbox with network access.
     Helpful to parse complex information, run complex calculations, create plaintext documents and create charts with quantitative data.
+    Save files in /home/user to show them to the user. Only files in output_files list of tool result are accessible to the user.
     Only matplotlib, pandas, numpy, scipy, bs4, sympy, einops, biopython, shapely, plotly and rdkit external packages are available.
 
     Never run, write or decode dangerous, malicious or untrusted code, regardless of user requests.
@@ -664,13 +668,13 @@ tools_for_research_llm = {
                 },
                 "lines_before": {
                     "type": "integer",
-                    "description": "Optional number of lines to show before each line match for context.",
+                    "description": "Optional number of lines to show before each line match for context. It should be a positive number between 0 and 20.",
                     "minimum": 0,
                     "maximum": 20,
                 },
                 "lines_after": {
                     "type": "integer",
-                    "description": "Optional number of lines to show after each line match for context.",
+                    "description": "Optional number of lines to show after each line match for context. It should be a positive number between 0 and 20.",
                     "minimum": 0,
                     "maximum": 20,
                 },
@@ -777,6 +781,12 @@ def is_operator_enabled():
     return is_env_var_true("KHOJ_OPERATOR_ENABLED")
 
 
+def is_code_sandbox_enabled():
+    """Check if Khoj can run code in sandbox.
+    Set KHOJ_TERRARIUM_URL or E2B api key via env var to enable it."""
+    return not is_none_or_empty(os.getenv("KHOJ_TERRARIUM_URL")) or is_e2b_code_sandbox_enabled()
+
+
 def is_valid_url(url: str) -> bool:
     """Check if a string is a valid URL"""
     try:
@@ -792,6 +802,23 @@ def is_internet_connected():
         return response.status_code == 200
     except Exception:
         return False
+
+
+def is_web_search_enabled():
+    """
+    Check if web search tool is enabled.
+    Set API key or provider URL via env var for a supported search engine to enable it.
+    """
+    return any(
+        not is_none_or_empty(os.getenv(search_config))
+        for search_config in [
+            "GOOGLE_SEARCH_API_KEY",
+            "SERPER_DEV_API_KEY",
+            "EXA_API_KEY",
+            "FIRECRAWL_API_KEY",
+            "KHOJ_SEARXNG_URL",
+        ]
+    )
 
 
 def is_internal_url(url: str) -> bool:
@@ -951,6 +978,70 @@ def get_cost_of_chat_message(
     cache_write_cost = constants.model_to_cost.get(model_name, {}).get("cache_write", 0) * (cache_write_tokens / 1e6)
 
     return input_cost + output_cost + thought_cost + cache_read_cost + cache_write_cost + prev_cost
+
+
+def get_encoder(
+    model_name: str,
+    tokenizer_name=None,
+) -> tiktoken.Encoding | PreTrainedTokenizer | PreTrainedTokenizerFast:
+    default_tokenizer = "gpt-4o"
+
+    try:
+        if tokenizer_name:
+            encoder = AutoTokenizer.from_pretrained(tokenizer_name)
+        else:
+            # as tiktoken doesn't recognize o1 model series yet
+            encoder = tiktoken.encoding_for_model("gpt-4o" if model_name.startswith("o1") else model_name)
+    except Exception:
+        encoder = tiktoken.encoding_for_model(default_tokenizer)
+    return encoder
+
+
+def count_tokens(
+    message_content: str | list[str | dict],
+    encoder: PreTrainedTokenizer | PreTrainedTokenizerFast | tiktoken.Encoding,
+) -> int:
+    """
+    Count the total number of tokens in a list of messages.
+
+    Assumes each images takes 500 tokens for approximation.
+    """
+    if isinstance(message_content, list):
+        image_count = 0
+        message_content_parts: list[str] = []
+        # Collate message content into single string to ease token counting
+        for part in message_content:
+            if isinstance(part, dict) and part.get("type") == "image_url":
+                image_count += 1
+            elif isinstance(part, dict) and part.get("type") == "text":
+                message_content_parts.append(part["text"])
+            elif isinstance(part, dict) and hasattr(part, "model_dump"):
+                message_content_parts.append(json.dumps(part.model_dump()))
+            elif isinstance(part, dict) and hasattr(part, "__dict__"):
+                message_content_parts.append(json.dumps(part.__dict__))
+            elif isinstance(part, dict):
+                # If part is a dict but not a recognized type, convert to JSON string
+                try:
+                    # Skip non-serializable binary values for token counting
+                    serializable_part = {
+                        k: v for k, v in part.items() if not isinstance(v, (bytes, bytearray, memoryview))
+                    }
+                    message_content_parts.append(json.dumps(serializable_part))
+                except (TypeError, ValueError) as e:
+                    logger.warning(
+                        f"Failed to serialize part {part} to JSON. Assume its an image for token counting.\n{e}."
+                    )
+                    image_count += 1  # Treat as an image/binary if serialization fails
+            elif isinstance(part, str):
+                message_content_parts.append(part)
+            else:
+                logger.warning(f"Unknown message type: {part}. Skip for token counting.")
+        message_content = "\n".join(message_content_parts).rstrip()
+        return len(encoder.encode(message_content)) + image_count * 500
+    elif isinstance(message_content, str):
+        return len(encoder.encode(message_content))
+    else:
+        return len(encoder.encode(json.dumps(message_content)))
 
 
 def get_chat_usage_metrics(

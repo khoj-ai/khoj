@@ -16,6 +16,7 @@ import {
 } from "@/app/components/referencePanel/referencePanel";
 import { renderCodeGenImageInline } from "@/app/common/chatFunctions";
 import { fileLinksPlugin } from "@/app/components/chatMessage/fileLinksPlugin";
+import { imageValidationPlugin } from "@/app/components/chatMessage/imageValidationPlugin";
 import FileContentSnippet from "@/app/components/chatMessage/FileContentSnippet";
 import { useFileContent } from "@/app/components/chatMessage/useFileContent";
 
@@ -75,6 +76,7 @@ md.use(mditHljs, {
 });
 
 md.use(fileLinksPlugin);
+md.use(imageValidationPlugin);
 
 export interface Context {
     compiled: string;
@@ -312,11 +314,15 @@ function chooseIconFromHeader(header: string, iconColor: string) {
         return <Toolbox className={`${classNames}`} />;
     }
 
-    if (compareHeader.includes("notes")) {
+    if (
+        compareHeader.includes("notes") ||
+        compareHeader.includes("documents") ||
+        compareHeader.includes("files")
+    ) {
         return <Folder className={`${classNames}`} />;
     }
 
-    if (compareHeader.includes("read")) {
+    if (compareHeader.includes("browsing")) {
         return <Book className={`${classNames}`} />;
     }
 
@@ -393,6 +399,43 @@ export function TrainOfThought(props: TrainOfThoughtProps) {
     );
 }
 
+// Clean mermaid chart by removing/fixing invalid syntax patterns
+function cleanMermaidChart(chart: string): string {
+    return chart
+        .split("\n")
+        .filter((line) => !line.trim().match(/^title\s*\[.*\]\s*$/i)) // Remove invalid title[...] lines
+        .map((line) => {
+            // Fix parentheses inside square bracket node labels: [Text (with parens)]
+            // Mermaid interprets () as special syntax, so we need to quote the content
+            // Replace [Label (text)] with ["Label (text)"]
+            return line.replace(/\[([^\]]*\([^\]]*\)[^\]]*)\]/g, '["$1"]');
+        })
+        .join("\n");
+}
+
+// Extract mermaid code blocks from markdown content
+function extractMermaidBlocks(content: string): { cleanedContent: string; mermaidBlocks: string[] } {
+    const mermaidBlocks: string[] = [];
+    // Match ```mermaid ... ``` code blocks
+    // Allow optional whitespace before/after delimiters and handle various line endings
+    const mermaidRegex = /```\s*mermaid\s*\r?\n([\s\S]*?)```/gi;
+
+    const cleanedContent = content.replace(mermaidRegex, (match, mermaidCode) => {
+        const trimmedCode = mermaidCode.trim();
+        if (trimmedCode) {
+            // Clean the mermaid chart before adding
+            const cleanedChart = cleanMermaidChart(trimmedCode);
+            if (cleanedChart.trim()) {
+                mermaidBlocks.push(cleanedChart);
+            }
+        }
+        // Replace with empty string to remove from markdown
+        return "";
+    });
+
+    return { cleanedContent, mermaidBlocks };
+}
+
 const ChatMessage = forwardRef<HTMLDivElement, ChatMessageProps>((props, ref) => {
     const [copySuccess, setCopySuccess] = useState<boolean>(false);
     const [isHovering, setIsHovering] = useState<boolean>(false);
@@ -402,6 +445,7 @@ const ChatMessage = forwardRef<HTMLDivElement, ChatMessageProps>((props, ref) =>
     const [interrupted, setInterrupted] = useState<boolean>(false);
     const [excalidrawData, setExcalidrawData] = useState<string>("");
     const [mermaidjsData, setMermaidjsData] = useState<string>("");
+    const [inlineMermaidBlocks, setInlineMermaidBlocks] = useState<string[]>([]);
 
     // State for file content preview on file link click, hover
     const [previewOpen, setPreviewOpen] = useState<boolean>(false);
@@ -465,6 +509,11 @@ const ChatMessage = forwardRef<HTMLDivElement, ChatMessageProps>((props, ref) =>
         if (props.chatMessage.mermaidjsDiagram) {
             setMermaidjsData(props.chatMessage.mermaidjsDiagram);
         }
+
+        // Extract mermaid blocks from the message content
+        const { cleanedContent, mermaidBlocks } = extractMermaidBlocks(message);
+        message = cleanedContent;
+        setInlineMermaidBlocks(mermaidBlocks);
 
         // Replace file links with base64 data
         message = renderCodeGenImageInline(message, props.chatMessage.codeContext);
@@ -721,7 +770,22 @@ const ChatMessage = forwardRef<HTMLDivElement, ChatMessageProps>((props, ref) =>
 
     function formatDate(timestamp: string) {
         // Format date in HH:MM, DD MMM YYYY format
-        let date = new Date(timestamp + "Z");
+        // Handle timestamps in "YYYY-MM-DD HH:MM:SS" format from backend
+        let date: Date;
+        if (timestamp.includes(" ") && !timestamp.includes("T")) {
+            // Convert "YYYY-MM-DD HH:MM:SS" to ISO format
+            date = new Date(timestamp.replace(" ", "T") + "Z");
+        } else if (!timestamp.endsWith("Z")) {
+            date = new Date(timestamp + "Z");
+        } else {
+            date = new Date(timestamp);
+        }
+
+        // Check if date is valid
+        if (isNaN(date.getTime())) {
+            return "Invalid Date";
+        }
+
         let time_string = date
             .toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true })
             .toUpperCase();
@@ -1044,6 +1108,9 @@ const ChatMessage = forwardRef<HTMLDivElement, ChatMessageProps>((props, ref) =>
                 </Dialog>
                 {excalidrawData && <ExcalidrawComponent data={excalidrawData} />}
                 {mermaidjsData && <Mermaid chart={mermaidjsData} />}
+                {inlineMermaidBlocks.map((chart, index) => (
+                    <Mermaid key={`inline-mermaid-${index}`} chart={chart} />
+                ))}
             </div>
             <div className={styles.teaserReferencesContainer}>
                 <TeaserReferencesSection

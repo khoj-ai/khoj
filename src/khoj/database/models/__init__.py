@@ -393,7 +393,7 @@ class WebScraper(DbBaseModel):
     class WebScraperType(models.TextChoices):
         FIRECRAWL = "Firecrawl"
         OLOSTEP = "Olostep"
-        JINA = "Jina"
+        EXA = "Exa"
         DIRECT = "Direct"
 
     name = models.CharField(
@@ -404,7 +404,7 @@ class WebScraper(DbBaseModel):
         unique=True,
         help_text="Friendly name. If not set, it will be set to the type of the scraper.",
     )
-    type = models.CharField(max_length=20, choices=WebScraperType.choices, default=WebScraperType.JINA)
+    type = models.CharField(max_length=20, choices=WebScraperType.choices, default=WebScraperType.DIRECT)
     api_key = models.CharField(
         max_length=200,
         default=None,
@@ -436,8 +436,8 @@ class WebScraper(DbBaseModel):
                 self.api_url = os.getenv("FIRECRAWL_API_URL", "https://api.firecrawl.dev")
             elif self.type == self.WebScraperType.OLOSTEP:
                 self.api_url = os.getenv("OLOSTEP_API_URL", "https://agent.olostep.com/olostep-p2p-incomingAPI")
-            elif self.type == self.WebScraperType.JINA:
-                self.api_url = os.getenv("JINA_READER_API_URL", "https://r.jina.ai/")
+            elif self.type == self.WebScraperType.EXA:
+                self.api_url = os.getenv("EXA_API_URL", "https://api.exa.ai")
         if self.api_key is None:
             if self.type == self.WebScraperType.FIRECRAWL:
                 self.api_key = os.getenv("FIRECRAWL_API_KEY")
@@ -447,8 +447,10 @@ class WebScraper(DbBaseModel):
                 self.api_key = os.getenv("OLOSTEP_API_KEY")
                 if self.api_key is None:
                     error["api_key"] = "Set API key to use Olostep. Get API key from https://olostep.com/."
-            elif self.type == self.WebScraperType.JINA:
-                self.api_key = os.getenv("JINA_API_KEY")
+            elif self.type == self.WebScraperType.EXA:
+                self.api_key = os.getenv("EXA_API_KEY")
+                if self.api_key is None:
+                    error["api_key"] = "Set API key to use Exa. Get API key from https://exa.ai/."
         if error:
             raise ValidationError(error)
 
@@ -466,6 +468,16 @@ class WebScraper(DbBaseModel):
 
 
 class ServerChatSettings(DbBaseModel):
+    class ChatModelSlot(models.TextChoices):
+        """Enum for the different chat model slots in ServerChatSettings"""
+
+        CHAT_DEFAULT = "chat_default"
+        CHAT_ADVANCED = "chat_advanced"
+        THINK_FREE_FAST = "think_free_fast"
+        THINK_FREE_DEEP = "think_free_deep"
+        THINK_PAID_FAST = "think_paid_fast"
+        THINK_PAID_DEEP = "think_paid_deep"
+
     chat_default = models.ForeignKey(
         ChatModel, on_delete=models.CASCADE, default=None, null=True, blank=True, related_name="chat_default"
     )
@@ -487,6 +499,13 @@ class ServerChatSettings(DbBaseModel):
     web_scraper = models.ForeignKey(
         WebScraper, on_delete=models.CASCADE, default=None, null=True, blank=True, related_name="web_scraper"
     )
+    priority = models.IntegerField(
+        default=None,
+        null=True,
+        blank=True,
+        unique=True,
+        help_text="Priority of the server chat settings. Lower numbers run first.",
+    )
 
     def clean(self):
         error = {}
@@ -501,6 +520,11 @@ class ServerChatSettings(DbBaseModel):
 
     def save(self, *args, **kwargs):
         self.clean()
+
+        if self.priority is None:
+            max_priority = ServerChatSettings.objects.aggregate(models.Max("priority"))["priority__max"]
+            self.priority = max_priority + 1 if max_priority else 1
+
         super().save(*args, **kwargs)
 
 
@@ -551,7 +575,6 @@ class SearchModelConfig(DbBaseModel):
 class TextToImageModelConfig(DbBaseModel):
     class ModelType(models.TextChoices):
         OPENAI = "openai"
-        STABILITYAI = "stability-ai"
         REPLICATE = "replicate"
         GOOGLE = "google"
 
@@ -804,6 +827,15 @@ class DataStore(DbBaseModel):
     value = models.JSONField(default=dict)
     private = models.BooleanField(default=False)
     owner = models.ForeignKey(KhojUser, on_delete=models.CASCADE, default=None, null=True, blank=True)
+
+
+class McpServer(DbBaseModel):
+    name = models.CharField(max_length=50, unique=True)
+    path = models.CharField(max_length=200, unique=True)
+    api_key = models.CharField(max_length=4000, blank=True, null=True)
+
+    def __str__(self):
+        return self.name
 
 
 class UserMemory(DbBaseModel):

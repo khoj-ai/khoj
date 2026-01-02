@@ -1,3 +1,4 @@
+import hashlib
 import json
 import logging
 import os
@@ -54,6 +55,10 @@ logger = logging.getLogger(__name__)
 openai_clients: Dict[str, openai.OpenAI] = {}
 openai_async_clients: Dict[str, openai.AsyncOpenAI] = {}
 
+# Default completion tokens
+# Reduce premature termination, especially when streaming structured responses
+MAX_COMPLETION_TOKENS = 16000
+
 
 def _extract_text_for_instructions(content: Union[str, List, Dict, None]) -> str:
     """Extract plain text from a message content suitable for Responses API instructions."""
@@ -83,7 +88,7 @@ def _extract_text_for_instructions(content: Union[str, List, Dict, None]) -> str
         | retry_if_exception_type(ValueError)
     ),
     wait=wait_random_exponential(min=1, max=10),
-    stop=stop_after_attempt(3),
+    stop=stop_after_attempt(2),
     before_sleep=before_sleep_log(logger, logging.DEBUG),
     reraise=True,
 )
@@ -92,7 +97,7 @@ def completion_with_backoff(
     model_name: str,
     temperature=0.6,
     openai_api_key=None,
-    api_base_url=None,
+    api_base_url: str | None = None,
     deepthought: bool = False,
     model_kwargs: dict = {},
     tracer: dict = {},
@@ -110,15 +115,18 @@ def completion_with_backoff(
 
     model_kwargs["temperature"] = temperature
     model_kwargs["top_p"] = model_kwargs.get("top_p", 0.95)
+    model_kwargs["max_completion_tokens"] = model_kwargs.get("max_completion_tokens", MAX_COMPLETION_TOKENS)
 
-    formatted_messages = format_message_for_api(messages, api_base_url)
+    formatted_messages = format_message_for_api(messages, model_name, api_base_url)
 
     # Tune reasoning models arguments
     if is_openai_reasoning_model(model_name, api_base_url):
         model_kwargs["temperature"] = 1
         reasoning_effort = "medium" if deepthought else "low"
         model_kwargs["reasoning_effort"] = reasoning_effort
+        # Remove unsupported params for reasoning models
         model_kwargs.pop("top_p", None)
+        model_kwargs.pop("stop", None)
     elif is_twitter_reasoning_model(model_name, api_base_url):
         model_kwargs.pop("temperature", None)
         reasoning_effort = "high" if deepthought else "low"
@@ -139,6 +147,8 @@ def completion_with_backoff(
             else:
                 updated_messages.append(message)
         formatted_messages = updated_messages
+    elif is_instream_thinking_model(model_name):
+        stream_processor = in_stream_thought_processor
     elif is_qwen_style_reasoning_model(model_name, api_base_url):
         stream_processor = in_stream_thought_processor
         # Reasoning is enabled by default. Disable when deepthought is False.
@@ -156,6 +166,7 @@ def completion_with_backoff(
     tool_calls: list[ToolCall] = []
     thoughts = ""
     aggregated_response = ""
+    chunk = None
     if stream:
         with client.beta.chat.completions.stream(
             messages=formatted_messages,  # type: ignore
@@ -233,14 +244,18 @@ def completion_with_backoff(
         chunk = chunk.chunk
 
     # Calculate cost of chat
-    input_tokens = chunk.usage.prompt_tokens if hasattr(chunk, "usage") and chunk.usage else 0
-    output_tokens = chunk.usage.completion_tokens if hasattr(chunk, "usage") and chunk.usage else 0
-    cost = (
-        chunk.usage.model_extra.get("estimated_cost", 0) if hasattr(chunk, "usage") and chunk.usage else 0
-    )  # Estimated costs returned by DeepInfra API
+    input_tokens, output_tokens, cache_read_tokens, cost = 0, 0, 0, 0
+    if hasattr(chunk, "usage") and chunk.usage:
+        input_tokens = chunk.usage.prompt_tokens
+        output_tokens = chunk.usage.completion_tokens
+        if hasattr(chunk.usage, "prompt_tokens_details") and chunk.usage.prompt_tokens_details:
+            cache_read_tokens = chunk.usage.prompt_tokens_details.cached_tokens
+        if hasattr(chunk.usage, "completion_tokens_details") and chunk.usage.completion_tokens_details:
+            output_tokens += chunk.usage.completion_tokens_details.reasoning_tokens
+        cost = chunk.usage.model_extra.get("estimated_cost", 0)  # Estimated costs returned by DeepInfra API
 
     tracer["usage"] = get_chat_usage_metrics(
-        model_name, input_tokens, output_tokens, usage=tracer.get("usage"), cost=cost
+        model_name, input_tokens, output_tokens, cache_read_tokens, usage=tracer.get("usage"), cost=cost
     )
 
     # Validate the response. If empty, raise an error to retry.
@@ -293,8 +308,9 @@ async def chat_completion_with_backoff(
         model_kwargs.pop("stream_options", None)
 
     model_kwargs["top_p"] = model_kwargs.get("top_p", 0.95)
+    model_kwargs["max_completion_tokens"] = model_kwargs.get("max_completion_tokens", MAX_COMPLETION_TOKENS)
 
-    formatted_messages = format_message_for_api(messages, api_base_url)
+    formatted_messages = format_message_for_api(messages, model_name, api_base_url)
 
     # Configure thinking for openai reasoning models
     if is_openai_reasoning_model(model_name, api_base_url):
@@ -304,19 +320,6 @@ async def chat_completion_with_backoff(
         # Remove unsupported params for reasoning models
         model_kwargs.pop("top_p", None)
         model_kwargs.pop("stop", None)
-
-        # Get the first system message and add the string `Formatting re-enabled` to it.
-        # See https://platform.openai.com/docs/guides/reasoning-best-practices
-        if len(formatted_messages) > 0:
-            system_messages = [
-                (i, message) for i, message in enumerate(formatted_messages) if message["role"] == "system"
-            ]
-            if len(system_messages) > 0:
-                first_system_message_index, first_system_message = system_messages[0]
-                first_system_message_content = first_system_message["content"]
-                formatted_messages[first_system_message_index]["content"] = (
-                    f"{first_system_message_content}\nFormatting re-enabled"
-                )
     elif is_twitter_reasoning_model(model_name, api_base_url):
         reasoning_effort = "high" if deepthought else "low"
         # Grok-4 models do not support reasoning_effort parameter
@@ -346,6 +349,8 @@ async def chat_completion_with_backoff(
             else:
                 updated_messages.append(message)
         formatted_messages = updated_messages
+    elif is_instream_thinking_model(model_name):
+        stream_processor = ain_stream_thought_processor
     elif is_qwen_style_reasoning_model(model_name, api_base_url):
         stream_processor = ain_stream_thought_processor
         # Reasoning is enabled by default. Disable when deepthought is False.
@@ -401,15 +406,19 @@ async def chat_completion_with_backoff(
                 yield response_chunk
 
     # Calculate cost of chat after stream finishes
-    input_tokens, output_tokens, cost = 0, 0, 0
+    input_tokens, output_tokens, cache_read_tokens, cost = 0, 0, 0, 0
     if final_chunk and hasattr(final_chunk, "usage") and final_chunk.usage:
         input_tokens = final_chunk.usage.prompt_tokens
         output_tokens = final_chunk.usage.completion_tokens
+        if hasattr(final_chunk.usage, "prompt_tokens_details") and final_chunk.usage.prompt_tokens_details:
+            cache_read_tokens = final_chunk.usage.prompt_tokens_details.cached_tokens
+        if hasattr(final_chunk.usage, "completion_tokens_details") and final_chunk.usage.completion_tokens_details:
+            output_tokens += final_chunk.usage.completion_tokens_details.reasoning_tokens
         # Estimated costs returned by DeepInfra API
         if final_chunk.usage.model_extra and "estimated_cost" in final_chunk.usage.model_extra:
             cost = final_chunk.usage.model_extra.get("estimated_cost", 0)
     tracer["usage"] = get_chat_usage_metrics(
-        model_name, input_tokens, output_tokens, usage=tracer.get("usage"), cost=cost
+        model_name, input_tokens, output_tokens, cache_read_tokens, usage=tracer.get("usage"), cost=cost
     )
 
     # Validate the response. If empty, raise an error to retry.
@@ -435,7 +444,7 @@ async def chat_completion_with_backoff(
         | retry_if_exception_type(ValueError)
     ),
     wait=wait_random_exponential(min=1, max=10),
-    stop=stop_after_attempt(3),
+    stop=stop_after_attempt(2),
     before_sleep=before_sleep_log(logger, logging.DEBUG),
     reraise=True,
 )
@@ -459,7 +468,7 @@ def responses_completion_with_backoff(
         client = get_openai_client(openai_api_key, api_base_url)
         openai_clients[client_key] = client
 
-    formatted_messages = format_message_for_api(messages, api_base_url)
+    formatted_messages = format_message_for_api(messages, model_name, api_base_url)
     # Move the first system message to Responses API instructions
     instructions: Optional[str] = None
     if formatted_messages and formatted_messages[0].get("role") == "system":
@@ -468,12 +477,19 @@ def responses_completion_with_backoff(
 
     model_kwargs = deepcopy(model_kwargs)
     model_kwargs["top_p"] = model_kwargs.get("top_p", 0.95)
+
+    # Use prompt cache key to increase probability of cache hits
+    if instructions:
+        model_kwargs["prompt_cache_key"] = f"{hashlib.md5(instructions[:500].encode()).hexdigest()}"
+
     # Configure thinking for openai reasoning models
     if is_openai_reasoning_model(model_name, api_base_url):
         temperature = 1
         reasoning_effort = "medium" if deepthought else "low"
-        model_kwargs["reasoning"] = {"effort": reasoning_effort, "summary": "auto"}
-        model_kwargs["include"] = ["reasoning.encrypted_content"]
+        model_kwargs["reasoning"] = {"effort": reasoning_effort}
+        if is_openai_api(api_base_url):
+            model_kwargs["reasoning"]["summary"] = "auto"
+            model_kwargs["include"] = ["reasoning.encrypted_content"]
         # Remove unsupported params for reasoning models
         model_kwargs.pop("top_p", None)
         model_kwargs.pop("stop", None)
@@ -570,7 +586,7 @@ async def responses_chat_completion_with_backoff(
         client = get_openai_async_client(openai_api_key, api_base_url)
         openai_async_clients[client_key] = client
 
-    formatted_messages = format_message_for_api(messages, api_base_url)
+    formatted_messages = format_message_for_api(messages, model_name, api_base_url)
     # Move the first system message to Responses API instructions
     instructions: Optional[str] = None
     if formatted_messages and formatted_messages[0].get("role") == "system":
@@ -583,7 +599,10 @@ async def responses_chat_completion_with_backoff(
     if is_openai_reasoning_model(model_name, api_base_url):
         temperature = 1
         reasoning_effort = "medium" if deepthought else "low"
-        model_kwargs["reasoning"] = {"effort": reasoning_effort, "summary": "auto"}
+        model_kwargs["reasoning"] = {"effort": reasoning_effort}
+        if is_openai_api(api_base_url):
+            model_kwargs["reasoning"]["summary"] = "auto"
+            model_kwargs["include"] = ["reasoning.encrypted_content"]
         # Remove unsupported params for reasoning models
         model_kwargs.pop("top_p", None)
         model_kwargs.pop("stop", None)
@@ -716,7 +735,7 @@ def get_structured_output_support(model_name: str, api_base_url: str = None) -> 
     return StructuredOutputSupport.TOOL
 
 
-def format_message_for_api(raw_messages: List[ChatMessage], api_base_url: str) -> List[dict]:
+def format_message_for_api(raw_messages: List[ChatMessage], model_name: str, api_base_url: str) -> List[dict]:
     """
     Format messages to send to chat model served over OpenAI (compatible) API.
     """
@@ -726,7 +745,7 @@ def format_message_for_api(raw_messages: List[ChatMessage], api_base_url: str) -
         # Handle tool call and tool result message types
         message_type = message.additional_kwargs.get("message_type")
         if message_type == "tool_call":
-            if is_openai_api(api_base_url):
+            if supports_responses_api(model_name, api_base_url):
                 for part in message.content:
                     if "status" in part:
                         part.pop("status")  # Drop unsupported tool call status field
@@ -770,7 +789,7 @@ def format_message_for_api(raw_messages: List[ChatMessage], api_base_url: str) -
                 if not tool_call_id:
                     logger.warning(f"Dropping tool result without valid tool_call_id: {part.get('name')}")
                     continue
-                if is_openai_api(api_base_url):
+                if supports_responses_api(model_name, api_base_url):
                     formatted_messages.append(
                         {
                             "type": "function_call_output",
@@ -788,7 +807,7 @@ def format_message_for_api(raw_messages: List[ChatMessage], api_base_url: str) -
                         }
                     )
             continue
-        if isinstance(message.content, list) and not is_openai_api(api_base_url):
+        if isinstance(message.content, list) and not supports_responses_api(model_name, api_base_url):
             assistant_texts = []
             has_images = False
             for idx, part in enumerate(message.content):
@@ -801,7 +820,7 @@ def format_message_for_api(raw_messages: List[ChatMessage], api_base_url: str) -
                 if (
                     part.get("type") == "text"
                     and message.role == "assistant"
-                    and api_base_url.startswith("https://api.deepinfra.com/v1")
+                    and (api_base_url.startswith("https://api.deepinfra.com/v1") or is_cerebras_api(api_base_url))
                 ):
                     assistant_texts += [part["text"]]
                     message.content.pop(idx)
@@ -844,6 +863,13 @@ def is_openai_api(api_base_url: str = None) -> bool:
     return api_base_url is None or api_base_url.startswith("https://api.openai.com/v1")
 
 
+def supports_responses_api(model_name: str, api_base_url: str = None) -> bool:
+    """
+    Check if the model, ai api supports the OpenAI Responses API
+    """
+    return is_openai_api(api_base_url)
+
+
 def is_openai_reasoning_model(model_name: str, api_base_url: str = None) -> bool:
     """
     Check if the model is an OpenAI reasoning model
@@ -851,7 +877,7 @@ def is_openai_reasoning_model(model_name: str, api_base_url: str = None) -> bool
     return (
         is_openai_api(api_base_url)
         and (model_name.lower().startswith("o") or model_name.lower().startswith("gpt-5"))
-        or model_name.lower().startswith("gpt-oss")
+        or "gpt-oss" in model_name.lower()
     )
 
 
@@ -875,14 +901,29 @@ def is_twitter_reasoning_model(model_name: str, api_base_url: str = None) -> boo
     )
 
 
-def is_groq_api(api_base_url: str = None) -> bool:
+def is_cerebras_api(api_base_url: str | None = None) -> bool:
+    """
+    Check if the model is served over the Cerebras API
+    """
+    return api_base_url is not None and api_base_url.startswith("https://api.cerebras.ai/v1")
+
+
+def is_groq_api(api_base_url: str | None = None) -> bool:
     """
     Check if the model is served over the Groq API
     """
     return api_base_url is not None and api_base_url.startswith("https://api.groq.com")
 
 
-def is_qwen_style_reasoning_model(model_name: str, api_base_url: str = None) -> bool:
+def is_instream_thinking_model(model_name: str) -> bool:
+    """
+    Check if the model uses in-stream thinking style, i.e., <think>...</think> in output
+    """
+    instream_thinking_model = ["kimi-k2-thinking", "minimax-m2"]
+    return any(prefix in model_name.lower() for prefix in instream_thinking_model)
+
+
+def is_qwen_style_reasoning_model(model_name: str, api_base_url: str | None = None) -> bool:
     """
     Check if the model is a Qwen style reasoning model
     """
@@ -952,6 +993,8 @@ async def astream_thought_processor(
             chunk_data = chunk.model_dump()
 
             # Skip chunks that don't have the required object field or have invalid values
+            if "object" in chunk_data and chunk_data.get("object") == "":
+                chunk_data["object"] = "chat.completion.chunk"
             if not chunk_data.get("object") or chunk_data.get("object") != "chat.completion.chunk":
                 logger.warning(f"Skipping invalid chunk with object field: {chunk_data.get('object', 'missing')}")
                 continue
@@ -1211,16 +1254,19 @@ def add_qwen_no_think_tag(formatted_messages: List[dict]) -> None:
                         break
 
 
-def to_openai_tools(tools: List[ToolDefinition], use_responses_api: bool) -> List[Dict] | None:
+def to_openai_tools(tools: List[ToolDefinition], model: str, api_base_url: str | None = None) -> List[Dict] | None:
     "Transform tool definitions from standard format to OpenAI format."
+    use_responses_api = supports_responses_api(model, api_base_url)
+    strict = not is_cerebras_api(api_base_url)
+    fields_to_exclude = ["minimum", "maximum"] if is_groq_api(api_base_url) else []
     if use_responses_api:
         openai_tools = [
             {
                 "type": "function",
                 "name": tool.name,
                 "description": tool.description,
-                "parameters": clean_response_schema(tool.schema),
-                "strict": True,
+                "parameters": clean_response_schema(tool.schema, fields_to_exclude=fields_to_exclude),
+                "strict": strict,
             }
             for tool in tools
         ]
@@ -1231,8 +1277,8 @@ def to_openai_tools(tools: List[ToolDefinition], use_responses_api: bool) -> Lis
                 "function": {
                     "name": tool.name,
                     "description": tool.description,
-                    "parameters": clean_response_schema(tool.schema),
-                    "strict": True,
+                    "parameters": clean_response_schema(tool.schema, fields_to_exclude=fields_to_exclude),
+                    "strict": strict,
                 },
             }
             for tool in tools
@@ -1241,7 +1287,7 @@ def to_openai_tools(tools: List[ToolDefinition], use_responses_api: bool) -> Lis
     return openai_tools or None
 
 
-def clean_response_schema(schema: BaseModel | dict) -> dict:
+def clean_response_schema(schema: BaseModel | dict, fields_to_exclude: list[str] = []) -> dict:
     """
     Format response schema to be compatible with OpenAI API.
 
@@ -1253,7 +1299,7 @@ def clean_response_schema(schema: BaseModel | dict) -> dict:
 
     # Recursively drop unsupported fields from schema passed to OpenAI API
     # See https://platform.openai.com/docs/guides/structured-outputs#supported-schemas
-    fields_to_exclude = ["minItems", "maxItems"]
+    fields_to_exclude += ["minItems", "maxItems"]
     if isinstance(schema_json, dict) and isinstance(schema_json.get("properties"), dict):
         for _, prop_value in schema_json["properties"].items():
             if isinstance(prop_value, dict):

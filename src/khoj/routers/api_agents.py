@@ -5,6 +5,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Dict, List, Optional
 
 from asgiref.sync import sync_to_async
+from django.core.exceptions import ValidationError
 from fastapi import APIRouter, Request
 from fastapi.responses import Response
 from pydantic import BaseModel
@@ -389,22 +390,29 @@ async def create_agent(
     else:
         agent_chat_model = None
 
-    agent = await AgentAdapters.aupdate_agent(
-        user,
-        body.name,
-        body.persona,
-        body.privacy_level,
-        body.icon,
-        body.color,
-        agent_chat_model,
-        body.files,
-        body.input_tools,
-        body.output_modes,
-        body.slug,
-        body.is_hidden,
-    )
-    agent.chat_model = await AgentAdapters.aget_agent_chat_model(agent, user)
+    try:
+        agent = await AgentAdapters.aupdate_agent(
+            user,
+            body.name,
+            body.persona,
+            body.privacy_level,
+            body.icon,
+            body.color,
+            agent_chat_model,
+            body.files,
+            body.input_tools,
+            body.output_modes,
+            body.slug,
+            body.is_hidden,
+        )
+    except ValidationError as e:
+        return Response(
+            content=json.dumps({"error": e.message}),
+            media_type="application/json",
+            status_code=400,
+        )
 
+    agent.chat_model = await AgentAdapters.aget_agent_chat_model(agent, user)
     agents_packet = {
         "slug": agent.slug,
         "name": agent.name,
@@ -462,21 +470,28 @@ async def update_agent(
     else:
         agent_chat_model = None
 
-    agent = await AgentAdapters.aupdate_agent(
-        user,
-        body.name,
-        body.persona,
-        body.privacy_level,
-        body.icon,
-        body.color,
-        agent_chat_model,
-        body.files,
-        body.input_tools,
-        body.output_modes,
-        body.slug,
-    )
-    agent.chat_model = await AgentAdapters.aget_agent_chat_model(agent, user)
+    try:
+        agent = await AgentAdapters.aupdate_agent(
+            user,
+            body.name,
+            body.persona,
+            body.privacy_level,
+            body.icon,
+            body.color,
+            agent_chat_model,
+            body.files,
+            body.input_tools,
+            body.output_modes,
+            body.slug,
+        )
+    except ValidationError as e:
+        return Response(
+            content=json.dumps({"error": e.message}),
+            media_type="application/json",
+            status_code=400,
+        )
 
+    agent.chat_model = await AgentAdapters.aget_agent_chat_model(agent, user)
     agents_packet = {
         "slug": agent.slug,
         "name": agent.name,

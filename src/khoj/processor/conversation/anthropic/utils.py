@@ -39,7 +39,7 @@ anthropic_async_clients: Dict[str, anthropic.AsyncAnthropic | anthropic.AsyncAnt
 
 DEFAULT_MAX_TOKENS_ANTHROPIC = 8000
 MAX_REASONING_TOKENS_ANTHROPIC = 12000
-REASONING_MODELS = ["claude-3-7", "claude-sonnet-4", "claude-opus-4"]
+REASONING_MODELS = ["claude-3-7", "claude-sonnet-4", "claude-opus-4", "claude-haiku-4"]
 
 
 @retry(
@@ -85,6 +85,7 @@ def anthropic_completion_with_backoff(
         # Cache tool definitions
         last_tool = model_kwargs["tools"][-1]
         last_tool["cache_control"] = {"type": "ephemeral"}
+        model_kwargs["tool_choice"] = {"type": "auto"}
     elif response_schema:
         tool = create_tool_definition(response_schema)
         model_kwargs["tools"] = [
@@ -101,11 +102,13 @@ def anthropic_completion_with_backoff(
     max_tokens = max_tokens or DEFAULT_MAX_TOKENS_ANTHROPIC
     if deepthought and is_reasoning_model(model_name):
         model_kwargs["thinking"] = {"type": "enabled", "budget_tokens": MAX_REASONING_TOKENS_ANTHROPIC}
+        model_kwargs["betas"] = ["context-management-2025-06-27"]
+        model_kwargs["context_management"] = {"edits": [{"type": "clear_thinking_20251015", "keep": "all"}]}
         max_tokens += MAX_REASONING_TOKENS_ANTHROPIC
         # Temperature control not supported when using extended thinking
         temperature = 1.0
 
-    with client.messages.stream(
+    with client.beta.messages.stream(
         messages=formatted_messages,
         model=model_name,  # type: ignore
         temperature=temperature,
@@ -123,7 +126,7 @@ def anthropic_completion_with_backoff(
         final_message = stream.get_final_message()
 
     # Track raw content of model response to reuse for cache hits in multi-turn chats
-    raw_content = [item.model_dump() for item in final_message.content]
+    raw_content = [item.model_dump(exclude_none=True) for item in final_message.content]
 
     # Extract all tool calls if tools are enabled
     if tools:

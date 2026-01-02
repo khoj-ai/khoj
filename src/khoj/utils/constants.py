@@ -3,6 +3,7 @@ from typing import Dict
 
 app_root_directory = Path(__file__).parent.parent.parent
 web_directory = app_root_directory / "khoj/interface/web/"
+home_directory = web_directory / "home/"
 next_js_directory = app_root_directory / "khoj/interface/built/"
 pypi_static_directory = app_root_directory / "khoj/interface/compiled/"
 assetlinks_file_path = web_directory / ".well-known/assetlinks.json"
@@ -51,8 +52,9 @@ model_to_cost: Dict[str, Dict[str, float]] = {
     "gemini-2.0-flash": {"input": 0.10, "output": 0.40},
     "gemini-2.0-flash-lite": {"input": 0.0075, "output": 0.30},
     "gemini-2.5-flash-lite": {"input": 0.10, "output": 0.40},
-    "gemini-2.5-flash": {"input": 0.30, "output": 2.50},
-    "gemini-2.5-pro": {"input": 1.25, "output": 10.0},
+    "gemini-2.5-flash": {"input": 0.30, "cache_read_tokens": 0.03, "output": 2.50},
+    "gemini-2.5-pro": {"input": 1.25, "cache_read_tokens": 0.125, "output": 10.0},
+    "gemini-3-pro-preview": {"input": 2.00, "cache_read_tokens": 0.20, "output": 12.0},
     # Anthropic Pricing: https://www.anthropic.com/pricing#anthropic-api
     "claude-3-5-haiku-20241022": {"input": 1.0, "output": 5.0, "cache_read": 0.08, "cache_write": 1.0},
     "claude-3-5-haiku@20241022": {"input": 1.0, "output": 5.0, "cache_read": 0.08, "cache_write": 1.0},
@@ -67,13 +69,24 @@ model_to_cost: Dict[str, Dict[str, float]] = {
     "claude-opus-4-0": {"input": 15.0, "output": 75.0, "cache_read": 1.50, "cache_write": 18.75},
     "claude-opus-4-20250514": {"input": 15.0, "output": 75.0, "cache_read": 1.50, "cache_write": 18.75},
     "claude-opus-4@20250514": {"input": 15.0, "output": 75.0, "cache_read": 1.50, "cache_write": 18.75},
+    "claude-sonnet-4-5": {"input": 3.0, "output": 15.0, "cache_read": 0.3, "cache_write": 3.75},
+    "claude-sonnet-4-5-20250929": {"input": 3.0, "output": 15.0, "cache_read": 0.3, "cache_write": 3.75},
+    "claude-haiku-4-5": {"input": 1.0, "output": 5.0, "cache_read": 0.08, "cache_write": 1.0},
+    "claude-haiku-4-5-20251001": {"input": 1.0, "output": 5.0, "cache_read": 0.08, "cache_write": 1.0},
+    "claude-opus-4-5": {"input": 5.0, "output": 25.0, "cache_read": 1.50, "cache_write": 6.25},
+    "claude-opus-4-5-20251101": {"input": 5.0, "output": 25.0, "cache_read": 1.50, "cache_write": 6.25},
     # Grok pricing: https://docs.x.ai/docs/models
     "grok-3": {"input": 3.0, "output": 15.0},
     "grok-3-latest": {"input": 3.0, "output": 15.0},
     "grok-3-mini": {"input": 0.30, "output": 0.50},
     "grok-3-mini-latest": {"input": 0.30, "output": 0.50},
+    "grok-4": {"input": 3.0, "cache_read": 0.75, "output": 15.0},
+    "grok-4-fast": {"input": 0.20, "cache_read": 0.05, "output": 0.50},
     # Groq pricing
-    "moonshotai/kimi-k2-instruct": {"input": 1.00, "output": 3.00},
+    "moonshotai/kimi-k2-instruct-0905": {"input": 1.00, "output": 3.00},
     "openai/gpt-oss-120b": {"input": 0.15, "output": 0.75},
     "openai/gpt-oss-20b": {"input": 0.10, "output": 0.50},
+    # Miscellaneous
+    # Moonshot AI, Baseten pricing for Kimi-K2-Thinking
+    "moonshotai/kimi-k2-thinking": {"input": 0.60, "output": 2.50},
 }

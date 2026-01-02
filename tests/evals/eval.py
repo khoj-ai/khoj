@@ -40,6 +40,7 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 GEMINI_EVAL_MODEL = os.getenv("GEMINI_EVAL_MODEL", "gemini-2.5-flash")
 
 LLM_SEED = int(os.getenv("KHOJ_LLM_SEED")) if os.getenv("KHOJ_LLM_SEED") else None
+DATASET_SEED = int(os.getenv("DATASET_SEED")) if os.getenv("DATASET_SEED") else None
 SAMPLE_SIZE = os.getenv("SAMPLE_SIZE")  # Number of examples to evaluate
 RANDOMIZE = os.getenv("RANDOMIZE", "false").lower() == "true"  # Randomize examples
 BATCH_SIZE = int(
@@ -196,7 +197,7 @@ def load_frames_dataset():
     try:
         dataset = load_dataset("google/frames-benchmark")
         # Use test split for evaluation. Sample and shuffle dataset if configured
-        dataset = dataset.shuffle() if RANDOMIZE else dataset
+        dataset = dataset.shuffle(seed=DATASET_SEED) if RANDOMIZE else dataset
         return dataset["test"][: int(SAMPLE_SIZE)] if SAMPLE_SIZE else dataset["test"]
 
     except Exception as e:
@@ -238,7 +239,7 @@ def load_simpleqa_dataset():
 
         # Convert benchmark to HF Dataset
         dataset = Dataset.from_list(formatted_data)
-        dataset = dataset.shuffle() if RANDOMIZE else dataset
+        dataset = dataset.shuffle(seed=DATASET_SEED) if RANDOMIZE else dataset
         dataset = dataset.select(range(int(SAMPLE_SIZE))) if SAMPLE_SIZE else dataset
 
         return dataset
@@ -275,8 +276,11 @@ def load_gpqa_dataset():
             row["Incorrect Answer 3"],
             row["Correct Answer"],
         ]
-        # Shuffle choices
-        random.shuffle(choices)
+        # Shuffle choices with deterministic seed if provided
+        if DATASET_SEED is not None:
+            random.Random(DATASET_SEED).shuffle(choices)
+        else:
+            random.shuffle(choices)
 
         # Get correct answer letter
         correct_index = choices.index(row["Correct Answer"])
@@ -307,7 +311,7 @@ D) {choices[3]}
         dataset = dataset.add_column("Answer", [p[1] for p in prompts_and_answers])
 
         # Sample and shuffle dataset if configured
-        dataset = dataset.shuffle() if RANDOMIZE else dataset
+        dataset = dataset.shuffle(seed=DATASET_SEED) if RANDOMIZE else dataset
         dataset = dataset[: int(SAMPLE_SIZE)] if SAMPLE_SIZE else dataset
 
         return dataset
@@ -331,7 +335,7 @@ def load_math500_dataset():
         # Load the MATH500 dataset from HuggingFace
         dataset = load_dataset("HuggingFaceH4/MATH-500", split="test")
         dataset = dataset.rename_columns({"problem": "Prompt", "answer": "Answer", "subject": "reasoning_types"})
-        dataset = dataset.shuffle() if RANDOMIZE else dataset
+        dataset = dataset.shuffle(seed=DATASET_SEED) if RANDOMIZE else dataset
         dataset = dataset.select(range(int(SAMPLE_SIZE))) if SAMPLE_SIZE else dataset
 
         return dataset
@@ -432,14 +436,25 @@ def evaluate_response_with_mcq_match(
 ) -> tuple[bool | None, str, float]:
     """Evaluate Khoj response against benchmark ground truth using string matching"""
     try:
-        # Extract answer from agent response
-        answer_pattern_multichoice = r"(?i)Answer\s*:\s*([A-D])"
-        match = re.search(answer_pattern_multichoice, agent_response)
-        extracted_answer = match.group(1) if match else None
+        # Extract answer from agent response using multiple patterns
+        answer_patterns = [
+            r"(?i)Answer\s*:\s*([A-D])",  # Answer: D
+            r"(?i)(?:final\s+)?answer\s+is\s+([A-D])",  # answer is D / final answer is D
+            r"\$\\boxed\{([A-D])\}\$",  # $\boxed{D}$
+            r"\\boxed\{([A-D])\}",  # \boxed{D}
+            r"\b([A-D])\b(?=\s*$)",  # Just the letter at end of response
+        ]
+
+        extracted_answer = None
+        for pattern in answer_patterns:
+            match = re.search(pattern, agent_response)
+            if match:
+                extracted_answer = match.group(1).upper()
+                break
 
         # Check if extracted answer matches ground truth
         decision = extracted_answer == ground_truth
-        explanation = f"Agent response {'matches' if decision else 'does not match'} ground truth {ground_truth}"
+        explanation = f'Agent response "{extracted_answer}" {"matches" if decision else "does not match"} ground truth {ground_truth}.'
 
         # Return decision, explanation and cost in structured form
         return float(decision), explanation, 0.0
@@ -462,7 +477,7 @@ def evaluate_response_with_gemini(
     Ground Truth: {ground_truth}
 
     Provide your evaluation in the following json format:
-    {"explanation:[How you made the decision?)", "decision:(TRUE if response contains key information, FALSE otherwise)"}
+    {"explanation:<1 short sentence on how you made the decision>", "decision:<TRUE if response contains key information, FALSE otherwise>"}
     """
     gemini_api_url = (
         f"https://generativelanguage.googleapis.com/v1beta/models/{eval_model}:generateContent?key={GEMINI_API_KEY}"

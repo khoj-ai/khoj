@@ -52,8 +52,8 @@ Search models are used to generate vector embeddings of your documents for natur
 <img src="/img/example_search_model_admin_settings.png" alt="Example Search Model Settings" style={{width: 500}} />
 
 ### Text to Image Model Options
-Add text to image generation models with these settings. Khoj currently supports text to image models available via OpenAI, Stability or Replicate API
-- `api-key`: Set to your OpenAI, Stability or Replicate API key
+Add text to image generation models with these settings. Khoj currently supports text to image models available via OpenAI, Google or Replicate API
+- `api-key`: Set to your OpenAI, Google AI or Replicate API key
 - `model`: Set the model name available over the selected model provider
 - `model-type`: Set to the appropriate model provider
 - `openai-config`: For image generation models available via OpenAI (compatible) API you can set the appropriate OpenAI Processor Conversation Settings instead of specifying the `api-key` field above

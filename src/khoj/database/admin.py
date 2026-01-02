@@ -23,6 +23,7 @@ from khoj.database.models import (
     Entry,
     GithubConfig,
     KhojUser,
+    McpServer,
     NotionConfig,
     ProcessLock,
     RateLimitRecord,
@@ -185,6 +186,16 @@ admin.site.register(RateLimitRecord, unfold_admin.ModelAdmin)
 admin.site.register(UserMemory, unfold_admin.ModelAdmin)
 
 
+@admin.register(McpServer)
+class McpServerAdmin(unfold_admin.ModelAdmin):
+    list_display = (
+        "id",
+        "name",
+        "path",
+    )
+    search_fields = ("id", "name", "path")
+
+
 @admin.register(Agent)
 class AgentAdmin(unfold_admin.ModelAdmin):
     list_display = (
@@ -278,6 +289,7 @@ class SearchModelConfigAdmin(unfold_admin.ModelAdmin):
 @admin.register(ServerChatSettings)
 class ServerChatSettingsAdmin(unfold_admin.ModelAdmin):
     list_display = (
+        "priority",
         "chat_default",
         "chat_advanced",
         "think_free_fast",
@@ -286,6 +298,7 @@ class ServerChatSettingsAdmin(unfold_admin.ModelAdmin):
         "think_paid_deep",
         "web_scraper",
     )
+    ordering = ("priority",)
 
 
 @admin.register(WebScraper)

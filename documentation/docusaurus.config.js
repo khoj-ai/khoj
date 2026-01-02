@@ -27,7 +27,11 @@ const config = {
   projectName: 'khoj', // Usually your repo name.
 
   onBrokenLinks: 'throw',
-  onBrokenMarkdownLinks: 'warn',
+  markdown: {
+    hooks: {
+        onBrokenMarkdownLinks: 'warn',
+    },
+  },
 
   // Even if you don't use internationalization, you can use this field to set
   // useful metadata like html lang. For example, if your site is Chinese, you
@@ -99,7 +103,7 @@ const config = {
             'aria-label': 'GitHub repository',
           },
           {
-            href: 'https://app.khoj.dev/login',
+            href: 'https://app.khoj.dev',
             position: 'right',
             className: 'header-cloud-link',
             title: 'Khoj Cloud',
@@ -187,14 +191,14 @@ const config = {
               },
               {
                 label: 'Khoj Cloud',
-                href: 'https://app.khoj.dev/login',
+                href: 'https://app.khoj.dev',
               },
               {
                 label: 'GitHub',
                 href: 'https://github.com/khoj-ai/khoj',
               },
               {
-                label: 'Website',
+                label: 'Khoj Inc.',
                 href: 'https://khoj.dev',
               },
             ],

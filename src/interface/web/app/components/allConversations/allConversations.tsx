@@ -946,7 +946,7 @@ export default function AllConversations(props: SidePanelProps) {
 
             const currentDate = new Date();
 
-            chatSessions.forEach((chatSessionMetadata) => {
+            chatSessions?.forEach((chatSessionMetadata) => {
                 const chatDate = new Date(chatSessionMetadata.updated);
                 const diffTime = Math.abs(currentDate.getTime() - chatDate.getTime());
                 const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));

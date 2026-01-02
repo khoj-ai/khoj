@@ -11,14 +11,16 @@ from enum import Enum
 from io import BytesIO
 from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Union
 
+import httpx
 import PIL.Image
 import pyjson5
 import requests
-import tiktoken
 import yaml
+from anthropic import APIError as AnthropicAPIError
+from anthropic import RateLimitError as AnthropicRateLimitError
+from google.genai import errors as gerrors
 from langchain_core.messages.chat import ChatMessage
 from pydantic import BaseModel, ConfigDict, ValidationError
-from transformers import AutoTokenizer, PreTrainedTokenizer, PreTrainedTokenizerFast
 
 from khoj.database.adapters import ConversationAdapters
 from khoj.database.models import (
@@ -33,9 +35,10 @@ from khoj.search_filter.base_filter import BaseFilter
 from khoj.search_filter.date_filter import DateFilter
 from khoj.search_filter.file_filter import FileFilter
 from khoj.search_filter.word_filter import WordFilter
-from khoj.utils import state
 from khoj.utils.helpers import (
     ConversationCommand,
+    count_tokens,
+    get_encoder,
     is_none_or_empty,
     is_promptrace_enabled,
     merge_dicts,
@@ -72,6 +75,7 @@ model_to_prompt_size = {
     "gpt-5-mini-2025-08-07": 120000,
     "gpt-5-nano-2025-08-07": 120000,
     # Google Models
+    "gemini-3-pro-preview": 120000,
     "gemini-2.5-flash": 120000,
     "gemini-2.5-flash-lite": 120000,
     "gemini-2.5-pro": 60000,
@@ -85,12 +89,73 @@ model_to_prompt_size = {
     "claude-3-7-sonnet-20250219": 60000,
     "claude-3-7-sonnet-latest": 60000,
     "claude-3-5-haiku-20241022": 60000,
+    "claude-haiku-4-5-20251001": 60000,
     "claude-sonnet-4-0": 60000,
     "claude-sonnet-4-20250514": 60000,
     "claude-opus-4-0": 60000,
     "claude-opus-4-20250514": 60000,
 }
 model_to_tokenizer: Dict[str, str] = {}
+
+
+class RetryableModelError(Exception):
+    """
+    Exception raised when a chat model fails with a retryable error.
+    This is used to trigger fallback to the next model in the priority list.
+
+    Wraps provider-specific retryable errors like:
+    - OpenAI: RateLimitError, InternalServerError, APITimeoutError
+    - Anthropic: RateLimitError, APIError
+    - Google/Gemini: API errors with codes 429, 502, 503, 504
+    """
+
+    def __init__(self, message: str, original_exception: Exception = None, model_name: str = None):
+        super().__init__(message)
+        self.original_exception = original_exception
+        self.model_name = model_name
+
+    def __str__(self):
+        model_info = f" (model: {self.model_name})" if self.model_name else ""
+        return f"{super().__str__()}{model_info}"
+
+
+def is_retryable_exception(exception: BaseException) -> bool:
+    """
+    Check if an exception is retryable and should trigger fallback to another model.
+    """
+    # OpenAI exceptions
+    if hasattr(exception, "__module__") and exception.__module__ and "openai" in exception.__module__:
+        import openai
+
+        if isinstance(
+            exception,
+            (
+                openai._exceptions.APITimeoutError,
+                openai._exceptions.RateLimitError,
+                openai._exceptions.InternalServerError,
+            ),
+        ):
+            return True
+
+    # Anthropic exceptions
+    if isinstance(exception, (AnthropicRateLimitError, AnthropicAPIError)):
+        return True
+
+    # Google/Gemini exceptions
+    if isinstance(exception, (gerrors.APIError, gerrors.ClientError)):
+        # Check for specific error codes that are retryable
+        if hasattr(exception, "code") and exception.code in [429, 502, 503, 504]:
+            return True
+
+    # Network errors
+    if isinstance(exception, (httpx.TimeoutException, httpx.NetworkError)):
+        return True
+
+    # Empty or no response by model over API results in ValueError
+    if isinstance(exception, ValueError):
+        return True
+
+    return False
 
 
 class AgentMessage(BaseModel):
@@ -181,8 +246,37 @@ def construct_iteration_history(
     if query_message_content:
         iteration_history.append(ChatMessageModel(by="you", message=query_message_content))
 
+    # Group iterations: parallel tool calls share the same raw_response (only first has it)
+    # We need to group them so one assistant message has all tool_use blocks and
+    # one user message has all tool_results
+    current_group_raw_response = None
+    current_group_tool_results = []
+
+    def flush_group():
+        """Output the current group as assistant message + user message with tool results"""
+        nonlocal current_group_raw_response, current_group_tool_results
+        if current_group_raw_response and current_group_tool_results:
+            iteration_history.append(
+                ChatMessageModel(
+                    by="khoj",
+                    message=current_group_raw_response,
+                    intent=Intent(type="tool_call", query=query),
+                )
+            )
+            iteration_history.append(
+                ChatMessageModel(
+                    by="you",
+                    intent=Intent(type="tool_result"),
+                    message=current_group_tool_results,
+                )
+            )
+        current_group_raw_response = None
+        current_group_tool_results = []
+
     for iteration in previous_iterations:
         if not iteration.query or isinstance(iteration.query, str):
+            # Flush any pending group before adding non-tool message
+            flush_group()
             iteration_history.append(
                 ChatMessageModel(
                     by="you",
@@ -192,25 +286,36 @@ def construct_iteration_history(
                 )
             )
             continue
-        iteration_history += [
-            ChatMessageModel(
-                by="khoj",
-                message=iteration.raw_response or [iteration.query.__dict__],
-                intent=Intent(type="tool_call", query=query),
-            ),
-            ChatMessageModel(
-                by="you",
-                intent=Intent(type="tool_result"),
-                message=[
-                    {
-                        "type": "tool_result",
-                        "id": iteration.query.id,
-                        "name": iteration.query.name,
-                        "content": iteration.summarizedResult,
-                    }
-                ],
-            ),
-        ]
+
+        # If this iteration has raw_response, it starts a new group of parallel tool calls
+        if iteration.raw_response:
+            # Flush previous group if exists
+            flush_group()
+            current_group_raw_response = iteration.raw_response
+
+        # If no raw_response and no current group, create a fallback single-tool response
+        elif not current_group_raw_response:
+            current_group_raw_response = [
+                {
+                    "type": "tool_use",
+                    "id": iteration.query.id,
+                    "name": iteration.query.name,
+                    "input": iteration.query.args,
+                }
+            ]
+
+        # Add tool result to current group
+        current_group_tool_results.append(
+            {
+                "type": "tool_result",
+                "id": iteration.query.id,
+                "name": iteration.query.name,
+                "content": iteration.summarizedResult,
+            }
+        )
+
+    # Flush any remaining group
+    flush_group()
 
     return iteration_history
 
@@ -746,73 +851,9 @@ def generate_chatml_messages_with_context(
     return messages
 
 
-def get_encoder(
-    model_name: str,
-    tokenizer_name=None,
-) -> tiktoken.Encoding | PreTrainedTokenizer | PreTrainedTokenizerFast:
-    default_tokenizer = "gpt-4o"
-
-    try:
-        if tokenizer_name:
-            if tokenizer_name in state.pretrained_tokenizers:
-                encoder = state.pretrained_tokenizers[tokenizer_name]
-            else:
-                encoder = AutoTokenizer.from_pretrained(tokenizer_name)
-                state.pretrained_tokenizers[tokenizer_name] = encoder
-        else:
-            # as tiktoken doesn't recognize o1 model series yet
-            encoder = tiktoken.encoding_for_model("gpt-4o" if model_name.startswith("o1") else model_name)
-    except Exception:
-        encoder = tiktoken.encoding_for_model(default_tokenizer)
-        if state.verbose > 2:
-            logger.debug(
-                f"Fallback to default chat model tokenizer: {default_tokenizer}.\nConfigure tokenizer for model: {model_name} in Khoj settings to improve context stuffing."
-            )
-    return encoder
-
-
-def count_tokens(
-    message_content: str | list[str | dict],
-    encoder: PreTrainedTokenizer | PreTrainedTokenizerFast | tiktoken.Encoding,
-) -> int:
-    """
-    Count the total number of tokens in a list of messages.
-
-    Assumes each images takes 500 tokens for approximation.
-    """
-    if isinstance(message_content, list):
-        image_count = 0
-        message_content_parts: list[str] = []
-        # Collate message content into single string to ease token counting
-        for part in message_content:
-            if isinstance(part, dict) and part.get("type") == "image_url":
-                image_count += 1
-            elif isinstance(part, dict) and part.get("type") == "text":
-                message_content_parts.append(part["text"])
-            elif isinstance(part, dict) and hasattr(part, "model_dump"):
-                message_content_parts.append(json.dumps(part.model_dump()))
-            elif isinstance(part, dict) and hasattr(part, "__dict__"):
-                message_content_parts.append(json.dumps(part.__dict__))
-            elif isinstance(part, dict):
-                # If part is a dict but not a recognized type, convert to JSON string
-                try:
-                    message_content_parts.append(json.dumps(part))
-                except (TypeError, ValueError) as e:
-                    logger.warning(f"Failed to serialize part {part} to JSON: {e}. Skipping.")
-                    image_count += 1  # Treat as an image/binary if serialization fails
-            elif isinstance(part, str):
-                message_content_parts.append(part)
-            else:
-                logger.warning(f"Unknown message type: {part}. Skipping.")
-        message_content = "\n".join(message_content_parts).rstrip()
-        return len(encoder.encode(message_content)) + image_count * 500
-    elif isinstance(message_content, str):
-        return len(encoder.encode(message_content))
-    else:
-        return len(encoder.encode(json.dumps(message_content)))
-
-
-def count_total_tokens(messages: list[ChatMessage], encoder, system_message: Optional[ChatMessage]) -> Tuple[int, int]:
+def count_total_tokens(
+    messages: list[ChatMessage], encoder, system_message: Optional[list[ChatMessage]] = None
+) -> Tuple[int, int]:
     """Count total tokens in messages including system message"""
     system_message_tokens = (
         sum([count_tokens(message.content, encoder) for message in system_message]) if system_message else 0
@@ -840,6 +881,8 @@ def truncate_messages(
             system_message.append(message)
         else:
             non_system_messages.append(message)
+
+    # New message list without system messages
     messages = non_system_messages
 
     # Drop older messages until under max supported prompt size by model

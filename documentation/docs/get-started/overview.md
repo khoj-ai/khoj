@@ -28,7 +28,7 @@ Welcome to the Khoj Docs! This is the best place to get setup and explore Khoj's
 - Quickly [find](/features/search) relevant notes and documents using natural language
 - It understands pdf, plaintext, markdown, org-mode files, and [notion pages](/data-sources/notion_integration).
 - Access it from your [Emacs](/clients/emacs), [Obsidian](/clients/obsidian), the [Khoj desktop app](/clients/desktop), or [any web browser](/clients/web)
-- Use our [cloud](https://app.khoj.dev/login) instance to access your Khoj anytime from anywhere, [self-host](/get-started/setup) on consumer hardware for privacy
+- Use our [cloud](https://app.khoj.dev) instance to access your Khoj anytime from anywhere, [self-host](/get-started/setup) on consumer hardware for privacy
 
 ![demo_chat](https://assets.khoj.dev/quadratic_equation_khoj_web.gif)
 

@@ -49,6 +49,7 @@ from khoj.database.models import (
     GoogleUser,
     KhojApiUser,
     KhojUser,
+    McpServer,
     NotionConfig,
     PriceTier,
     ProcessLock,
@@ -263,25 +264,6 @@ async def aget_or_create_user_by_email(input_email: str, check_deliverability=Fa
         await Subscription.objects.acreate(user=user, type=Subscription.Type.STANDARD)
 
     return user, is_new
-
-
-@arequire_valid_user
-async def astart_trial_subscription(user: KhojUser) -> Subscription:
-    subscription = await Subscription.objects.filter(user=user).afirst()
-    if not subscription:
-        raise HTTPException(status_code=400, detail="User does not have a subscription")
-
-    if subscription.type == Subscription.Type.TRIAL:
-        raise HTTPException(status_code=400, detail="User already has a trial subscription")
-
-    if subscription.enabled_trial_at:
-        raise HTTPException(status_code=400, detail="User already has a trial subscription")
-
-    subscription.type = Subscription.Type.TRIAL
-    subscription.enabled_trial_at = datetime.now(tz=timezone.utc)
-    subscription.renewal_date = datetime.now(tz=timezone.utc) + timedelta(days=LENGTH_OF_FREE_TRIAL)
-    await subscription.asave()
-    return subscription
 
 
 async def aget_user_validated_by_email_verification_code(code: str, email: str) -> tuple[Optional[KhojUser], bool]:
@@ -1430,6 +1412,71 @@ class ConversationAdapters:
         return max_tokens
 
     @staticmethod
+    async def aget_chat_models_with_fallbacks(slot: ServerChatSettings.ChatModelSlot) -> list[ChatModel]:
+        """
+        Get chat models for a specific subscription, speed preference from all ServerChatSettings, ordered by priority.
+        Used for fallback logic when a chat model fails.
+
+        Args:
+            slot: The chat model slot to get based on user subscription, speed preference (e.g., THINK_FREE_FAST, CHAT_DEFAULT)
+
+        Returns:
+            List of ChatModel objects ordered by ServerChatSettings priority (lower first)
+        """
+        # Map slot enum to field name and prefetch related
+        slot_field = slot.value
+        prefetch_fields = [slot_field, f"{slot_field}__ai_model_api"]
+
+        # Get all server chat settings ordered by priority
+        all_settings = [
+            settings
+            async for settings in ServerChatSettings.objects.filter()
+            .prefetch_related(*prefetch_fields)
+            .order_by("priority")
+            .aiterator()
+        ]
+
+        # Extract the chat model for the requested slot from each settings
+        chat_models: list[ChatModel] = []
+        seen_model_ids: set[int] = set()
+        for settings in all_settings:
+            chat_model = getattr(settings, slot_field, None)
+            if chat_model and chat_model.id not in seen_model_ids:
+                chat_models.append(chat_model)
+                seen_model_ids.add(chat_model.id)
+
+        return chat_models
+
+    @staticmethod
+    async def aget_chat_model_slot(user: KhojUser = None, fast: Optional[bool] = None):
+        """
+        Determine which chat model slot to use based on user subscription and speed preference.
+
+        Args:
+            user: The user making the request
+            fast: Trinary flag for speed preference (True=fast, False=deep, None=default)
+
+        Returns:
+            The appropriate ChatModelSlot enum value, or None if no slot matches
+        """
+        is_subscribed = await ais_user_subscribed(user) if user else False
+
+        if is_subscribed:
+            if fast is True:
+                return ServerChatSettings.ChatModelSlot.THINK_PAID_FAST
+            elif fast is False:
+                return ServerChatSettings.ChatModelSlot.THINK_PAID_DEEP
+            else:
+                return ServerChatSettings.ChatModelSlot.CHAT_ADVANCED
+        else:
+            if fast is True:
+                return ServerChatSettings.ChatModelSlot.THINK_FREE_FAST
+            elif fast is False:
+                return ServerChatSettings.ChatModelSlot.THINK_FREE_DEEP
+            else:
+                return ServerChatSettings.ChatModelSlot.CHAT_DEFAULT
+
+    @staticmethod
     async def aget_server_webscraper():
         server_chat_settings = await ServerChatSettings.objects.filter().prefetch_related("web_scraper").afirst()
         if server_chat_settings is not None and server_chat_settings.web_scraper is not None:
@@ -1448,6 +1495,16 @@ class ConversationAdapters:
             enabled_scrapers = [scraper async for scraper in WebScraper.objects.all().order_by("priority").aiterator()]
         if not enabled_scrapers:
             # Use scrapers enabled via environment variables
+            if os.getenv("EXA_API_KEY"):
+                api_url = os.getenv("EXA_API_URL", "https://api.exa.ai")
+                enabled_scrapers.append(
+                    WebScraper(
+                        type=WebScraper.WebScraperType.EXA,
+                        name=WebScraper.WebScraperType.EXA.capitalize(),
+                        api_key=os.getenv("EXA_API_KEY"),
+                        api_url=api_url,
+                    )
+                )
             if os.getenv("OLOSTEP_API_KEY"):
                 api_url = os.getenv("OLOSTEP_API_URL", "https://agent.olostep.com/olostep-p2p-incomingAPI")
                 enabled_scrapers.append(
@@ -1468,17 +1525,6 @@ class ConversationAdapters:
                         api_url=api_url,
                     )
                 )
-            # Jina is the default fallback scrapers to use as it does not require an API key
-            api_url = os.getenv("JINA_READER_API_URL", "https://r.jina.ai/")
-            enabled_scrapers.append(
-                WebScraper(
-                    type=WebScraper.WebScraperType.JINA,
-                    name=WebScraper.WebScraperType.JINA.capitalize(),
-                    api_key=os.getenv("JINA_API_KEY"),
-                    api_url=api_url,
-                )
-            )
-
             # Only enable the direct web page scraper by default in self-hosted single user setups.
             # Useful for reading webpages on your intranet.
             if state.anonymous_mode or in_debug_mode():
@@ -2144,6 +2190,18 @@ class AutomationAdapters:
 
         automation.remove()
         return automation_metadata
+
+
+class McpServerAdapters:
+    @staticmethod
+    async def aget_all_mcp_servers() -> List[McpServer]:
+        """Asynchronously retrieve all McpServer objects from the database."""
+        servers: List[McpServer] = []
+        try:
+            servers = [server async for server in McpServer.objects.all()]
+        except Exception as e:
+            logger.error(f"Error retrieving MCP servers: {e}", exc_info=True)
+        return servers
 
 
 class UserMemoryAdapters:

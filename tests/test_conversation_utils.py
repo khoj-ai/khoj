@@ -20,9 +20,9 @@ class TestTruncateMessage:
         tokens = sum([utils.count_tokens(message.content, self.encoder) for message in truncated_chat_history])
 
         # Assert
-        # The original object has been modified. Verify certain properties
-        assert len(chat_history) < 50
-        assert len(chat_history) > 5
+        # Verify certain properties of the truncated chat history
+        assert len(truncated_chat_history) < 50
+        assert len(truncated_chat_history) > 5
         assert tokens <= self.max_prompt_size
 
     def test_truncate_message_only_oldest_big(self):
@@ -36,8 +36,8 @@ class TestTruncateMessage:
         tokens = sum([utils.count_tokens(message.content, self.encoder) for message in truncated_chat_history])
 
         # Assert
-        # The original object has been modified. Verify certain properties
-        assert len(chat_history) == 5
+        # Verify certain properties of the truncated chat history
+        assert len(truncated_chat_history) == 5
         assert tokens <= self.max_prompt_size
 
     def test_truncate_message_with_image(self):
@@ -55,7 +55,7 @@ class TestTruncateMessage:
         final_tokens = sum([utils.count_tokens(message.content, self.encoder) for message in truncated_chat_history])
 
         # Assert
-        # The original object has been modified. Verify certain properties
+        # Verify certain properties of the truncated chat history
         assert truncated_chat_history[0] != copy_big_chat_message, "Original message should be modified"
         assert truncated_chat_history[0].content[-1]["text"] == "Question?", "Query should be preserved"
         assert initial_tokens > self.max_prompt_size, "Initial tokens should be greater than max prompt size"
@@ -76,8 +76,8 @@ class TestTruncateMessage:
         final_tokens = sum([utils.count_tokens(message.content, self.encoder) for message in truncated_chat_history])
 
         # Assert
-        # The original object has been modified. Verify certain properties
-        assert len(chat_history) == 1, (
+        # Verify certain properties of the truncated chat history
+        assert len(truncated_chat_history) == 1, (
             "Only most recent message should be present as it itself is larger than context size"
         )
         assert len(truncated_chat_history[0].content) < len(copy_big_chat_message.content), (
@@ -100,8 +100,8 @@ class TestTruncateMessage:
         final_tokens = sum([utils.count_tokens(message.content, self.encoder) for message in truncated_chat_history])
 
         # Assert
-        # The original object has been modified. Verify certain properties
-        assert len(chat_history) == 1, (
+        # Verify certain properties of the truncated chat history
+        assert len(truncated_chat_history) == 1, (
             "Only most recent message should be present as it itself is larger than context size"
         )
         assert truncated_chat_history[-1] != copy_big_chat_message, "Original message should be modified"
@@ -124,12 +124,8 @@ class TestTruncateMessage:
         final_tokens = sum([utils.count_tokens(message.content, self.encoder) for message in truncated_chat_history])
 
         # Assert
-        # The original object has been modified. Verify certain properties.
-        assert (
-            len(truncated_chat_history) == len(chat_history) + 1
-        )  # Because the system_prompt is popped off from the chat_messages list
-        assert len(truncated_chat_history) < 10
-        assert len(truncated_chat_history) > 1
+        # Verify certain properties of the truncated chat history
+        assert len(truncated_chat_history) == 2, "Expected system message + last big message after truncation"
         assert truncated_chat_history[-1] != copy_big_chat_message, "Original message should be modified"
         assert truncated_chat_history[-1].content[0]["text"].endswith("\nQuestion?"), "Query should be preserved"
         assert initial_tokens > self.max_prompt_size, "Initial tokens should be greater than max prompt size"
@@ -147,10 +143,10 @@ class TestTruncateMessage:
         final_tokens = sum([utils.count_tokens(message.content, self.encoder) for message in truncated_chat_history])
 
         # Assert
-        # The original object has been modified. Verify certain properties
+        # Verify certain properties of the truncated chat history
         assert initial_tokens > self.max_prompt_size, "Initial tokens should be greater than max prompt size"
         assert final_tokens <= self.max_prompt_size, "Final tokens should be within max prompt size"
-        assert len(chat_messages) == 1, (
+        assert len(truncated_chat_history) == 1, (
             "Only most recent message should be present as it itself is larger than context size"
         )
         assert truncated_chat_history[0] != copy_big_chat_message, "Original message should be modified"
@@ -169,10 +165,10 @@ class TestTruncateMessage:
         final_tokens = sum([utils.count_tokens(message.content, self.encoder) for message in truncated_chat_history])
 
         # Assert
-        # The original object has been modified. Verify certain properties
+        # Verify certain properties of the truncated chat history
         assert initial_tokens > self.max_prompt_size, "Initial tokens should be greater than max prompt size"
         assert final_tokens <= self.max_prompt_size, "Final tokens should be within max prompt size"
-        assert len(chat_messages) == 1, (
+        assert len(truncated_chat_history) == 1, (
             "Only most recent message should be present as it itself is larger than context size"
         )
         assert truncated_chat_history[0] != copy_big_chat_message, "Original message should be modified"

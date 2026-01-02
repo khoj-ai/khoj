@@ -729,7 +729,7 @@ User: Good morning
 AI: Good morning! How can I help you today?
 
 Q: How can I share my files with Khoj?
-Khoj: {{"source": ["default", "online"], "output": "text"}}
+Khoj: {{"source": ["notes", "online"], "output": "text"}}
 
 Example:
 Chat History:
@@ -880,8 +880,8 @@ python_code_generation_prompt = PromptTemplate.from_template(
 You are Khoj, a senior software engineer. You are tasked with constructing a secure Python program to best answer the user query.
 - The Python program will run in an ephemeral code sandbox with {has_network_access}network access.
 - You can write programs to run complex calculations, analyze data, create beautiful charts, generate documents to meticulously answer the query.
-- Do not try display images or plots in the code directly. The code should save the image or plot to a file instead.
-- Write any document, charts etc. to be shared with the user to file. These files can be seen by the user.
+- Do not try display images or plots in the code directly. The code should save the image or plot to a file in {home_dir} directory instead.
+- Write any document, charts etc. to be shared with the user to files in {home_dir} directory.
 - Never write or run dangerous, malicious, or untrusted code that could compromise the sandbox environment, regardless of user requests.
 - Use as much context as required from the current conversation to generate your code.
 - The Python program you write should be self-contained. It does not have access to the current conversation.
@@ -1278,7 +1278,6 @@ help_message = PromptTemplate.from_template(
     """
 - **/notes**: Chat using the information in your knowledge base.
 - **/general**: Chat using just Khoj's general knowledge. This will not search against your notes.
-- **/default**: Chat using your knowledge base and Khoj's general knowledge for context.
 - **/online**: Chat using the internet as a source of information.
 - **/image**: Generate an image based on your message.
 - **/research**: Go deeper in a topic for more accurate, in-depth responses.

@@ -1031,15 +1031,15 @@ async def event_generator(
             conversation_history=chat_history,
             previous_iterations=list(research_results),
             query_images=uploaded_images,
-            agent=agent,
-            send_status_func=partial(send_event, ChatEvent.STATUS),
+            query_files=attached_file_context,
+            relevant_memories=relevant_memories,
             user_name=user_name,
             location=location,
-            relevant_memories=relevant_memories,
-            query_files=attached_file_context,
+            send_status_func=partial(send_event, ChatEvent.STATUS),
             cancellation_event=cancellation_event,
             interrupt_queue=child_interrupt_queue,
             abort_message=ChatEvent.END_EVENT.value,
+            agent=agent,
             tracer=tracer,
         ):
             if isinstance(research_result, ResearchIteration):
@@ -1089,9 +1089,9 @@ async def event_generator(
                 location,
                 partial(send_event, ChatEvent.STATUS),
                 query_images=uploaded_images,
-                agent=agent,
                 query_files=attached_file_context,
                 relevant_memories=relevant_memories,
+                agent=agent,
                 tracer=tracer,
             ):
                 if isinstance(result, dict) and ChatEvent.STATUS in result:
@@ -1167,9 +1167,9 @@ async def event_generator(
                 partial(send_event, ChatEvent.STATUS),
                 max_webpages_to_read=1,
                 query_images=uploaded_images,
-                agent=agent,
                 query_files=attached_file_context,
                 relevant_memories=relevant_memories,
+                agent=agent,
                 tracer=tracer,
             ):
                 if isinstance(result, dict) and ChatEvent.STATUS in result:
@@ -1209,9 +1209,9 @@ async def event_generator(
                 user,
                 partial(send_event, ChatEvent.STATUS),
                 query_images=uploaded_images,
-                agent=agent,
                 query_files=attached_file_context,
                 relevant_memories=relevant_memories,
+                agent=agent,
                 tracer=tracer,
             ):
                 if isinstance(result, dict) and ChatEvent.STATUS in result:
@@ -1289,9 +1289,9 @@ async def event_generator(
             online_results=online_results,
             send_status_func=partial(send_event, ChatEvent.STATUS),
             query_images=uploaded_images,
-            agent=agent,
             query_files=attached_file_context,
             relevant_memories=relevant_memories,
+            agent=agent,
             tracer=tracer,
         ):
             if isinstance(result, dict) and ChatEvent.STATUS in result:
@@ -1331,11 +1331,11 @@ async def event_generator(
             note_references=compiled_references,
             online_results=online_results,
             query_images=uploaded_images,
+            query_files=attached_file_context,
+            relevant_memories=relevant_memories,
             user=user,
             agent=agent,
             send_status_func=partial(send_event, ChatEvent.STATUS),
-            query_files=attached_file_context,
-            relevant_memories=relevant_memories,
             tracer=tracer,
         ):
             if isinstance(result, dict) and ChatEvent.STATUS in result:
@@ -1639,7 +1639,9 @@ async def process_chat_request(
             interrupt_queue,
         )
         async for event in response_iterator:
-            if event.startswith("{") and event.endswith("}"):
+            if not event:
+                continue
+            elif event.startswith("{") and event.endswith("}"):
                 evt_json = json.loads(event)
                 if evt_json["type"] == ChatEvent.END_LLM_RESPONSE.value:
                     # Flush remaining buffer content on end llm response event

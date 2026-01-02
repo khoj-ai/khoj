@@ -535,7 +535,7 @@ class AnthropicOperatorAgent(OperatorAgent):
             if tool_type == "computer":
                 return {"name": "computer", "type": "computer_20250124"}
             elif tool_type == "editor":
-                return {"name": "str_replace_based_edit_tool", "type": "text_editor_20250429"}
+                return {"name": "str_replace_based_edit_tool", "type": "text_editor_20250728"}
             elif tool_type == "terminal":
                 return {"name": "bash", "type": "bash_20250124"}
         raise ValueError(f"Unsupported tool type for model '{self.vision_model.name}': {tool_type}")

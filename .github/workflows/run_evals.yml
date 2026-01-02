@@ -60,14 +60,6 @@ on:
         required: false
         default: 'https://api.openai.com/v1'
         type: string
-      auto_read_webpage:
-        description: 'Auto read webpage on online search'
-        required: false
-        default: 'false'
-        type: choice
-        options:
-          - 'false'
-          - 'true'
       randomize:
         description: 'Randomize the sample of questions'
         required: false
@@ -76,6 +68,11 @@ on:
         options:
           - 'false'
           - 'true'
+      dataset_seed:
+        description: 'Seed to deterministically shuffle questions'
+        required: false
+        default: ''
+        type: string
 
 jobs:
   eval:
@@ -149,8 +146,9 @@ jobs:
           SAMPLE_SIZE: ${{ github.event_name == 'workflow_dispatch' && inputs.sample_size || 200 }}
           BATCH_SIZE: "20"
           RANDOMIZE: ${{ github.event_name == 'workflow_dispatch' && inputs.randomize || 'true' }}
-          KHOJ_URL: "http://localhost:42110"
+          DATASET_SEED: ${{ github.event_name == 'workflow_dispatch' && inputs.dataset_seed || github.run_id }}
           KHOJ_LLM_SEED: "42"
+          KHOJ_URL: "http://localhost:42110"
           KHOJ_DEFAULT_CHAT_MODEL: ${{ github.event_name == 'workflow_dispatch' && inputs.chat_model || 'gemini-2.5-flash' }}
           KHOJ_RESEARCH_ITERATIONS: ${{ github.event_name == 'workflow_dispatch' && inputs.max_research_iterations || 10 }}
           KHOJ_AUTO_READ_WEBPAGE: ${{ github.event_name == 'workflow_dispatch' && inputs.auto_read_webpage || 'false' }}

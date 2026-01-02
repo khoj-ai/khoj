@@ -5,6 +5,7 @@ import logging
 import mimetypes
 import os
 import re
+import uuid
 from pathlib import Path
 from typing import Any, Callable, List, NamedTuple, Optional
 
@@ -39,8 +40,9 @@ from khoj.utils.rawconfig import LocationData
 logger = logging.getLogger(__name__)
 
 
-SANDBOX_URL = os.getenv("KHOJ_TERRARIUM_URL", "http://localhost:8080")
+SANDBOX_URL = os.getenv("KHOJ_TERRARIUM_URL")
 DEFAULT_E2B_TEMPLATE = "pmt2o0ghpang8gbiys57"
+HOME_DIR = "/home/user"
 
 
 class GeneratedCode(NamedTuple):
@@ -56,10 +58,10 @@ async def run_code(
     user: KhojUser,
     send_status_func: Optional[Callable] = None,
     query_images: List[str] = None,
-    agent: Agent = None,
-    sandbox_url: str = SANDBOX_URL,
     query_files: str = None,
     relevant_memories: List[UserMemory] = None,
+    agent: Agent = None,
+    sandbox_url: str = SANDBOX_URL,
     tracer: dict = {},
 ):
     # Generate Code
@@ -149,6 +151,7 @@ async def generate_python_code(
         chat_history=chat_history_str,
         context=context,
         has_network_access=network_access_context,
+        home_dir=HOME_DIR,
         current_date=utc_date,
         location=location,
         username=username,
@@ -246,7 +249,7 @@ async def execute_e2b(code: str, input_files: list[dict]) -> dict[str, Any]:
 
         # Note stored files before execution to identify new files created during execution
         E2bFile = NamedTuple("E2bFile", [("name", str), ("path", str)])
-        original_files = {E2bFile(f.name, f.path) for f in await sandbox.files.list("~")}
+        original_files = {E2bFile(f.name, f.path) for f in await sandbox.files.list(HOME_DIR, depth=1)}
 
         # Execute code from main.py file
         execution = await sandbox.run_code(code=code, timeout=60)
@@ -256,7 +259,7 @@ async def execute_e2b(code: str, input_files: list[dict]) -> dict[str, Any]:
         image_file_ext = {".png", ".jpeg", ".jpg", ".svg"}
 
         # Identify new files created during execution
-        new_files = set(E2bFile(f.name, f.path) for f in await sandbox.files.list("~")) - original_files
+        new_files = set(E2bFile(f.name, f.path) for f in await sandbox.files.list(HOME_DIR, depth=1)) - original_files
 
         # Read newly created files in parallel
         def read_format(f):
@@ -275,6 +278,21 @@ async def execute_e2b(code: str, input_files: list[dict]) -> dict[str, Any]:
                 # Text files - encode utf-8 string as base64
                 b64_data = content
             output_files.append({"filename": f.name, "b64_data": b64_data})
+
+        # Collect output files from execution results
+        # Respect ordering of output result types to disregard text output associated with images
+        downloaded_datatypes = {f["filename"].split(".")[-1] for f in output_files}
+        output_result_types = ["png", "jpeg", "svg", "text", "markdown", "json"]
+        for result in execution.results:
+            if getattr(result, "chart", None):
+                continue
+            for result_type in output_result_types:
+                if b64_data := getattr(result, result_type, None):
+                    if result_type in downloaded_datatypes:
+                        break
+                    filename = f"{HOME_DIR}/{uuid.uuid4()}.{result_type}"
+                    output_files.append({"filename": filename, "b64_data": b64_data})
+                    break
 
         # collect logs
         success = not execution.error and not execution.logs.stderr
