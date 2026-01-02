@@ -52,9 +52,9 @@ async def subscribe(request: Request):
     # Verify product ID if official_product_id is configured
     if official_product_id:
         # Get the product ID from the subscription items
-        subscription_items = subscription.get("items", {}).get("data", [])
+        subscription_items = (subscription.get("items") or subscription.get("lines", {})).get("data", [])
         if not subscription_items:
-            logger.warning(f"No subscription items found for event {event['id']}")
+            logger.warning(f"No subscription lines/items found for event {event['id']}")
             return {"success": False}
 
         # Check if any subscription item matches the official product ID
