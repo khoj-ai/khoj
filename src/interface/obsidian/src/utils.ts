@@ -1,5 +1,6 @@
-import { FileSystemAdapter, Notice, Vault, Modal, TFile, request, setIcon, Editor, App, WorkspaceLeaf } from 'obsidian';
+import { FileSystemAdapter, Notice, Vault, Modal, TFile, request, setIcon, Editor, WorkspaceLeaf } from 'obsidian';
 import { KhojSetting, ModelOption, ServerUserConfig, UserInfo } from 'src/settings'
+import { deleteContentByType, uploadContentBatch } from './api';
 import { KhojSearchModal } from './search_modal';
 
 export function getVaultAbsolutePath(vault: Vault): string {
@@ -60,9 +61,7 @@ export const supportedImageFilesTypes = fileTypeToExtension.image;
 export const supportedBinaryFileTypes = fileTypeToExtension.pdf.concat(supportedImageFilesTypes);
 export const supportedFileTypes = fileTypeToExtension.markdown.concat(supportedBinaryFileTypes);
 
-export async function updateContentIndex(vault: Vault, setting: KhojSetting, lastSync: Map<TFile, number>, regenerate: boolean = false, userTriggered: boolean = false): Promise<Map<TFile, number>> {
-    // Get all markdown, pdf files in the vault
-    console.log(`Khoj: Updating Khoj content index...`)
+export function getFilesToSync(vault: Vault, setting: KhojSetting): TFile[] {
     const files = vault.getFiles()
         // Filter supported file types for syncing
         .filter(file => supportedFileTypes.includes(file.extension))
@@ -73,7 +72,7 @@ export async function updateContentIndex(vault: Vault, setting: KhojSetting, las
             if (fileTypeToExtension.image.includes(file.extension)) return setting.syncFileType.images;
             return false;
         })
-        // Filter files based on specified folders (include)
+        // Filter in included folders
         .filter(file => {
             // If no folders are specified, sync all files
             if (setting.syncFolders.length === 0) return true;
@@ -90,9 +89,29 @@ export async function updateContentIndex(vault: Vault, setting: KhojSetting, las
             return !setting.excludeFolders.some(folder =>
                 file.path.startsWith(folder + '/') || file.path === folder
             );
+        })
+        // Sort files by type: markdown > pdf > image
+        .sort((a, b) => {
+            const typeOrder: (keyof typeof fileTypeToExtension)[] = ['markdown', 'pdf', 'image'];
+            const aType = typeOrder.findIndex(type => fileTypeToExtension[type].includes(a.extension));
+            const bType = typeOrder.findIndex(type => fileTypeToExtension[type].includes(b.extension));
+            return aType - bType;
         });
 
-    // Log total eligible files
+    return files;
+}
+
+export async function updateContentIndex(
+    vault: Vault,
+    setting: KhojSetting,
+    lastSync: Map<TFile, number>,
+    regenerate: boolean = false,
+    userTriggered: boolean = false,
+    onProgress?: (progress: { processed: number, total: number }) => void
+): Promise<Map<TFile, number>> {
+    // Get all markdown, pdf files in the vault
+    console.log(`Khoj: Updating Khoj content index...`);
+    const files = getFilesToSync(vault, setting);
     console.log(`Khoj: Found ${files.length} eligible files in vault`);
 
     let countOfFilesToIndex = 0;
@@ -110,11 +129,12 @@ export async function updateContentIndex(vault: Vault, setting: KhojSetting, las
     }
     console.log(`Khoj: ${filesToSync.length} files to sync (${files.length} total eligible)`);
 
-    // Add all files to index as multipart form data
-    let fileData = [];
-    let currentBatchSize = 0;
+    // Add all files to index as multipart form data, batched by size, item count
     const MAX_BATCH_SIZE = 10 * 1024 * 1024; // 10MB max batch size
-    let currentBatch = [];
+    const MAX_BATCH_ITEMS = 50; // Max 50 items per batch
+    let fileData: { blob: Blob, path: string }[][] = [];
+    let currentBatch: { blob: Blob, path: string }[] = [];
+    let currentBatchSize = 0;
 
     for (const file of files) {
         // Only push files that have been modified since last sync if not regenerating
@@ -128,9 +148,8 @@ export async function updateContentIndex(vault: Vault, setting: KhojSetting, las
         const fileContent = encoding == 'binary' ? await vault.readBinary(file) : await vault.read(file);
         const fileItem = { blob: new Blob([fileContent], { type: mimeType }), path: file.path };
 
-        // Check if adding this file would exceed batch size
         const fileSize = (typeof fileContent === 'string') ? new Blob([fileContent]).size : fileContent.byteLength;
-        if (currentBatchSize + fileSize > MAX_BATCH_SIZE && currentBatch.length > 0) {
+        if ((currentBatchSize + fileSize > MAX_BATCH_SIZE || currentBatch.length >= MAX_BATCH_ITEMS) && currentBatch.length > 0) {
             fileData.push(currentBatch);
             currentBatch = [];
             currentBatchSize = 0;
@@ -140,12 +159,12 @@ export async function updateContentIndex(vault: Vault, setting: KhojSetting, las
         currentBatchSize += fileSize;
     }
 
-    // Add any previously synced files to be deleted to final batch
+    // Add files to delete (previously synced but no longer in vault) to final batch
     let filesToDelete: TFile[] = [];
     for (const lastSyncedFile of lastSync.keys()) {
         if (!files.includes(lastSyncedFile)) {
             countOfFilesToDelete++;
-            let fileObj = new Blob([""], { type: filenameToMimeType(lastSyncedFile) });
+            const fileObj = new Blob([""], { type: filenameToMimeType(lastSyncedFile) });
             currentBatch.push({ blob: fileObj, path: lastSyncedFile.path });
             filesToDelete.push(lastSyncedFile);
         }
@@ -157,86 +176,51 @@ export async function updateContentIndex(vault: Vault, setting: KhojSetting, las
     }
 
     // Delete all files of enabled content types first if regenerating
-    let error_message = null;
-    const contentTypesToDelete = [];
+    let error_message: string | null = null;
     if (regenerate) {
         // Mark content types to delete based on user sync file type settings
+        const contentTypesToDelete: string[] = [];
         if (setting.syncFileType.markdown) contentTypesToDelete.push('markdown');
         if (setting.syncFileType.pdf) contentTypesToDelete.push('pdf');
         if (setting.syncFileType.images) contentTypesToDelete.push('image');
-    }
-    for (const contentType of contentTypesToDelete) {
-        const response = await fetch(`${setting.khojUrl}/api/content/type/${contentType}?client=obsidian`, {
-            method: "DELETE",
-            headers: {
-                'Authorization': `Bearer ${setting.khojApiKey}`,
+
+        try {
+            for (const contentType of contentTypesToDelete) {
+                await deleteContentByType(setting.khojUrl, setting.khojApiKey, contentType);
             }
-        });
-        if (!response.ok) {
+        } catch (err) {
+            console.error('Khoj: Error deleting content types:', err);
             error_message = "❗️Failed to clear existing content index";
             fileData = [];
         }
     }
 
-    // Iterate through all indexable files in vault, 10Mb batch at a time
+    // Upload files in batches
     let responses: string[] = [];
+    let processedFiles = 0;
+    const totalFiles = fileData.reduce((sum, batch) => sum + batch.length, 0);
+
+    // Report initial progress with total count before uploading
+    if (onProgress) {
+        onProgress({ processed: 0, total: totalFiles });
+    }
+
     for (const batch of fileData) {
-        // Create multipart form data with all files in batch
-        const formData = new FormData();
-        batch.forEach(fileItem => { formData.append('files', fileItem.blob, fileItem.path) });
-
-        // Call Khoj backend to sync index with updated files in vault
-        const method = regenerate ? "PUT" : "PATCH";
-        const response = await fetch(`${setting.khojUrl}/api/content?client=obsidian`, {
-            method: method,
-            headers: {
-                'Authorization': `Bearer ${setting.khojApiKey}`,
-            },
-            body: formData,
-        });
-
-        if (!response.ok) {
-            if (response.status === 429) {
-                let response_text = await response.text();
-                if (response_text.includes("Too much data")) {
-                    const errorFragment = document.createDocumentFragment();
-                    errorFragment.appendChild(document.createTextNode("❗️Exceeded data sync limits. To resolve this either:"));
-                    const bulletList = document.createElement('ul');
-
-                    const limitFilesItem = document.createElement('li');
-                    const settingsPrefixText = document.createTextNode("Limit files to sync from ");
-                    const settingsLink = document.createElement('a');
-                    settingsLink.textContent = "Khoj settings";
-                    settingsLink.href = "#";
-                    settingsLink.addEventListener('click', (e) => {
-                        e.preventDefault();
-                        openKhojPluginSettings();
-                    });
-                    limitFilesItem.appendChild(settingsPrefixText);
-                    limitFilesItem.appendChild(settingsLink);
-                    bulletList.appendChild(limitFilesItem);
-
-                    const upgradeItem = document.createElement('li');
-                    const upgradeLink = document.createElement('a');
-                    upgradeLink.href = `${setting.khojUrl}/settings#subscription`;
-                    upgradeLink.textContent = 'Upgrade your subscription';
-                    upgradeLink.target = '_blank';
-                    upgradeItem.appendChild(upgradeLink);
-                    bulletList.appendChild(upgradeItem);
-                    errorFragment.appendChild(bulletList);
-                    error_message = errorFragment;
-                } else {
-                    error_message = `❗️Failed to sync your content with Khoj server. Requests were throttled. Upgrade your subscription or try again later.`;
-                }
-                break;
-            } else if (response.status === 404) {
-                error_message = `❗️Could not connect to Khoj server. Ensure you can connect to it.`;
-                break;
-            } else {
-                error_message = `❗️Failed to sync all your content with Khoj server. Raise issue on Khoj Discord or Github\nError: ${response.statusText}`;
+        try {
+            const resultText = await uploadContentBatch(setting.khojUrl, setting.khojApiKey, batch);
+            responses.push(resultText);
+            processedFiles += batch.length;
+            if (onProgress) {
+                onProgress({ processed: processedFiles, total: totalFiles });
             }
-        } else {
-            responses.push(await response.text());
+        } catch (err: any) {
+            console.error('Khoj: Failed to upload batch:', err);
+            if (err.message?.includes('429')) {
+                error_message = `❗️Requests were throttled. Upgrade your subscription or try again later.`;
+            } else {
+                error_message = `❗️Failed to sync content with Khoj server. Error: ${err.message ?? String(err)}`;
+            }
+            break;
         }
     }
 
@@ -627,6 +611,44 @@ export function getLinkToEntry(sourceFiles: TFile[], chosenFile: string, chosenE
         let linkToEntry = resultHeading.startsWith('#') ? `${fileMatch.path}${resultHeading}` : fileMatch.path;
         console.log(`Link: ${linkToEntry}, File: ${fileMatch.path}, Heading: ${resultHeading}`);
         return linkToEntry;
+    }
+}
+
+/**
+ * Calculate estimated vault sync metrics (used and total bytes).
+ * This is a client-side estimation based on the configured sync file types and folders.
+ * The storage limit is determined from the backend-provided `setting.userInfo?.is_active` flag:
+ * - if true => premium limit (500 MB)
+ * - otherwise => free limit (10 MB)
+ * This avoids client-side heuristics and relies on server-provided user info.
+ */
+export async function calculateVaultSyncMetrics(vault: Vault, setting: KhojSetting): Promise<{ usedBytes: number, totalBytes: number }> {
+    try {
+        const files = getFilesToSync(vault, setting);
+        const usedBytes = files.reduce((acc, file) => acc + (file.stat?.size ?? 0), 0);
+
+        // Default to free plan limit
+        const FREE_LIMIT = 10 * 1024 * 1024; // 10 MB
+        const PAID_LIMIT = 500 * 1024 * 1024; // 500 MB
+        let totalBytes = FREE_LIMIT;
+
+        // Determine plan from backend-provided user info. Use FREE_LIMIT as default when info missing.
+        try {
+            if (setting.userInfo && setting.userInfo.is_active === true) {
+                totalBytes = PAID_LIMIT;
+            } else {
+                totalBytes = FREE_LIMIT;
+            }
+        } catch (err) {
+            // Defensive: on any unexpected error, fall back to free limit
+            console.warn('Khoj: Error reading userInfo.is_active, defaulting to free limit', err);
+            totalBytes = FREE_LIMIT;
+        }
+
+        return { usedBytes, totalBytes };
+    } catch (err) {
+        console.error('Khoj: Error calculating vault sync metrics:', err);
+        return { usedBytes: 0, totalBytes: 10 * 1024 * 1024 };
     }
 }
 

@@ -69,6 +69,8 @@ export const DEFAULT_SETTINGS: KhojSetting = {
 export class KhojSettingTab extends PluginSettingTab {
     plugin: Khoj;
     private chatModelSetting: Setting | null = null;
+    private storageProgressEl: HTMLProgressElement | null = null;
+    private storageProgressText: HTMLSpanElement | null = null;
 
     constructor(app: App, plugin: Khoj) {
         super(app, plugin);
@@ -229,6 +231,7 @@ export class KhojSettingTab extends PluginSettingTab {
                 .onChange(async (value) => {
                     this.plugin.settings.syncFileType.markdown = value;
                     await this.plugin.saveSettings();
+                    this.refreshStorageDisplay();
                 }));
 
         // Add setting to sync images
@@ -240,6 +243,7 @@ export class KhojSettingTab extends PluginSettingTab {
                 .onChange(async (value) => {
                     this.plugin.settings.syncFileType.images = value;
                     await this.plugin.saveSettings();
+                    this.refreshStorageDisplay();
                 }));
 
         // Add setting to sync PDFs
@@ -251,6 +255,7 @@ export class KhojSettingTab extends PluginSettingTab {
                 .onChange(async (value) => {
                     this.plugin.settings.syncFileType.pdf = value;
                     await this.plugin.saveSettings();
+                    this.refreshStorageDisplay();
                 }));
 
         // Add setting for sync interval
@@ -283,11 +288,12 @@ export class KhojSettingTab extends PluginSettingTab {
             .addButton(button => button
                 .setButtonText('Add Folder')
                 .onClick(() => {
-                    const modal = new FolderSuggestModal(this.app, (folder: string) => {
+                    const modal = new FolderSuggestModal(this.app, async (folder: string) => {
                         if (!this.plugin.settings.syncFolders.includes(folder)) {
                             this.plugin.settings.syncFolders.push(folder);
-                            this.plugin.saveSettings();
+                            await this.plugin.saveSettings();
                             this.updateIncludeFolderList(includeFolderListEl);
+                            this.refreshStorageDisplay();
                         }
                     });
                     modal.open();
@@ -305,7 +311,7 @@ export class KhojSettingTab extends PluginSettingTab {
             .addButton(button => button
                 .setButtonText('Add Folder')
                 .onClick(() => {
-                    const modal = new FolderSuggestModal(this.app, (folder: string) => {
+                    const modal = new FolderSuggestModal(this.app, async (folder: string) => {
                         // Don't allow excluding root folder
                         if (folder === '') {
                             new Notice('Cannot exclude the root folder');
@@ -313,8 +319,9 @@ export class KhojSettingTab extends PluginSettingTab {
                         }
                         if (!this.plugin.settings.excludeFolders.includes(folder)) {
                             this.plugin.settings.excludeFolders.push(folder);
-                            this.plugin.saveSettings();
+                            await this.plugin.saveSettings();
                             this.updateExcludeFolderList(excludeFolderListEl);
+                            this.refreshStorageDisplay();
                         }
                     });
                     modal.open();
@@ -337,7 +344,7 @@ export class KhojSettingTab extends PluginSettingTab {
                     button.removeCta();
                     indexVaultSetting = indexVaultSetting.setDisabled(true);
 
-                    // Show indicator for indexing in progress
+                    // Show indicator for indexing in progress (animated text)
                     const progress_indicator = window.setInterval(() => {
                         if (button.buttonEl.innerText === 'Updating 🌑') {
                             button.setButtonText('Updating 🌘');
@@ -359,17 +366,79 @@ export class KhojSettingTab extends PluginSettingTab {
                     }, 300);
                     this.plugin.registerInterval(progress_indicator);
 
-                    this.plugin.settings.lastSync = await updateContentIndex(
-                        this.app.vault, this.plugin.settings, this.plugin.settings.lastSync, true, true
-                    );
+                    // Obtain sync progress elements by id (created below)
+                    const syncProgressEl = document.getElementById('khoj-sync-progress') as HTMLProgressElement | null;
+                    const syncProgressText = document.getElementById('khoj-sync-progress-text') as HTMLElement | null;
 
-                    // Reset button once index is updated
-                    window.clearInterval(progress_indicator);
-                    button.setButtonText('Update');
-                    button.setCta();
-                    indexVaultSetting = indexVaultSetting.setDisabled(false);
+                    if (syncProgressEl && syncProgressText) {
+                        syncProgressEl.style.display = '';
+                        syncProgressText.style.display = '';
+                        syncProgressText.textContent = 'Preparing files...';
+                        syncProgressEl.value = 0;
+                        syncProgressEl.max = 1;
+                    }
+
+                    const onProgress = (progress: { processed: number, total: number }) => {
+                        const el = document.getElementById('khoj-sync-progress') as HTMLProgressElement | null;
+                        const txt = document.getElementById('khoj-sync-progress-text') as HTMLElement | null;
+                        if (!el || !txt) return;
+                        el.max = Math.max(progress.total, 1);
+                        el.value = Math.min(progress.processed, el.max);
+                        txt.textContent = `Syncing... ${progress.processed} / ${progress.total} files`;
+                    };
+
+                    try {
+                        this.plugin.settings.lastSync = await updateContentIndex(
+                            this.app.vault, this.plugin.settings, this.plugin.settings.lastSync, true, true, onProgress
+                        );
+                    } finally {
+                        // Cleanup: hide sync progress UI
+                        const el = document.getElementById('khoj-sync-progress') as HTMLProgressElement | null;
+                        const txt = document.getElementById('khoj-sync-progress-text') as HTMLElement | null;
+                        if (el) el.style.display = 'none';
+                        if (txt) txt.style.display = 'none';
+                        this.refreshStorageDisplay();
+
+                        // Reset button state
+                        window.clearInterval(progress_indicator);
+                        button.setButtonText('Update');
+                        button.setCta();
+                        indexVaultSetting = indexVaultSetting.setDisabled(false);
+                    }
                 })
             );
+        // Estimated Cloud Storage (client-side)
+        const storageSetting = new Setting(containerEl)
+            .setName('Estimated Cloud Storage')
+            .setDesc('Estimated storage usage based on files configured for sync. This is a client-side estimation.')
+            .then(() => { });
+
+        // Create custom elements: progress and text for storage estimation
+        this.storageProgressEl = document.createElement('progress');
+        this.storageProgressEl.value = 0;
+        this.storageProgressEl.max = 1;
+        this.storageProgressEl.style.width = '100%';
+        this.storageProgressText = document.createElement('span');
+        this.storageProgressText.textContent = 'Calculating...';
+        storageSetting.descEl.appendChild(this.storageProgressEl);
+        storageSetting.descEl.appendChild(this.storageProgressText);
+
+        // Create progress bar for Force Sync operation (hidden by default)
+        const syncProgressEl = document.createElement('progress');
+        syncProgressEl.id = 'khoj-sync-progress';
+        syncProgressEl.value = 0;
+        syncProgressEl.max = 1;
+        syncProgressEl.style.width = '100%';
+        syncProgressEl.style.display = 'none';
+        const syncProgressText = document.createElement('span');
+        syncProgressText.id = 'khoj-sync-progress-text';
+        syncProgressText.textContent = '';
+        syncProgressText.style.display = 'none';
+        storageSetting.descEl.appendChild(syncProgressEl);
+        storageSetting.descEl.appendChild(syncProgressText);
+
+        // Call initial update
+        this.refreshStorageDisplay();
     }
 
     private connectStatusIcon() {
@@ -379,6 +448,28 @@ export class KhojSettingTab extends PluginSettingTab {
             return '🟡'
         else
             return '🔴';
+    }
+
+    private async refreshStorageDisplay() {
+        if (!this.storageProgressEl || !this.storageProgressText) return;
+
+        // Show calculating state
+        this.storageProgressEl.removeAttribute('value');
+        this.storageProgressText.textContent = 'Calculating...';
+        try {
+            const { calculateVaultSyncMetrics } = await import('./utils');
+            const metrics = await calculateVaultSyncMetrics(this.app.vault, this.plugin.settings);
+            const usedMB = (metrics.usedBytes / (1024 * 1024));
+            const totalMB = (metrics.totalBytes / (1024 * 1024));
+            const usedStr = `${usedMB.toFixed(1)} MB`;
+            const totalStr = `${totalMB.toFixed(0)} MB`;
+            this.storageProgressEl.value = metrics.usedBytes;
+            this.storageProgressEl.max = metrics.totalBytes;
+            this.storageProgressText.textContent = `${usedStr} / ${totalStr}`;
+        } catch (err) {
+            console.error('Khoj: Failed to update storage display', err);
+            this.storageProgressText.textContent = 'Estimation unavailable';
+        }
     }
 
     private async refreshModelsAndServerPreference() {
@@ -480,6 +571,7 @@ export class KhojSettingTab extends PluginSettingTab {
                 this.plugin.settings.syncFolders = this.plugin.settings.syncFolders.filter(f => f !== folder);
                 await this.plugin.saveSettings();
                 this.updateIncludeFolderList(containerEl);
+                this.refreshStorageDisplay();
             }
         );
     }
@@ -494,6 +586,7 @@ export class KhojSettingTab extends PluginSettingTab {
                 this.plugin.settings.excludeFolders = this.plugin.settings.excludeFolders.filter(f => f !== folder);
                 await this.plugin.saveSettings();
                 this.updateExcludeFolderList(containerEl);
+                this.refreshStorageDisplay();
             }
         );
     }
