@@ -10,13 +10,13 @@ export async function deleteContentByType(khojUrl: string, khojApiKey: string, c
     }
 }
 
-export async function uploadContentBatch(khojUrl: string, khojApiKey: string, method: 'PUT' | 'PATCH', files: { blob: Blob, path: string }[]): Promise<string> {
+export async function uploadContentBatch(khojUrl: string, khojApiKey: string, files: { blob: Blob, path: string }[]): Promise<string> {
     // Uploads a batch of files to Khoj content endpoint
     const formData = new FormData();
     files.forEach(fileItem => { formData.append('files', fileItem.blob, fileItem.path); });
 
     const response = await fetch(`${khojUrl}/api/content?client=obsidian`, {
-        method: method,
+        method: 'PATCH',
         headers: khojApiKey ? { 'Authorization': `Bearer ${khojApiKey}` } : {},
         body: formData,
     });

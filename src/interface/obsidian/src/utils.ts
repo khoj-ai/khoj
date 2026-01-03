@@ -199,8 +199,6 @@ export async function updateContentIndex(
             }
         }
 
-        const method: 'PUT' | 'PATCH' = regenerate ? 'PUT' : 'PATCH';
-
         for (const typeKey of Object.keys(filesByType)) {
             const allFilesOfType = filesByType[typeKey] as { blob: Blob, path: string }[];
             if (allFilesOfType.length === 0) continue;
@@ -213,7 +211,7 @@ export async function updateContentIndex(
                 const chunk = allFilesOfType.slice(startIdx, endIdx);
                 console.log(`Khoj: Indexing ${typeKey} files: batch ${i + 1} of ${totalBatches}...`);
                 try {
-                    const resultText = await uploadContentBatch(setting.khojUrl, setting.khojApiKey, method, chunk);
+                    const resultText = await uploadContentBatch(setting.khojUrl, setting.khojApiKey, chunk);
                     responses.push(resultText);
                     console.log(`Khoj: Successfully indexed ${typeKey} files: batch ${i + 1} of ${totalBatches}.`);
                     // Update progress after successful batch upload
