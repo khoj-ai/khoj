@@ -68,7 +68,7 @@ export async function updateContentIndex(
     lastSync: Map<TFile, number>,
     regenerate: boolean = false,
     userTriggered: boolean = false,
-    onProgress?: (progress: { processed: number, total: number, contentType?: string }) => void
+    onProgress?: (progress: { processed: number, total: number }) => void
 ): Promise<Map<TFile, number>> {
     // Get all markdown, pdf files in the vault
     console.log(`Khoj: Updating Khoj content index...`)
@@ -82,12 +82,21 @@ export async function updateContentIndex(
             if (fileTypeToExtension.image.includes(file.extension)) return setting.syncFileType.images;
             return false;
         })
-        // Filter files based on specified folders
+        // Filter in included folders
         .filter(file => {
             // If no folders are specified, sync all files
             if (setting.syncFolders.length === 0) return true;
             // Otherwise, check if the file is in one of the specified folders
             return setting.syncFolders.some(folder =>
+                file.path.startsWith(folder + '/') || file.path === folder
+            );
+        })
+        // Filter out excluded folders
+        .filter(file => {
+            // If no folders are excluded, include all files
+            if (setting.excludeFolders.length === 0) return true;
+            // Exclude files in any of the excluded folders
+            return !setting.excludeFolders.some(folder =>
                 file.path.startsWith(folder + '/') || file.path === folder
             );
         });
@@ -96,26 +105,11 @@ export async function updateContentIndex(
     let countOfFilesToDelete = 0;
     lastSync = lastSync.size > 0 ? lastSync : new Map<TFile, number>();
 
-    // Compute total number of files that will be processed (index + delete)
-    // This uses the same logic as the processing loop: skip files not modified
-    // when not regenerating.
-    let totalIndexCandidates = 0;
-    for (const file of files) {
-        if (!regenerate && file.stat.mtime < (lastSync.get(file) ?? 0)) continue;
-        totalIndexCandidates++;
-    }
-    const totalDeleteCandidates = Array.from(lastSync.keys()).filter(f => !files.includes(f)).length;
-    const totalFilesToProcess = totalIndexCandidates + totalDeleteCandidates;
-
-    // Progress counter
-    let processedCount = 0;
-
-    // Add all files to index as multipart form data
-    let fileData = [];
-    let currentBatchSize = 0;
+    // Add all files to index as multipart form data, batched by size
     const MAX_BATCH_SIZE = 10 * 1024 * 1024; // 10MB max batch size
-    const CHUNK_FILE_COUNT = 50; // Number of files per logical chunk when uploading by type
-    let currentBatch = [];
+    let fileData: { blob: Blob, path: string }[][] = [];
+    let currentBatch: { blob: Blob, path: string }[] = [];
+    let currentBatchSize = 0;
 
     for (const file of files) {
         // Only push files that have been modified since last sync if not regenerating
@@ -129,7 +123,6 @@ export async function updateContentIndex(
         const fileContent = encoding == 'binary' ? await vault.readBinary(file) : await vault.read(file);
         const fileItem = { blob: new Blob([fileContent], { type: mimeType }), path: file.path };
 
-        // Check if adding this file would exceed batch size
         const fileSize = (typeof fileContent === 'string') ? new Blob([fileContent]).size : fileContent.byteLength;
         if (currentBatchSize + fileSize > MAX_BATCH_SIZE && currentBatch.length > 0) {
             fileData.push(currentBatch);
@@ -141,12 +134,12 @@ export async function updateContentIndex(
         currentBatchSize += fileSize;
     }
 
-    // Add any previously synced files to be deleted to final batch
+    // Track files to delete (previously synced but no longer in vault)
     let filesToDelete: TFile[] = [];
     for (const lastSyncedFile of lastSync.keys()) {
         if (!files.includes(lastSyncedFile)) {
             countOfFilesToDelete++;
-            let fileObj = new Blob([""], { type: filenameToMimeType(lastSyncedFile) });
+            const fileObj = new Blob([""], { type: filenameToMimeType(lastSyncedFile) });
             currentBatch.push({ blob: fileObj, path: lastSyncedFile.path });
             filesToDelete.push(lastSyncedFile);
         }
@@ -158,83 +151,45 @@ export async function updateContentIndex(
     }
 
     // Delete all files of enabled content types first if regenerating
-    let error_message = null;
-    const contentTypesToDelete: string[] = [];
+    let error_message: string | null = null;
     if (regenerate) {
+        const contentTypesToDelete: string[] = [];
         if (setting.syncFileType.markdown) contentTypesToDelete.push('markdown');
         if (setting.syncFileType.pdf) contentTypesToDelete.push('pdf');
         if (setting.syncFileType.images) contentTypesToDelete.push('image');
-    }
 
-    // Perform deletions sequentially to avoid rate limiting
-    try {
-        for (const contentType of contentTypesToDelete) {
-            console.log(`Khoj: Starting deletion of ${contentType} files...`);
-            await deleteContentByType(setting.khojUrl, setting.khojApiKey, contentType);
-            console.log(`Khoj: ${contentType} files deleted successfully.`);
+        try {
+            for (const contentType of contentTypesToDelete) {
+                await deleteContentByType(setting.khojUrl, setting.khojApiKey, contentType);
+            }
+        } catch (err) {
+            console.error('Khoj: Error deleting content types:', err);
+            error_message = "❗️Failed to clear existing content index";
+            fileData = [];
         }
-    } catch (err) {
-        console.error('Khoj: Error while deleting content types:', err);
-        error_message = "❗️Failed to clear existing content index";
-        fileData = [];
     }
 
-    // Iterate through all indexable files in vault, 10Mb batch at a time
+    // Upload files in size-based batches
     let responses: string[] = [];
-    if (!error_message) {
-        // Group files by type for chunked processing
-        const filesByType: Record<string, { blob: Blob, path: string }[]> = {
-            markdown: [],
-            pdf: [],
-            image: [],
-        };
+    let processedFiles = 0;
+    const totalFiles = fileData.reduce((sum, batch) => sum + batch.length, 0);
 
-        for (const batch of fileData) {
-            for (const fileItem of batch) {
-                const ext = fileItem.path.split('.').pop()?.toLowerCase() ?? '';
-                if (fileTypeToExtension.markdown.includes(ext)) filesByType.markdown.push(fileItem);
-                else if (fileTypeToExtension.pdf.includes(ext)) filesByType.pdf.push(fileItem);
-                else if (fileTypeToExtension.image.includes(ext)) filesByType.image.push(fileItem);
-                else filesByType.markdown.push(fileItem);
+    for (const batch of fileData) {
+        try {
+            const resultText = await uploadContentBatch(setting.khojUrl, setting.khojApiKey, batch);
+            responses.push(resultText);
+            processedFiles += batch.length;
+            if (onProgress) {
+                onProgress({ processed: processedFiles, total: totalFiles });
             }
-        }
-
-        for (const typeKey of Object.keys(filesByType)) {
-            const allFilesOfType = filesByType[typeKey] as { blob: Blob, path: string }[];
-            if (allFilesOfType.length === 0) continue;
-
-            // Split into logical chunks of CHUNK_FILE_COUNT
-            const totalBatches = Math.ceil(allFilesOfType.length / CHUNK_FILE_COUNT);
-            for (let i = 0; i < totalBatches; i++) {
-                const startIdx = i * CHUNK_FILE_COUNT;
-                const endIdx = Math.min(startIdx + CHUNK_FILE_COUNT, allFilesOfType.length);
-                const chunk = allFilesOfType.slice(startIdx, endIdx);
-                console.log(`Khoj: Indexing ${typeKey} files: batch ${i + 1} of ${totalBatches}...`);
-                try {
-                    const resultText = await uploadContentBatch(setting.khojUrl, setting.khojApiKey, chunk);
-                    responses.push(resultText);
-                    console.log(`Khoj: Successfully indexed ${typeKey} files: batch ${i + 1} of ${totalBatches}.`);
-                    // Update progress after successful batch upload
-                    processedCount += chunk.length;
-                    try {
-                        if (onProgress) onProgress({ processed: processedCount, total: totalFilesToProcess, contentType: typeKey });
-                    } catch (err) {
-                        // Callback errors should not break the sync process
-                        console.warn('Khoj: onProgress callback threw an error', err);
-                    }
-                } catch (err: any) {
-                    console.error(`Khoj: Failed to upload ${typeKey} batch ${i + 1}:`, err);
-                    // Surface user-friendly error based on server response text when available
-                    if (err.message && err.message.includes('429')) {
-                        error_message = `❗️Requests were throttled. Upgrade your subscription or try again later.`;
-                    } else {
-                        error_message = `❗️Failed to sync all your content with Khoj server. Error: ${err.message ?? String(err)}`;
-                    }
-                    // Stop processing further batches on error
-                    break;
-                }
+        } catch (err: any) {
+            console.error('Khoj: Failed to upload batch:', err);
+            if (err.message?.includes('429')) {
+                error_message = `❗️Requests were throttled. Upgrade your subscription or try again later.`;
+            } else {
+                error_message = `❗️Failed to sync content with Khoj server. Error: ${err.message ?? String(err)}`;
             }
-            if (error_message) break;
+            break;
         }
     }
 
@@ -254,8 +209,9 @@ export async function updateContentIndex(
     if (error_message) {
         new Notice(error_message);
     } else {
-        if (userTriggered) new Notice('✅ Updated Khoj index.');
-        console.log(`✅ Refreshed Khoj content index. Updated: ${countOfFilesToIndex} files, Deleted: ${countOfFilesToDelete} files.`);
+        const summary = `Updated ${countOfFilesToIndex}, deleted ${countOfFilesToDelete} files`;
+        if (userTriggered) new Notice(`✅ ${summary}`);
+        console.log(`✅ Refreshed Khoj content index. ${summary}.`);
     }
 
     return lastSync;
