@@ -99,14 +99,22 @@ export async function updateContentIndex(
             return !setting.excludeFolders.some(folder =>
                 file.path.startsWith(folder + '/') || file.path === folder
             );
+        })
+        // Sort files by type: markdown > pdf > image
+        .sort((a, b) => {
+            const typeOrder: (keyof typeof fileTypeToExtension)[] = ['markdown', 'pdf', 'image'];
+            const aType = typeOrder.findIndex(type => fileTypeToExtension[type].includes(a.extension));
+            const bType = typeOrder.findIndex(type => fileTypeToExtension[type].includes(b.extension));
+            return aType - bType;
         });
 
     let countOfFilesToIndex = 0;
     let countOfFilesToDelete = 0;
     lastSync = lastSync.size > 0 ? lastSync : new Map<TFile, number>();
 
-    // Add all files to index as multipart form data, batched by size
+    // Add all files to index as multipart form data, batched by size, item count
     const MAX_BATCH_SIZE = 10 * 1024 * 1024; // 10MB max batch size
+    const MAX_BATCH_ITEMS = 50; // Max 50 items per batch
     let fileData: { blob: Blob, path: string }[][] = [];
     let currentBatch: { blob: Blob, path: string }[] = [];
     let currentBatchSize = 0;
@@ -124,7 +132,7 @@ export async function updateContentIndex(
         const fileItem = { blob: new Blob([fileContent], { type: mimeType }), path: file.path };
 
         const fileSize = (typeof fileContent === 'string') ? new Blob([fileContent]).size : fileContent.byteLength;
-        if (currentBatchSize + fileSize > MAX_BATCH_SIZE && currentBatch.length > 0) {
+        if ((currentBatchSize + fileSize > MAX_BATCH_SIZE || currentBatch.length >= MAX_BATCH_ITEMS) && currentBatch.length > 0) {
             fileData.push(currentBatch);
             currentBatch = [];
             currentBatchSize = 0;
