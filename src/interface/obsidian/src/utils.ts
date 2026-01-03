@@ -62,16 +62,7 @@ export const supportedFileTypes = fileTypeToExtension.markdown.concat(supportedB
 
 import { deleteContentByType, uploadContentBatch } from './api';
 
-export async function updateContentIndex(
-    vault: Vault,
-    setting: KhojSetting,
-    lastSync: Map<TFile, number>,
-    regenerate: boolean = false,
-    userTriggered: boolean = false,
-    onProgress?: (progress: { processed: number, total: number }) => void
-): Promise<Map<TFile, number>> {
-    // Get all markdown, pdf files in the vault
-    console.log(`Khoj: Updating Khoj content index...`)
+export function getFilesToSync(vault: Vault, setting: KhojSetting): TFile[] {
     const files = vault.getFiles()
         // Filter supported file types for syncing
         .filter(file => supportedFileTypes.includes(file.extension))
@@ -108,9 +99,23 @@ export async function updateContentIndex(
             return aType - bType;
         });
 
+    return files;
+}
+
+export async function updateContentIndex(
+    vault: Vault,
+    setting: KhojSetting,
+    lastSync: Map<TFile, number>,
+    regenerate: boolean = false,
+    userTriggered: boolean = false,
+    onProgress?: (progress: { processed: number, total: number }) => void
+): Promise<Map<TFile, number>> {
+    // Get all markdown, pdf files in the vault
+    const files = getFilesToSync(vault, setting);
     let countOfFilesToIndex = 0;
     let countOfFilesToDelete = 0;
     lastSync = lastSync.size > 0 ? lastSync : new Map<TFile, number>();
+    console.log(`Khoj: Updating Khoj content index. Found ${files.length} files to sync`);
 
     // Add all files to index as multipart form data, batched by size, item count
     const MAX_BATCH_SIZE = 10 * 1024 * 1024; // 10MB max batch size
@@ -601,21 +606,7 @@ export function getLinkToEntry(sourceFiles: TFile[], chosenFile: string, chosenE
  */
 export async function calculateVaultSyncMetrics(vault: Vault, setting: KhojSetting): Promise<{ usedBytes: number, totalBytes: number }> {
     try {
-        const files = vault.getFiles()
-            .filter(file => supportedFileTypes.includes(file.extension))
-            .filter(file => {
-                if (fileTypeToExtension.markdown.includes(file.extension)) return setting.syncFileType.markdown;
-                if (fileTypeToExtension.pdf.includes(file.extension)) return setting.syncFileType.pdf;
-                if (fileTypeToExtension.image.includes(file.extension)) return setting.syncFileType.images;
-                return false;
-            })
-            .filter(file => {
-                if (setting.syncFolders.length === 0) return true;
-                return setting.syncFolders.some(folder =>
-                    file.path.startsWith(folder + '/') || file.path === folder
-                );
-            });
-
+        const files = getFilesToSync(vault, setting);
         const usedBytes = files.reduce((acc, file) => acc + (file.stat?.size ?? 0), 0);
 
         // Default to free plan limit
