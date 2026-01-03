@@ -41,7 +41,7 @@ class TestGroqMaxCompletionTokens:
         assert groq_max_completion_tokens("llama3-8b-8192") == 8192
 
     def test_groq_max_from_model_name_32768(self):
-        assert groq_max_completion_tokens("mixtral-8x7b-32768") == 32768
+        assert groq_max_completion_tokens("model-32768") == 32768
 
     def test_groq_max_fallback(self):
         assert groq_max_completion_tokens("llama-3.1-70b-versatile") == GROQ_DEFAULT_MAX_COMPLETION_TOKENS
