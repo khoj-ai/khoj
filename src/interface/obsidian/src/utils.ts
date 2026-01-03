@@ -200,6 +200,11 @@ export async function updateContentIndex(
     let processedFiles = 0;
     const totalFiles = fileData.reduce((sum, batch) => sum + batch.length, 0);
 
+    // Report initial progress with total count before uploading
+    if (onProgress) {
+        onProgress({ processed: 0, total: totalFiles });
+    }
+
     for (const batch of fileData) {
         try {
             const resultText = await uploadContentBatch(setting.khojUrl, setting.khojApiKey, batch);
