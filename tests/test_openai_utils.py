@@ -1,8 +1,9 @@
 import pytest
 
 from khoj.processor.conversation.openai.utils import (
-    GROQ_MAX_COMPLETION_TOKENS,
+    GROQ_DEFAULT_MAX_COMPLETION_TOKENS,
     MAX_COMPLETION_TOKENS,
+    groq_max_completion_tokens,
     is_groq_api,
 )
 
@@ -28,8 +29,19 @@ class TestMaxCompletionTokensConstants:
     def test_max_completion_tokens_value(self):
         assert MAX_COMPLETION_TOKENS == 16000
 
-    def test_groq_max_completion_tokens_value(self):
-        assert GROQ_MAX_COMPLETION_TOKENS == 8192
+    def test_groq_default_max_completion_tokens_value(self):
+        assert GROQ_DEFAULT_MAX_COMPLETION_TOKENS == 8192
 
     def test_groq_max_is_less_than_default(self):
-        assert GROQ_MAX_COMPLETION_TOKENS < MAX_COMPLETION_TOKENS
+        assert GROQ_DEFAULT_MAX_COMPLETION_TOKENS < MAX_COMPLETION_TOKENS
+
+
+class TestGroqMaxCompletionTokens:
+    def test_groq_max_from_model_name_8192(self):
+        assert groq_max_completion_tokens("llama3-8b-8192") == 8192
+
+    def test_groq_max_from_model_name_32768(self):
+        assert groq_max_completion_tokens("mixtral-8x7b-32768") == 32768
+
+    def test_groq_max_fallback(self):
+        assert groq_max_completion_tokens("llama-3.1-70b-versatile") == GROQ_DEFAULT_MAX_COMPLETION_TOKENS

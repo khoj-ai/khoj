@@ -2,6 +2,7 @@ import hashlib
 import json
 import logging
 import os
+import re
 from copy import deepcopy
 from time import perf_counter
 from typing import AsyncGenerator, Dict, Generator, List, Literal, Optional, Union
@@ -58,8 +59,17 @@ openai_async_clients: Dict[str, openai.AsyncOpenAI] = {}
 # Default completion tokens
 # Reduce premature termination, especially when streaming structured responses
 MAX_COMPLETION_TOKENS = 16000
-# Groq API has a lower limit for max_completion_tokens
-GROQ_MAX_COMPLETION_TOKENS = 8192
+# Groq model names often embed the context length (e.g. llama3-8b-8192, mixtral-8x7b-32768).
+# If we can't infer it from the model name, fall back to the most common limit.
+GROQ_DEFAULT_MAX_COMPLETION_TOKENS = 8192
+_GROQ_MODEL_MAX_TOKENS_RE = re.compile(r"(?:^|[-_])(?P<max>\\d{4,6})$")
+
+
+def groq_max_completion_tokens(model_name: str) -> int:
+    match = _GROQ_MODEL_MAX_TOKENS_RE.search(model_name or "")
+    if match:
+        return int(match.group("max"))
+    return GROQ_DEFAULT_MAX_COMPLETION_TOKENS
 
 
 def _extract_text_for_instructions(content: Union[str, List, Dict, None]) -> str:
@@ -117,7 +127,7 @@ def completion_with_backoff(
 
     model_kwargs["temperature"] = temperature
     model_kwargs["top_p"] = model_kwargs.get("top_p", 0.95)
-    default_max_tokens = GROQ_MAX_COMPLETION_TOKENS if is_groq_api(api_base_url) else MAX_COMPLETION_TOKENS
+    default_max_tokens = groq_max_completion_tokens(model_name) if is_groq_api(api_base_url) else MAX_COMPLETION_TOKENS
     model_kwargs["max_completion_tokens"] = min(
         model_kwargs.get("max_completion_tokens", default_max_tokens), default_max_tokens
     )
@@ -313,7 +323,7 @@ async def chat_completion_with_backoff(
         model_kwargs.pop("stream_options", None)
 
     model_kwargs["top_p"] = model_kwargs.get("top_p", 0.95)
-    default_max_tokens = GROQ_MAX_COMPLETION_TOKENS if is_groq_api(api_base_url) else MAX_COMPLETION_TOKENS
+    default_max_tokens = groq_max_completion_tokens(model_name) if is_groq_api(api_base_url) else MAX_COMPLETION_TOKENS
     model_kwargs["max_completion_tokens"] = min(
         model_kwargs.get("max_completion_tokens", default_max_tokens), default_max_tokens
     )
