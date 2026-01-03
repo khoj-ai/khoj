@@ -1,5 +1,6 @@
-import { FileSystemAdapter, Notice, Vault, Modal, TFile, request, setIcon, Editor, App, WorkspaceLeaf } from 'obsidian';
+import { FileSystemAdapter, Notice, Vault, Modal, TFile, request, setIcon, Editor, WorkspaceLeaf } from 'obsidian';
 import { KhojSetting, ModelOption, ServerUserConfig, UserInfo } from 'src/settings'
+import { deleteContentByType, uploadContentBatch } from './api';
 import { KhojSearchModal } from './search_modal';
 
 export function getVaultAbsolutePath(vault: Vault): string {
@@ -60,8 +61,6 @@ export const supportedImageFilesTypes = fileTypeToExtension.image;
 export const supportedBinaryFileTypes = fileTypeToExtension.pdf.concat(supportedImageFilesTypes);
 export const supportedFileTypes = fileTypeToExtension.markdown.concat(supportedBinaryFileTypes);
 
-import { deleteContentByType, uploadContentBatch } from './api';
-
 export function getFilesToSync(vault: Vault, setting: KhojSetting): TFile[] {
     const files = vault.getFiles()
         // Filter supported file types for syncing
@@ -111,11 +110,24 @@ export async function updateContentIndex(
     onProgress?: (progress: { processed: number, total: number }) => void
 ): Promise<Map<TFile, number>> {
     // Get all markdown, pdf files in the vault
+    console.log(`Khoj: Updating Khoj content index...`);
     const files = getFilesToSync(vault, setting);
+    console.log(`Khoj: Found ${files.length} eligible files in vault`);
+
     let countOfFilesToIndex = 0;
     let countOfFilesToDelete = 0;
     lastSync = lastSync.size > 0 ? lastSync : new Map<TFile, number>();
-    console.log(`Khoj: Updating Khoj content index. Found ${files.length} files to sync`);
+
+    // Count files that need indexing (modified since last sync or regenerating)
+    const filesToSync = regenerate
+        ? files
+        : files.filter(file => file.stat.mtime >= (lastSync.get(file) ?? 0));
+
+    // Show notice with file counts when user triggers sync
+    if (userTriggered) {
+        new Notice(`🔄 Syncing ${filesToSync.length} of ${files.length} files to Khoj...`);
+    }
+    console.log(`Khoj: ${filesToSync.length} files to sync (${files.length} total eligible)`);
 
     // Add all files to index as multipart form data, batched by size, item count
     const MAX_BATCH_SIZE = 10 * 1024 * 1024; // 10MB max batch size
@@ -147,7 +159,7 @@ export async function updateContentIndex(
         currentBatchSize += fileSize;
     }
 
-    // Track files to delete (previously synced but no longer in vault)
+    // Add files to delete (previously synced but no longer in vault) to final batch
     let filesToDelete: TFile[] = [];
     for (const lastSyncedFile of lastSync.keys()) {
         if (!files.includes(lastSyncedFile)) {
@@ -166,6 +178,7 @@ export async function updateContentIndex(
     // Delete all files of enabled content types first if regenerating
     let error_message: string | null = null;
     if (regenerate) {
+        // Mark content types to delete based on user sync file type settings
         const contentTypesToDelete: string[] = [];
         if (setting.syncFileType.markdown) contentTypesToDelete.push('markdown');
         if (setting.syncFileType.pdf) contentTypesToDelete.push('pdf');
@@ -182,7 +195,7 @@ export async function updateContentIndex(
         }
     }
 
-    // Upload files in size-based batches
+    // Upload files in batches
     let responses: string[] = [];
     let processedFiles = 0;
     const totalFiles = fileData.reduce((sum, batch) => sum + batch.length, 0);
