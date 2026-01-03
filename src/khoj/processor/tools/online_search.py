@@ -14,6 +14,7 @@ from khoj.database.models import (
     Agent,
     ChatMessageModel,
     KhojUser,
+    UserMemory,
     WebScraper,
 )
 from khoj.routers.helpers import (
@@ -63,6 +64,7 @@ async def search_online(
     max_webpages_to_read: int = 1,
     query_images: List[str] = None,
     query_files: str = None,
+    relevant_memories: List[UserMemory] = None,
     previous_subqueries: Set = set(),
     fast_model: bool = True,
     agent: Agent = None,
@@ -82,6 +84,7 @@ async def search_online(
         user,
         query_images=query_images,
         query_files=query_files,
+        relevant_memories=relevant_memories,
         max_queries=max_online_searches,
         fast_model=fast_model,
         agent=agent,
@@ -160,7 +163,15 @@ async def search_online(
             async for event in send_status_func(f"**Browsing**: {webpage_links_str}"):
                 yield {ChatEvent.STATUS: event}
     tasks = [
-        extract_from_webpage(link, data["queries"], data.get("content"), user=user, agent=agent, tracer=tracer)
+        extract_from_webpage(
+            link,
+            data["queries"],
+            data.get("content"),
+            relevant_memories=relevant_memories,
+            user=user,
+            agent=agent,
+            tracer=tracer,
+        )
         for link, data in webpages.items()
     ]
     results = await asyncio.gather(*tasks)
@@ -438,6 +449,7 @@ async def read_webpages(
     fast_model: bool = True,
     agent: Agent = None,
     max_webpages_to_read: int = 1,
+    relevant_memories: List[UserMemory] = None,
     tracer: dict = {},
 ):
     "Infer web pages to read from the query and extract relevant information from them"
@@ -460,6 +472,7 @@ async def read_webpages(
         user,
         send_status_func=send_status_func,
         agent=agent,
+        relevant_memories=relevant_memories,
         tracer=tracer,
     ):
         yield result
@@ -471,6 +484,7 @@ async def read_webpages_content(
     user: KhojUser,
     send_status_func: Optional[Callable] = None,
     agent: Agent = None,
+    relevant_memories: List[UserMemory] = None,
     tracer: dict = {},
 ):
     logger.info(f"Reading web pages at: {urls}")
@@ -478,7 +492,10 @@ async def read_webpages_content(
         webpage_links_str = "\n- " + "\n- ".join(list(urls))
         async for event in send_status_func(f"**Browsing**: {webpage_links_str}"):
             yield {ChatEvent.STATUS: event}
-    tasks = [extract_from_webpage(url, {query}, user=user, agent=agent, tracer=tracer) for url in urls]
+    tasks = [
+        extract_from_webpage(url, {query}, relevant_memories=relevant_memories, user=user, agent=agent, tracer=tracer)
+        for url in urls
+    ]
     results = await asyncio.gather(*tasks)
 
     response: Dict[str, Dict] = defaultdict(dict)
@@ -533,6 +550,7 @@ async def extract_from_webpage(
     url: str,
     subqueries: set[str] = None,
     content: str = None,
+    relevant_memories: List[UserMemory] = None,
     user: KhojUser = None,
     agent: Agent = None,
     tracer: dict = {},
@@ -546,7 +564,9 @@ async def extract_from_webpage(
     extracted_info = None
     if not is_none_or_empty(content):
         with timer(f"Extracting relevant information from web page at '{url}' took", logger):
-            extracted_info = await extract_relevant_info(subqueries, content, user=user, agent=agent, tracer=tracer)
+            extracted_info = await extract_relevant_info(
+                subqueries, content, relevant_memories=relevant_memories, user=user, agent=agent, tracer=tracer
+            )
 
     return subqueries, url, extracted_info
 

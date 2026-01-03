@@ -13,7 +13,7 @@ from starlette.authentication import has_required_scope, requires
 from khoj.configure import initialize_content
 from khoj.database import adapters
 from khoj.database.adapters import ConversationAdapters, EntryAdapters, get_user_photo
-from khoj.database.models import KhojUser, SpeechToTextModelOptions
+from khoj.database.models import KhojUser, SpeechToTextModelOptions, UserConversationConfig
 from khoj.processor.conversation.openai.whisper import transcribe_audio
 from khoj.routers.helpers import (
     ApiUserRateLimiter,
@@ -213,6 +213,29 @@ def set_user_name(
     )
 
     return {"status": "ok"}
+
+
+@api.patch("/user/memory", status_code=200)
+@requires(["authenticated"])
+def set_user_memory_enabled(
+    request: Request,
+    enable_memory: bool,
+    client: Optional[str] = None,
+):
+    user = request.user.object
+
+    user_config, _ = UserConversationConfig.objects.get_or_create(user=user)
+    user_config.enable_memory = enable_memory
+    user_config.save()
+
+    update_telemetry_state(
+        request=request,
+        telemetry_type="api",
+        api="set_user_memory_enabled",
+        client=client,
+    )
+
+    return {"status": "ok", "enable_memory": enable_memory}
 
 
 @api.get("/health", response_class=Response)

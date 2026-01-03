@@ -21,7 +21,7 @@ from tenacity import (
 )
 
 from khoj.database.adapters import AgentAdapters, FileObjectAdapters
-from khoj.database.models import Agent, ChatMessageModel, FileObject, KhojUser
+from khoj.database.models import Agent, ChatMessageModel, FileObject, KhojUser, UserMemory
 from khoj.processor.conversation import prompts
 from khoj.processor.conversation.utils import (
     ChatEvent,
@@ -59,6 +59,7 @@ async def run_code(
     send_status_func: Optional[Callable] = None,
     query_images: List[str] = None,
     query_files: str = None,
+    relevant_memories: List[UserMemory] = None,
     agent: Agent = None,
     sandbox_url: str = SANDBOX_URL,
     tracer: dict = {},
@@ -79,6 +80,7 @@ async def run_code(
                 agent,
                 tracer,
                 query_files,
+                relevant_memories,
             )
     except Exception as e:
         raise ValueError(f"Failed to generate code for {instructions} with error: {e}")
@@ -126,6 +128,7 @@ async def generate_python_code(
     agent: Agent = None,
     tracer: dict = {},
     query_files: str = None,
+    relevant_memories: List[UserMemory] = None,
 ) -> GeneratedCode:
     location = f"{location_data}" if location_data else "Unknown"
     username = prompts.user_name.format(name=user.get_full_name()) if user.get_full_name() else ""
@@ -161,6 +164,7 @@ async def generate_python_code(
         code_generation_prompt,
         query_files=query_files,
         query_images=query_images,
+        relevant_memories=relevant_memories,
         fast_model=False,
         agent_chat_model=agent_chat_model,
         user=user,

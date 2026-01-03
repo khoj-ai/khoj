@@ -28,6 +28,7 @@ from khoj.database.models import (
     ClientApplication,
     Intent,
     KhojUser,
+    UserMemory,
 )
 from khoj.processor.conversation import prompts
 from khoj.search_filter.base_filter import BaseFilter
@@ -551,6 +552,7 @@ async def save_to_conversation_log(
     client_application: ClientApplication = None,
     conversation_id: str = None,
     automation_id: str = None,
+    relevant_memories: List[UserMemory] = [],
     query_images: List[str] = None,
     raw_query_files: List[FileAttachment] = [],
     generated_images: List[str] = [],
@@ -559,6 +561,8 @@ async def save_to_conversation_log(
     train_of_thought: List[Any] = [],
     tracer: Dict[str, Any] = {},
 ):
+    from khoj.routers.helpers import ai_update_memories
+
     user_message_time = user_message_time or datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     turn_id = tracer.get("mid") or str(uuid.uuid4())
 
@@ -603,6 +607,16 @@ async def save_to_conversation_log(
             client_application=client_application,
             conversation_id=conversation_id,
             user_message=q,
+        )
+
+    if not automation_id:
+        # Don't update memories from automations, as this could get noisy.
+        await ai_update_memories(
+            user=user,
+            conversation_history=new_messages or [],
+            memories=relevant_memories,
+            agent=db_conversation.agent if db_conversation else None,
+            tracer=tracer,
         )
 
     if is_promptrace_enabled():
@@ -666,6 +680,7 @@ def generate_chatml_messages_with_context(
     query_files: str = None,
     query_images=None,
     context_message="",
+    relevant_memories: List[UserMemory] = None,
     generated_asset_results: Dict[str, Dict] = {},
     program_execution_context: List[str] = [],
     chat_history: list[ChatMessageModel] = [],
@@ -805,6 +820,14 @@ def generate_chatml_messages_with_context(
                 role="user",
             ),
         )
+
+    if not is_none_or_empty(relevant_memories):
+        memory_context = "Your memory system retrieved the following memories about me based on our previous conversations. Ignore them if they are not relevant to the query.\n<retrieved_memories>\n"
+        for memory in relevant_memories:
+            friendly_dt = memory.created_at.strftime("%Y-%m-%d %H:%M:%S")
+            memory_context += f"- [{friendly_dt}]: {memory.raw}\n"
+        memory_context += "</retrieved_memories>"
+        messages.append(ChatMessage(content=memory_context, role="user"))
 
     if not is_none_or_empty(user_message):
         messages.append(

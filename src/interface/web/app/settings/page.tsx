@@ -15,6 +15,8 @@ import { Button } from "@/components/ui/button";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
+import { Switch } from "@/components/ui/switch";
+
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -33,6 +35,15 @@ import {
     AlertDialogTitle,
     AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger
+} from "@/components/ui/dialog";
+
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 
 import {
@@ -74,6 +85,7 @@ import Loading from "../components/loading/loading";
 import IntlTelInput from "intl-tel-input/react";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "../components/appSidebar/appSidebar";
+import { UserMemory, UserMemorySchema } from "../components/userMemory/userMemory";
 import { Separator } from "@/components/ui/separator";
 import { KhojLogoType } from "../components/logo/khojLogo";
 import { Progress } from "@/components/ui/progress";
@@ -323,6 +335,9 @@ export default function SettingsView() {
     const [numberValidationState, setNumberValidationState] = useState<PhoneNumberValidationState>(
         PhoneNumberValidationState.Verified,
     );
+    const [memories, setMemories] = useState<UserMemorySchema[]>([]);
+    const [enableMemory, setEnableMemory] = useState<boolean>(true);
+    const [serverMemoryMode, setServerMemoryMode] = useState<string>("enabled_default_on");
     const [isExporting, setIsExporting] = useState(false);
     const [exportProgress, setExportProgress] = useState(0);
     const [exportedConversations, setExportedConversations] = useState(0);
@@ -347,6 +362,8 @@ export default function SettingsView() {
         );
         setName(initialUserConfig?.given_name);
         setNotionToken(initialUserConfig?.notion_token ?? null);
+        setEnableMemory(initialUserConfig?.enable_memory ?? true);
+        setServerMemoryMode(initialUserConfig?.server_memory_mode ?? "enabled_default_on");
     }, [initialUserConfig]);
 
     const sendOTP = async () => {
@@ -620,6 +637,88 @@ export default function SettingsView() {
             });
         }
     };
+
+    const fetchMemories = async () => {
+        try {
+            console.log("Fetching memories...");
+            const response = await fetch('/api/memories/');
+            if (!response.ok) throw new Error('Failed to fetch memories');
+            const data = await response.json();
+            setMemories(data);
+        } catch (error) {
+            console.error('Error fetching memories:', error);
+            toast({
+                title: "Error",
+                description: "Failed to fetch memories. Please try again.",
+                variant: "destructive"
+            });
+        }
+    };
+
+    const handleDeleteMemory = async (id: number) => {
+        try {
+            const response = await fetch(`/api/memories/${id}`, {
+                method: 'DELETE'
+            });
+            if (!response.ok) throw new Error('Failed to delete memory');
+            setMemories(memories.filter(memory => memory.id !== id));
+        } catch (error) {
+            console.error('Error deleting memory:', error);
+            toast({
+                title: "Error",
+                description: "Failed to delete memory. Please try again.",
+                variant: "destructive"
+            });
+        }
+    };
+
+    const handleUpdateMemory = async (id: number, raw: string) => {
+        try {
+            const response = await fetch(`/api/memories/${id}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ raw, memory_id: id }),
+            });
+            if (!response.ok) throw new Error('Failed to update memory');
+            const updatedMemory: UserMemorySchema = await response.json();
+            setMemories(memories.map(memory =>
+                memory.id === id ? updatedMemory : memory
+            ));
+        } catch (error) {
+            console.error('Error updating memory:', error);
+            toast({
+                title: "Error",
+                description: "Failed to update memory. Please try again.",
+                variant: "destructive"
+            });
+        }
+    };
+
+    const handleToggleMemory = async (enabled: boolean) => {
+        try {
+            const response = await fetch(`/api/user/memory?enable_memory=${enabled}`, {
+                method: 'PATCH',
+            });
+            if (!response.ok) throw new Error('Failed to update memory setting');
+            setEnableMemory(enabled);
+            toast({
+                title: enabled ? "Memory enabled" : "Memory disabled",
+                description: enabled
+                    ? "Khoj will learn and remember from your conversations."
+                    : "Khoj will no longer learn or remember from your conversations.",
+            });
+        } catch (error) {
+            console.error('Error toggling memory:', error);
+            toast({
+                title: "Error",
+                description: "Failed to update memory setting. Please try again.",
+                variant: "destructive"
+            });
+        }
+    };
+
 
     const syncContent = async (type: string) => {
         try {
@@ -1212,7 +1311,64 @@ export default function SettingsView() {
                                                     </Button>
                                                 </CardFooter>
                                             </Card>
-
+                                            <Card className={cardClassName}>
+                                                <CardHeader className="text-xl flex flex-row">
+                                                    <Brain className="h-7 w-7 mr-2" />
+                                                    Memories
+                                                </CardHeader>
+                                                <CardContent className="overflow-hidden">
+                                                    <p className="pb-4 text-gray-400">
+                                                        View and manage your long-term memories
+                                                    </p>
+                                                    <div className="flex items-center justify-between">
+                                                        <label
+                                                            htmlFor="enable-memory"
+                                                            className={`text-sm font-medium leading-none ${serverMemoryMode === "disabled" ? "text-gray-400" : ""}`}
+                                                        >
+                                                            Enable Memory
+                                                        </label>
+                                                        <Switch
+                                                            id="enable-memory"
+                                                            checked={enableMemory}
+                                                            onCheckedChange={(checked) => handleToggleMemory(checked)}
+                                                            disabled={serverMemoryMode === "disabled"}
+                                                        />
+                                                    </div>
+                                                    {serverMemoryMode === "disabled" && (
+                                                        <p className="text-xs text-gray-400 mt-2">
+                                                            Memory has been disabled by the server administrator.
+                                                        </p>
+                                                    )}
+                                                </CardContent>
+                                                <CardFooter className="flex flex-wrap gap-4">
+                                                    <Dialog onOpenChange={(open) => open && fetchMemories()}>
+                                                        <DialogTrigger asChild>
+                                                            <Button variant="outline">
+                                                                <Brain className="h-5 w-5 mr-2" />
+                                                                Browse Memories
+                                                            </Button>
+                                                        </DialogTrigger>
+                                                        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+                                                            <DialogHeader>
+                                                                <DialogTitle>Your Memories</DialogTitle>
+                                                            </DialogHeader>
+                                                            <div className="grid gap-4 py-4">
+                                                                {memories.map((memory) => (
+                                                                    <UserMemory
+                                                                        key={memory.id}
+                                                                        memory={memory}
+                                                                        onDelete={handleDeleteMemory}
+                                                                        onUpdate={handleUpdateMemory}
+                                                                    />
+                                                                ))}
+                                                                {memories.length === 0 && (
+                                                                    <p className="text-center text-gray-500">No memories found</p>
+                                                                )}
+                                                            </div>
+                                                        </DialogContent>
+                                                    </Dialog>
+                                                </CardFooter>
+                                            </Card>
                                             <Card className={cardClassName}>
                                                 <CardHeader className="text-xl flex flex-row">
                                                     <TrashSimple className="h-7 w-7 mr-2 text-red-500" />

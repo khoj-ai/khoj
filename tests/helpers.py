@@ -4,9 +4,12 @@ import os
 from datetime import datetime
 
 import factory
+from asgiref.sync import sync_to_async
 from django.utils.timezone import make_aware
 
+from khoj.database.adapters import AgentAdapters
 from khoj.database.models import (
+    Agent,
     AiModelApi,
     ChatMessageModel,
     ChatModel,
@@ -15,8 +18,10 @@ from khoj.database.models import (
     KhojUser,
     ProcessLock,
     SearchModelConfig,
+    ServerChatSettings,
     Subscription,
     UserConversationConfig,
+    UserMemory,
 )
 from khoj.processor.conversation.utils import message_to_log
 from khoj.utils.helpers import get_absolute_path, is_none_or_empty
@@ -277,3 +282,45 @@ class ProcessLockFactory(factory.django.DjangoModelFactory):
         model = ProcessLock
 
     name = "test_lock"
+
+
+class ServerChatSettingsFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = ServerChatSettings
+
+    memory_mode = ServerChatSettings.MemoryMode.ENABLED_DEFAULT_ON
+
+
+# Async-safe wrappers for factories and ORM operations
+async def acreate_user():
+    return await sync_to_async(UserFactory)()
+
+
+async def acreate_subscription(user):
+    return await sync_to_async(SubscriptionFactory)(user=user)
+
+
+async def acreate_chat_model():
+    return await sync_to_async(ChatModelFactory)()
+
+
+async def acreate_default_agent():
+    return await sync_to_async(AgentAdapters.create_default_agent)()
+
+
+async def acreate_agent(name, chat_model, personality):
+    return await sync_to_async(Agent.objects.create)(
+        name=name,
+        chat_model=chat_model,
+        personality=personality,
+    )
+
+
+async def acreate_test_memory(user, agent=None, raw_text="test memory"):
+    """Create a memory directly in DB without embeddings for testing."""
+    return await sync_to_async(UserMemory.objects.create)(
+        user=user,
+        agent=agent,
+        raw=raw_text,
+        embeddings=[0.1] * 384,  # Dummy embeddings
+    )

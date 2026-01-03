@@ -25,6 +25,7 @@ from khoj.database.models import (
     Intent,
     KhojUser,
     TextToImageModelConfig,
+    UserMemory,
 )
 from khoj.processor.conversation.google.utils import _is_retryable_error
 from khoj.processor.conversation.utils import get_image_from_base64, get_image_from_url
@@ -47,6 +48,7 @@ async def text_to_image(
     send_status_func: Optional[Callable] = None,
     query_images: Optional[List[str]] = None,
     query_files: str = None,
+    relevant_memories: List[UserMemory] = None,
     agent: Agent = None,
     tracer: dict = {},
 ):
@@ -91,6 +93,7 @@ async def text_to_image(
             model_type=text_to_image_config.model_type,
             query_images=query_images,
             query_files=query_files,
+            relevant_memories=relevant_memories,
             user=user,
             agent=agent,
             tracer=tracer,
