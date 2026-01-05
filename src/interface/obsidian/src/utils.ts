@@ -91,6 +91,7 @@ export async function updateContentIndex(vault: Vault, setting: KhojSetting, las
     let fileData = [];
     let currentBatchSize = 0;
     const MAX_BATCH_SIZE = 10 * 1024 * 1024; // 10MB max batch size
+    const MAX_FILES_PER_BATCH = 30; // Max 500 files per batch
     let currentBatch = [];
 
     for (const file of files) {
@@ -105,9 +106,9 @@ export async function updateContentIndex(vault: Vault, setting: KhojSetting, las
         const fileContent = encoding == 'binary' ? await vault.readBinary(file) : await vault.read(file);
         const fileItem = { blob: new Blob([fileContent], { type: mimeType }), path: file.path };
 
-        // Check if adding this file would exceed batch size
+        // Check if adding this file would exceed batch size or file count limit
         const fileSize = (typeof fileContent === 'string') ? new Blob([fileContent]).size : fileContent.byteLength;
-        if (currentBatchSize + fileSize > MAX_BATCH_SIZE && currentBatch.length > 0) {
+        if ((currentBatchSize + fileSize > MAX_BATCH_SIZE || currentBatch.length >= MAX_FILES_PER_BATCH) && currentBatch.length > 0) {
             fileData.push(currentBatch);
             currentBatch = [];
             currentBatchSize = 0;
@@ -155,9 +156,13 @@ export async function updateContentIndex(vault: Vault, setting: KhojSetting, las
         }
     }
 
-    // Iterate through all indexable files in vault, 10Mb batch at a time
+    // Iterate through all indexable files in vault, in batches
     let responses: string[] = [];
+    let batchNumber = 0;
     for (const batch of fileData) {
+        batchNumber++;
+        console.log(`Khoj: Syncing batch ${batchNumber}/${fileData.length} (${batch.length} files)...`);
+        
         // Create multipart form data with all files in batch
         const formData = new FormData();
         batch.forEach(fileItem => { formData.append('files', fileItem.blob, fileItem.path) });
