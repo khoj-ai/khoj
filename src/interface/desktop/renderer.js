@@ -1,9 +1,14 @@
+// Tauri migration: replace Electron preload bridges with @tauri-apps/api
+import { invoke } from '@tauri-apps/api/tauri';
+import { listen } from '@tauri-apps/api/event';
+import { open as openDialog } from '@tauri-apps/api/dialog';
+
 const setFolderButton = document.getElementById('update-folder');
 const setFileButton = document.getElementById('update-file');
 const loadingBar = document.getElementById('loading-bar');
 
 async function removeFile(filePath) {
-    const updatedFiles = await window.removeFileAPI.removeFile(filePath);
+    const updatedFiles = await invoke('remove_file', { path: filePath });
 
     let currentFilesElement = document.getElementById("current-files");
     currentFilesElement.innerHTML = '';
@@ -15,7 +20,7 @@ async function removeFile(filePath) {
 }
 
 async function removeFolder(folderPath) {
-    const updatedFolders = await window.removeFolderAPI.removeFolder(folderPath);
+    const updatedFolders = await invoke('remove_folder', { path: folderPath });
 
     let currentFoldersElement = document.getElementById("current-folders");
     currentFoldersElement.innerHTML = '';
@@ -40,7 +45,7 @@ function makeFileElement(file) {
     fileNameElement.style.cursor = "pointer";
 
     fileNameElement.addEventListener("click", () => {
-        window.openFileAPI.openFile(file.path);
+        invoke('open_file', { path: file.path }).catch(console.error);
     });
 
     fileElement.appendChild(fileNameElement);
@@ -79,7 +84,7 @@ function makeFolderElement(folder) {
     folderNameElement.style.cursor = "pointer";
 
     folderNameElement.addEventListener("click", () => {
-        window.openFileAPI.openFile(folder.path);
+        invoke('open_file', { path: folder.path }).catch(console.error);
     });
 
     folderElement.appendChild(folderNameElement);
@@ -105,7 +110,7 @@ function makeFolderElement(folder) {
 }
 
 (async function () {
-    const files = await window.getFilesAPI.getFiles();
+    const files = await invoke('get_files');
     let currentFilesElement = document.getElementById("current-files");
     for (const file of files) {
         console.log(file);
@@ -113,7 +118,7 @@ function makeFolderElement(folder) {
         currentFilesElement.appendChild(fileElement);
     }
 
-    const folders = await window.getFoldersAPI.getFolders();
+    const folders = await invoke('get_folders');
     let currentFoldersElement = document.getElementById("current-folders");
     for (const folder of folders) {
         let folderElement = makeFolderElement(folder);
@@ -130,7 +135,18 @@ setFileButton.addEventListener('click', async () => {
 });
 
 async function handleFileOpen(type) {
-    const value = await window.storeValueAPI.handleFileOpen(type);
+    let selected = null;
+    try {
+        selected = await openDialog({
+            multiple: true,
+            directory: type === 'folder',
+        });
+    } catch (e) {
+        console.warn('Dialog open failed:', e);
+    }
+
+    const paths = Array.isArray(selected) ? selected : (selected ? [selected] : []);
+    const value = await invoke('handle_file_open', { type, paths });
     console.log(value);
     let currentFilesElement = document.getElementById("current-files");
     let currentFoldersElement = document.getElementById("current-folders");
@@ -152,7 +168,7 @@ async function handleFileOpen(type) {
     }
 }
 
-window.updateStateAPI.onUpdateState((event, state) => {
+listen('update-state', ({ payload: state }) => {
     const fileSyncedImage = document.querySelectorAll(".file-synced-image");
     console.log("state was updated", state);
     loadingBar.style.display = 'none';
@@ -188,18 +204,21 @@ window.updateStateAPI.onUpdateState((event, state) => {
     syncStatusElement.innerHTML += ` Synced at ${currentTime.toLocaleTimeString(undefined, options)}. Next sync at ${nextSyncTime.toLocaleTimeString(undefined, options)}.`;
 });
 
-window.needsSubscriptionAPI.onNeedsSubscription((event, needsSubscription) => {
+listen('needsSubscription', ({ payload: needsSubscription }) => {
     console.log("needs subscription", needsSubscription);
     if (needsSubscription) {
         window.alert("Looks like you're out of space to sync your files. Upgrade your plan to unlock more space here: https://app.khoj.dev/settings#subscription");
-        needsSubscriptionElement.style.display = 'block';
+        const needsSubscriptionElement = document.getElementById('needs-subscription');
+        if (needsSubscriptionElement) needsSubscriptionElement.style.display = 'block';
     }
 });
 
 const urlInput = document.getElementById('khoj-host-url');
 (async function () {
-    const url = await window.hostURLAPI.getURL();
-    urlInput.value = url;
+    try {
+        const url = await invoke('get_url');
+        if (urlInput) urlInput.value = url;
+    } catch (e) { console.warn(e); }
 })();
 
 urlInput.addEventListener('blur', async () => {
@@ -214,29 +233,31 @@ urlInput.addEventListener('blur', async () => {
         return;
     }
 
-    const url = await window.hostURLAPI.setURL(urlInput.value.trim());
+    const url = await invoke('set_url', { url: urlInput.value.trim() });
     urlInput.value = url;
 });
 
 const khojKeyInput = document.getElementById('khoj-access-key');
 (async function () {
-    const token = await window.tokenAPI.getToken();
-    khojKeyInput.value = token;
+    try {
+        const token = await invoke('get_token');
+        if (khojKeyInput) khojKeyInput.value = token;
+    } catch (e) { console.warn(e); }
 })();
 
 khojKeyInput.addEventListener('blur', async () => {
-    const token = await window.tokenAPI.setToken(khojKeyInput.value.trim());
+    const token = await invoke('set_token', { token: khojKeyInput.value.trim() });
     khojKeyInput.value = token;
 });
 
 const syncForceButton = document.getElementById('sync-force');
 syncForceButton.addEventListener('click', async () => {
     loadingBar.style.display = 'block';
-    await window.syncDataAPI.syncData(true);
+    await invoke('sync_data', { regenerate: true });
 });
 
 const deleteAllButton = document.getElementById('delete-all');
 deleteAllButton.addEventListener('click', async () => {
     loadingBar.style.display = 'block';
-    await window.syncDataAPI.deleteAllFiles();
+    await invoke('delete_all_files');
 });
