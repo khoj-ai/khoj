@@ -144,7 +144,7 @@ def is_retryable_exception(exception: BaseException) -> bool:
     # Google/Gemini exceptions
     if isinstance(exception, (gerrors.APIError, gerrors.ClientError)):
         # Check for specific error codes that are retryable
-        if hasattr(exception, "code") and exception.code in [429, 502, 503, 504]:
+        if hasattr(exception, "code") and exception.code in [429, 500, 502, 503, 504]:
             return True
 
     # Network errors
