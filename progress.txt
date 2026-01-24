@@ -25,3 +25,34 @@
 - Python syntax verified
 - Next steps: Add database adapters for CRUD operations, then create migration
 
+---
+
+## Iteration 2 - 2026-01-24
+
+### Task Completed
+- Added database adapters for folder config CRUD operations
+
+### Key Decisions
+- Created `LocalFolderConfigAdapters` class following existing adapter patterns
+- Provided both sync and async versions of methods (prefixed with `a` for async)
+- Used `@require_valid_user` and `@arequire_valid_user` decorators for user validation
+- Adapter methods include:
+  - `get_or_create_config` / `aget_or_create_config` - Get or create user's config
+  - `get_config` / `aget_config` - Get config with prefetched folders
+  - `set_enabled` / `aset_enabled` - Enable/disable folder sync
+  - `is_enabled` / `ais_enabled` - Check if sync is enabled
+  - `get_folders` / `aget_folders` - List all folders for user
+  - `add_folder` / `aadd_folder` - Add a folder path (idempotent)
+  - `remove_folder` / `aremove_folder` - Remove a folder path
+  - `get_folder_by_path` / `aget_folder_by_path` - Get specific folder
+  - `update_folder_sync_time` / `aupdate_folder_sync_time` - Update last_synced_at
+  - `get_all_enabled_configs` / `aget_all_enabled_configs` - Server-wide query for all enabled configs
+
+### Files Changed
+- src/khoj/database/adapters/__init__.py (added LocalFolder and LocalFolderConfig imports, added LocalFolderConfigAdapters class)
+
+### Notes
+- Python syntax verified
+- Followed existing patterns from GithubConfig adapters and other adapter classes
+- Next steps: Create database migration for new models
+
