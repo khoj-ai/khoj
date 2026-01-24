@@ -56,3 +56,27 @@
 - Followed existing patterns from GithubConfig adapters and other adapter classes
 - Next steps: Create database migration for new models
 
+---
+
+## Iteration 3 - 2026-01-24
+
+### Task Completed
+- Created database migration for LocalFolderConfig and LocalFolder models
+
+### Key Decisions
+- Migration number: 0100 (following 0099_usermemory.py)
+- Depends on: ("database", "0099_usermemory")
+- Creates LocalFolderConfig first (parent model), then LocalFolder (child with FK)
+- LocalFolderConfig includes: id, created_at, updated_at, enabled, user (OneToOne)
+- LocalFolder includes: id, created_at, updated_at, path, last_synced_at, config (FK)
+- Followed exact patterns from 0099_usermemory.py migration
+
+### Files Changed
+- src/khoj/database/migrations/0100_localfolderconfig_localfolder.py (new file)
+
+### Notes
+- Python syntax verified with py_compile
+- Migration follows Django conventions for model creation order (parent before child)
+- unique_together constraint added for (config, path) pair
+- Next steps: Add API endpoints for folder management
+
