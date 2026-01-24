@@ -11,7 +11,7 @@ import threading
 from collections import defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Callable, Optional
+from typing import Any, Callable, Optional, cast
 
 from watchdog.events import (
     DirCreatedEvent,
@@ -468,3 +468,203 @@ def get_folder_watcher_service() -> FolderWatcherService:
     if _folder_watcher_service is None:
         _folder_watcher_service = FolderWatcherService()
     return _folder_watcher_service
+
+
+def process_folder_changes(user_id: int, folder_path: str, changes: dict[str, list[str]]) -> bool:
+    """
+    Process file changes detected by the folder watcher and update the content index.
+
+    This is the callback function passed to the FolderWatcherService. It handles
+    file create/modify/delete events by updating the search index accordingly.
+
+    Args:
+        user_id: The user ID who owns this folder configuration
+        folder_path: The root folder being watched
+        changes: Dict with keys 'created', 'modified', 'deleted' containing file paths
+
+    Returns:
+        True if processing succeeded, False otherwise
+    """
+    # Import here to avoid circular imports
+    from khoj.database.adapters import EntryAdapters, LocalFolderConfigAdapters
+    from khoj.database.models import KhojUser
+    from khoj.routers.helpers import configure_content
+
+    try:
+        # Get the user object
+        user = KhojUser.objects.filter(id=user_id).first()
+        if not user:
+            logger.error(f"User not found for user_id={user_id}")
+            return False
+
+        created_files = changes.get("created", [])
+        modified_files = changes.get("modified", [])
+        deleted_files = changes.get("deleted", [])
+
+        logger.info(
+            f"Processing folder changes for user {user_id}: "
+            f"{len(created_files)} created, {len(modified_files)} modified, {len(deleted_files)} deleted"
+        )
+
+        # Handle deleted files - remove from index
+        if deleted_files:
+            for file_path in deleted_files:
+                try:
+                    deleted_count = EntryAdapters.delete_entry_by_file(user, file_path)
+                    if deleted_count > 0:
+                        logger.debug(f"Deleted {deleted_count} entries for file: {file_path}")
+                except Exception as e:
+                    logger.warning(f"Failed to delete entries for file {file_path}: {e}")
+
+        # Handle created and modified files - index them
+        files_to_index = created_files + modified_files
+        if files_to_index:
+            # Collect files by type for indexing
+            files_by_type: dict[str, dict[str, bytes | str]] = {
+                "org": {},
+                "markdown": {},
+                "pdf": {},
+                "plaintext": {},
+                "image": {},
+                "docx": {},
+            }
+
+            # Binary file types that should be read as bytes
+            binary_types = {"pdf", "image", "docx"}
+
+            for file_path in files_to_index:
+                ext = Path(file_path).suffix.lower()
+                file_type = get_file_type_from_extension(ext)
+                if not file_type or file_type not in files_by_type:
+                    continue
+
+                try:
+                    if file_type in binary_types:
+                        with open(file_path, "rb") as f:
+                            files_by_type[file_type][file_path] = f.read()
+                    else:
+                        with open(file_path, "r", encoding="utf-8", errors="replace") as f:
+                            files_by_type[file_type][file_path] = f.read()
+                except OSError as e:
+                    logger.warning(f"Failed to read file {file_path}: {e}")
+                except Exception as e:
+                    logger.warning(f"Unexpected error reading file {file_path}: {e}")
+
+            # Index the files using configure_content
+            # Cast to Any because configure_content's type hint is too restrictive
+            # (it accepts bytes for pdf/image/docx but declares dict[str, str])
+            success = configure_content(user, cast(Any, files_by_type), regenerate=False)
+            if not success:
+                logger.error(f"Failed to index files from folder {folder_path}")
+                return False
+
+        # Update the folder's last_synced_at timestamp
+        LocalFolderConfigAdapters.update_folder_sync_time(user, folder_path)
+
+        logger.info(f"Successfully processed folder changes for {folder_path}")
+        return True
+
+    except Exception as e:
+        logger.error(f"Error processing folder changes: {e}", exc_info=True)
+        return False
+
+
+def sync_folder(user_id: int, folder_path: str) -> bool:
+    """
+    Perform a full sync of a folder by scanning all files and indexing them.
+
+    Args:
+        user_id: The user ID who owns this folder configuration
+        folder_path: The folder path to sync
+
+    Returns:
+        True if sync succeeded, False otherwise
+    """
+    from khoj.database.adapters import LocalFolderConfigAdapters
+    from khoj.database.models import KhojUser
+    from khoj.routers.helpers import configure_content
+
+    try:
+        user = KhojUser.objects.filter(id=user_id).first()
+        if not user:
+            logger.error(f"User not found for user_id={user_id}")
+            return False
+
+        logger.info(f"Starting full sync of folder {folder_path} for user {user_id}")
+
+        # Collect all files from the folder
+        files = collect_files_for_indexing(folder_path)
+
+        # Count total files
+        total_files = sum(len(f) for f in files.values())
+        logger.info(f"Found {total_files} files to index in {folder_path}")
+
+        if total_files == 0:
+            logger.info(f"No supported files found in {folder_path}")
+            LocalFolderConfigAdapters.update_folder_sync_time(user, folder_path)
+            return True
+
+        # Index the files
+        # Cast to Any because configure_content's type hint is too restrictive
+        # (it accepts bytes for pdf/image/docx but declares dict[str, str])
+        success = configure_content(user, cast(Any, files), regenerate=False)
+        if not success:
+            logger.error(f"Failed to index files from folder {folder_path}")
+            return False
+
+        # Update sync timestamp
+        LocalFolderConfigAdapters.update_folder_sync_time(user, folder_path)
+
+        logger.info(f"Successfully synced folder {folder_path}")
+        return True
+
+    except Exception as e:
+        logger.error(f"Error syncing folder {folder_path}: {e}", exc_info=True)
+        return False
+
+
+def sync_user_folders(user_id: int) -> tuple[int, int]:
+    """
+    Sync all configured folders for a user.
+
+    Args:
+        user_id: The user ID to sync folders for
+
+    Returns:
+        Tuple of (success_count, total_count)
+    """
+    from khoj.database.adapters import LocalFolderConfigAdapters
+    from khoj.database.models import KhojUser
+
+    try:
+        user = KhojUser.objects.filter(id=user_id).first()
+        if not user:
+            logger.error(f"User not found for user_id={user_id}")
+            return (0, 0)
+
+        # Check if folder sync is enabled for this user
+        if not LocalFolderConfigAdapters.is_enabled(user):
+            logger.debug(f"Folder sync not enabled for user {user_id}")
+            return (0, 0)
+
+        # Get all folders for the user
+        folders = LocalFolderConfigAdapters.get_folders(user)
+        if not folders:
+            logger.debug(f"No folders configured for user {user_id}")
+            return (0, 0)
+
+        success_count = 0
+        total_count = len(folders)
+
+        for folder in folders:
+            if sync_folder(user_id, folder.path):
+                success_count += 1
+            else:
+                logger.warning(f"Failed to sync folder {folder.path} for user {user_id}")
+
+        logger.info(f"Synced {success_count}/{total_count} folders for user {user_id}")
+        return (success_count, total_count)
+
+    except Exception as e:
+        logger.error(f"Error syncing folders for user {user_id}: {e}", exc_info=True)
+        return (0, 0)

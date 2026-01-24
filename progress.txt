@@ -156,3 +156,40 @@
 - Callback mechanism allows integration with configure_content() pipeline
 - Next steps: Integrate file watcher with existing configure_content() pipeline
 
+---
+
+## Iteration 6 - 2026-01-24
+
+### Task Completed
+- Integrated file watcher with existing `configure_content()` pipeline
+
+### Key Decisions
+- Added three new functions to `folder_watcher.py`:
+  - `process_folder_changes(user_id, folder_path, changes)`: Callback function for the FolderWatcherService
+    - Handles file deletions by calling `EntryAdapters.delete_entry_by_file()`
+    - Handles file creations/modifications by reading files and calling `configure_content()`
+    - Updates folder's `last_synced_at` timestamp after successful processing
+  - `sync_folder(user_id, folder_path)`: Performs full sync of a single folder
+    - Uses `collect_files_for_indexing()` to gather all files
+    - Calls `configure_content()` to index them
+    - Updates sync timestamp on completion
+  - `sync_user_folders(user_id)`: Syncs all configured folders for a user
+    - Checks if folder sync is enabled
+    - Iterates through all folders and syncs each one
+    - Returns (success_count, total_count) tuple
+- Updated `/api/content/folders/sync` endpoint to trigger actual sync
+  - Now calls `sync_user_folders` via `background_tasks.add_task(run_in_executor, ...)`
+  - Runs in background so API response returns immediately
+- Used `typing.cast(Any, ...)` to work around type hint mismatch in `configure_content`
+  - Function signature says `dict[str, str]` but actually accepts `bytes` for pdf/image/docx
+
+### Files Changed
+- src/khoj/processor/content/folder_watcher.py (added process_folder_changes, sync_folder, sync_user_folders)
+- src/khoj/routers/api_content.py (added sync_user_folders import, updated sync endpoint)
+
+### Notes
+- Python syntax verified with py_compile and AST parse
+- Imports are done inside functions to avoid circular import issues
+- The callback mechanism is ready to be connected to the FolderWatcherService
+- Next steps: Initialize folder watcher on server startup
+

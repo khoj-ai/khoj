@@ -30,6 +30,7 @@ from khoj.database.adapters import (
 from khoj.database.models import Entry as DbEntry
 from khoj.database.models import GithubConfig, GithubRepoConfig, LocalFolder, NotionConfig
 from khoj.processor.content.docx.docx_to_entries import DocxToEntries
+from khoj.processor.content.folder_watcher import sync_user_folders
 from khoj.processor.content.pdf.pdf_to_entries import PdfToEntries
 from khoj.routers.helpers import (
     ApiIndexedDataLimiter,
@@ -804,9 +805,10 @@ async def sync_local_folders(
     if not folders:
         raise HTTPException(status_code=400, detail="No folders configured for syncing")
 
-    # Trigger background sync for each folder
-    # This will be implemented in a later task with the folder_watcher module
-    # For now, just validate the configuration is ready
+    # Trigger background sync for all user folders
+    # This runs in a background task to not block the response
+    background_tasks.add_task(run_in_executor, sync_user_folders, user.id)
+
     update_telemetry_state(
         request=request,
         telemetry_type="api",
