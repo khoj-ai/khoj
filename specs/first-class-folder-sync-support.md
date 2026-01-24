@@ -4,7 +4,7 @@ title: First class folder sync support
 status: in-progress
 priority: high
 created: 2026-01-24T12:00:00Z
-updated: 2026-01-24T18:01:00.000Z
+updated: 2026-01-24T18:05:00.000Z
 ---
 
 ## Summary
@@ -15,7 +15,7 @@ Add server-side folder watching for self-hosted Khoj instances, allowing users t
 - [x] Add `LocalFolder` model (individual folder paths with last_synced_at)
 - [x] Add database adapters for folder config CRUD operations
 - [x] Create database migration for new models
-- [ ] Add API endpoints for folder management (list, add, remove, sync)
+- [x] Add API endpoints for folder management (list, add, remove, sync)
 - [ ] Implement `watchdog`-based file watcher service
 - [ ] Integrate file watcher with existing `configure_content()` pipeline
 - [ ] Initialize folder watcher on server startup

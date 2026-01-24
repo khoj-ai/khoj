@@ -80,3 +80,35 @@
 - unique_together constraint added for (config, path) pair
 - Next steps: Add API endpoints for folder management
 
+---
+
+## Iteration 4 - 2026-01-24
+
+### Task Completed
+- Added API endpoints for folder management (list, add, remove, sync)
+
+### Key Decisions
+- Added 5 endpoints to api_content.py:
+  - `GET /api/content/folders` - List all folders and config status
+  - `POST /api/content/folders` - Add a new folder path (validates path exists and is directory)
+  - `DELETE /api/content/folders?path=...` - Remove a folder by path
+  - `POST /api/content/folders/enabled` - Enable/disable folder syncing
+  - `POST /api/content/folders/sync` - Trigger a manual sync (placeholder for folder_watcher integration)
+- Created Pydantic models for request/response schemas:
+  - `LocalFolderAddRequest` - Request body for adding folders
+  - `LocalFolderResponse` - Single folder with path and last_synced_at
+  - `LocalFolderConfigResponse` - Full config with enabled flag and folders list
+  - `LocalFolderSetEnabledRequest` - Request body for enabling/disabling
+- Path validation: Must be absolute path, must exist, must be directory
+- All endpoints use async adapters and include telemetry tracking
+- Follows existing patterns from GitHub/Notion config endpoints
+
+### Files Changed
+- src/khoj/routers/api_content.py (added imports, Pydantic models, and 5 API endpoints)
+
+### Notes
+- Python syntax verified with py_compile
+- Ruff linting not available in environment but code follows project conventions
+- Sync endpoint is a placeholder - actual sync logic will be in folder_watcher module
+- Next steps: Implement watchdog-based file watcher service
+

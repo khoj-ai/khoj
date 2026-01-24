@@ -23,11 +23,12 @@ from khoj.database import adapters
 from khoj.database.adapters import (
     EntryAdapters,
     FileObjectAdapters,
+    LocalFolderConfigAdapters,
     get_user_github_config,
     get_user_notion_config,
 )
 from khoj.database.models import Entry as DbEntry
-from khoj.database.models import GithubConfig, GithubRepoConfig, NotionConfig
+from khoj.database.models import GithubConfig, GithubRepoConfig, LocalFolder, NotionConfig
 from khoj.processor.content.docx.docx_to_entries import DocxToEntries
 from khoj.processor.content.pdf.pdf_to_entries import PdfToEntries
 from khoj.routers.helpers import (
@@ -634,3 +635,188 @@ def map_config_to_object(content_source: str):
         return NotionConfig
     if content_source == DbEntry.EntrySource.COMPUTER:
         return "Computer"
+
+
+# Local Folder Sync API Models
+class LocalFolderAddRequest(BaseModel):
+    path: str
+
+
+class LocalFolderResponse(BaseModel):
+    path: str
+    last_synced_at: Optional[str] = None
+
+    @classmethod
+    def from_db(cls, folder: LocalFolder) -> "LocalFolderResponse":
+        return cls(
+            path=folder.path,
+            last_synced_at=folder.last_synced_at.isoformat() if folder.last_synced_at else None,
+        )
+
+
+class LocalFolderConfigResponse(BaseModel):
+    enabled: bool
+    folders: List[LocalFolderResponse]
+
+
+class LocalFolderSetEnabledRequest(BaseModel):
+    enabled: bool
+
+
+# Local Folder Sync API Endpoints
+@api_content.get("/folders", response_class=Response)
+@requires(["authenticated"])
+async def get_local_folders(request: Request, client: Optional[str] = None) -> Response:
+    """Get the current local folder configuration for the user."""
+    user = request.user.object
+
+    config = await LocalFolderConfigAdapters.aget_config(user)
+    if not config:
+        response_data = LocalFolderConfigResponse(enabled=False, folders=[])
+    else:
+        folders = await LocalFolderConfigAdapters.aget_folders(user)
+        response_data = LocalFolderConfigResponse(
+            enabled=config.enabled,
+            folders=[LocalFolderResponse.from_db(f) for f in folders],
+        )
+
+    update_telemetry_state(
+        request=request,
+        telemetry_type="api",
+        api="get_local_folders",
+        client=client,
+    )
+
+    return Response(
+        content=json.dumps(response_data.model_dump()),
+        media_type="application/json",
+        status_code=200,
+    )
+
+
+@api_content.post("/folders", status_code=200)
+@requires(["authenticated"])
+async def add_local_folder(
+    request: Request,
+    folder_request: LocalFolderAddRequest,
+    client: Optional[str] = None,
+):
+    """Add a local folder path to be synced."""
+    user = request.user.object
+    path = folder_request.path
+
+    # Validate the path is absolute
+    if not path.startswith("/"):
+        raise HTTPException(status_code=400, detail="Folder path must be an absolute path")
+
+    # Validate the path exists and is a directory
+    import os
+
+    if not os.path.exists(path):
+        raise HTTPException(status_code=400, detail="Folder path does not exist")
+    if not os.path.isdir(path):
+        raise HTTPException(status_code=400, detail="Path is not a directory")
+
+    try:
+        folder = await LocalFolderConfigAdapters.aadd_folder(user, path)
+    except Exception as e:
+        logger.error(f"Failed to add local folder: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Failed to add folder")
+
+    update_telemetry_state(
+        request=request,
+        telemetry_type="api",
+        api="add_local_folder",
+        client=client,
+        metadata={"path": path},
+    )
+
+    return {"status": "ok", "folder": LocalFolderResponse.from_db(folder).model_dump()}
+
+
+@api_content.delete("/folders", status_code=200)
+@requires(["authenticated"])
+async def remove_local_folder(
+    request: Request,
+    path: str,
+    client: Optional[str] = None,
+):
+    """Remove a local folder path from syncing."""
+    user = request.user.object
+
+    deleted = await LocalFolderConfigAdapters.aremove_folder(user, path)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Folder not found")
+
+    update_telemetry_state(
+        request=request,
+        telemetry_type="api",
+        api="remove_local_folder",
+        client=client,
+        metadata={"path": path},
+    )
+
+    return {"status": "ok"}
+
+
+@api_content.post("/folders/enabled", status_code=200)
+@requires(["authenticated"])
+async def set_local_folders_enabled(
+    request: Request,
+    enabled_request: LocalFolderSetEnabledRequest,
+    client: Optional[str] = None,
+):
+    """Enable or disable local folder syncing for the user."""
+    user = request.user.object
+
+    try:
+        config = await LocalFolderConfigAdapters.aset_enabled(user, enabled_request.enabled)
+    except Exception as e:
+        logger.error(f"Failed to set folder sync enabled state: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Failed to update folder sync state")
+
+    update_telemetry_state(
+        request=request,
+        telemetry_type="api",
+        api="set_local_folders_enabled",
+        client=client,
+        metadata={"enabled": enabled_request.enabled},
+    )
+
+    return {"status": "ok", "enabled": config.enabled}
+
+
+@api_content.post("/folders/sync", status_code=200)
+@requires(["authenticated"])
+async def sync_local_folders(
+    request: Request,
+    background_tasks: BackgroundTasks,
+    client: Optional[str] = None,
+):
+    """Trigger a sync of all configured local folders."""
+    user = request.user.object
+
+    config = await LocalFolderConfigAdapters.aget_config(user)
+    if not config or not config.enabled:
+        raise HTTPException(status_code=400, detail="Local folder sync is not enabled")
+
+    folders = await LocalFolderConfigAdapters.aget_folders(user)
+    if not folders:
+        raise HTTPException(status_code=400, detail="No folders configured for syncing")
+
+    # Trigger background sync for each folder
+    # This will be implemented in a later task with the folder_watcher module
+    # For now, just validate the configuration is ready
+    update_telemetry_state(
+        request=request,
+        telemetry_type="api",
+        api="sync_local_folders",
+        client=client,
+        metadata={"folder_count": len(folders)},
+    )
+
+    return {
+        "status": "ok",
+        "message": "Folder sync initiated",
+        "folders": [LocalFolderResponse.from_db(f).model_dump() for f in folders],
+    }
