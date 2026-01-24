@@ -1,10 +1,10 @@
 ---
 id: first-class-folder-sync-support
 title: First class folder sync support
-status: in-progress
+status: done
 priority: high
 created: 2026-01-24T12:00:00Z
-updated: 2026-01-24T18:30:00.000Z
+updated: 2026-01-24T18:45:00.000Z
 ---
 
 ## Summary
@@ -21,7 +21,7 @@ Add server-side folder watching for self-hosted Khoj instances, allowing users t
 - [x] Initialize folder watcher on server startup
 - [x] Add folder management UI to Knowledge Base settings card
 - [x] Add sync status indicator showing last indexed time per folder
-- [ ] Handle file create/modify/delete events appropriately
+- [x] Handle file create/modify/delete events appropriately
 
 ## Files
 - src/khoj/database/models/__init__.py
