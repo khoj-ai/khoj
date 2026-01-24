@@ -226,3 +226,41 @@
 - Service lifecycle: started after Django init and search models, stopped before scheduler shutdown
 - Next steps: Add folder management UI to Knowledge Base settings card
 
+---
+
+## Iteration 8 - 2026-01-24
+
+### Task Completed
+- Add folder management UI to Knowledge Base settings card
+
+### Key Decisions
+- Added `LocalFolder` and `LocalFolderConfig` TypeScript interfaces for API data typing
+- Added state variables: `localFolderConfig`, `newFolderPath`, `isSyncingFolders`
+- Implemented 5 folder management functions:
+  - `fetchLocalFolders()`: Fetches folder configuration from `/api/content/folders`
+  - `addLocalFolder()`: Adds a new folder via POST to `/api/content/folders`
+  - `removeLocalFolder()`: Removes a folder via DELETE to `/api/content/folders?path=...`
+  - `toggleFolderSync()`: Enables/disables watching via POST to `/api/content/folders/enabled`
+  - `syncLocalFolders()`: Triggers manual sync via POST to `/api/content/folders/sync`
+- Enhanced Knowledge Base card with a "Manage Folders" dialog button that opens a dialog containing:
+  - Toggle switch for enabling/disabling folder watching
+  - Input field with "Add" button to add new folder paths
+  - Table listing all configured folders with:
+    - Full folder path
+    - Last synced timestamp (if available)
+    - Delete button for each folder
+  - "Sync All" button to trigger manual sync (disabled when watching is off)
+- Added `FolderSimple` icon import from phosphor-icons
+- Card now shows green checkmark when folders are configured (in addition to uploaded files)
+
+### Files Changed
+- src/interface/web/app/settings/page.tsx (added interfaces, state, functions, and UI components)
+
+### Notes
+- TypeScript compiles successfully (verified via `npm run build`)
+- ESLint passes with no new errors (only pre-existing warnings)
+- UI follows existing patterns from Notion card and Memories dialog
+- Error handling includes toast notifications for user feedback
+- Folder paths are validated server-side (must be absolute, exist, and be a directory)
+- Next steps: Add sync status indicator showing last indexed time per folder
+

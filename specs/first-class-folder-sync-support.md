@@ -4,7 +4,7 @@ title: First class folder sync support
 status: in-progress
 priority: high
 created: 2026-01-24T12:00:00Z
-updated: 2026-01-24T18:14:00.000Z
+updated: 2026-01-24T18:20:00.000Z
 ---
 
 ## Summary
@@ -19,7 +19,7 @@ Add server-side folder watching for self-hosted Khoj instances, allowing users t
 - [x] Implement `watchdog`-based file watcher service
 - [x] Integrate file watcher with existing `configure_content()` pipeline
 - [x] Initialize folder watcher on server startup
-- [ ] Add folder management UI to Knowledge Base settings card
+- [x] Add folder management UI to Knowledge Base settings card
 - [ ] Add sync status indicator showing last indexed time per folder
 - [ ] Handle file create/modify/delete events appropriately
 

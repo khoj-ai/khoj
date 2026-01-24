@@ -41,7 +41,7 @@ import {
     DialogContent,
     DialogHeader,
     DialogTitle,
-    DialogTrigger
+    DialogTrigger,
 } from "@/components/ui/dialog";
 
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
@@ -78,6 +78,7 @@ import {
     Eye,
     Download,
     TrashSimple,
+    FolderSimple,
 } from "@phosphor-icons/react";
 
 import Loading from "../components/loading/loading";
@@ -155,6 +156,16 @@ const DropdownComponent: React.FC<DropdownComponentProps> = ({
 interface TokenObject {
     token: string;
     name: string;
+}
+
+interface LocalFolder {
+    path: string;
+    last_synced_at: string | null;
+}
+
+interface LocalFolderConfig {
+    enabled: boolean;
+    folders: LocalFolder[];
 }
 
 const useApiKeys = () => {
@@ -342,6 +353,12 @@ export default function SettingsView() {
     const [exportProgress, setExportProgress] = useState(0);
     const [exportedConversations, setExportedConversations] = useState(0);
     const [totalConversations, setTotalConversations] = useState(0);
+    const [localFolderConfig, setLocalFolderConfig] = useState<LocalFolderConfig>({
+        enabled: false,
+        folders: [],
+    });
+    const [newFolderPath, setNewFolderPath] = useState("");
+    const [isSyncingFolders, setIsSyncingFolders] = useState(false);
     const { toast } = useToast();
     const isMobileWidth = useIsMobileWidth();
 
@@ -743,6 +760,126 @@ export default function SettingsView() {
         }
     };
 
+    const fetchLocalFolders = async () => {
+        try {
+            const response = await fetch("/api/content/folders");
+            if (!response.ok) throw new Error("Failed to fetch folders");
+            const data = await response.json();
+            setLocalFolderConfig(data);
+        } catch (error) {
+            console.error("Error fetching local folders:", error);
+        }
+    };
+
+    const addLocalFolder = async () => {
+        if (!newFolderPath.trim()) return;
+        try {
+            const response = await fetch("/api/content/folders", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ path: newFolderPath.trim() }),
+            });
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.detail || "Failed to add folder");
+            }
+            const data = await response.json();
+            setLocalFolderConfig((prev) => ({
+                ...prev,
+                folders: [...prev.folders, data.folder],
+            }));
+            setNewFolderPath("");
+            toast({
+                title: "Folder Added",
+                description: `Added folder: ${newFolderPath}`,
+            });
+        } catch (error) {
+            console.error("Error adding folder:", error);
+            toast({
+                title: "Failed to Add Folder",
+                description: error instanceof Error ? error.message : "Unknown error",
+                variant: "destructive",
+            });
+        }
+    };
+
+    const removeLocalFolder = async (path: string) => {
+        try {
+            const response = await fetch(`/api/content/folders?path=${encodeURIComponent(path)}`, {
+                method: "DELETE",
+            });
+            if (!response.ok) throw new Error("Failed to remove folder");
+            setLocalFolderConfig((prev) => ({
+                ...prev,
+                folders: prev.folders.filter((f) => f.path !== path),
+            }));
+            toast({
+                title: "Folder Removed",
+                description: `Removed folder: ${path}`,
+            });
+        } catch (error) {
+            console.error("Error removing folder:", error);
+            toast({
+                title: "Failed to Remove Folder",
+                description: "Could not remove the folder. Please try again.",
+                variant: "destructive",
+            });
+        }
+    };
+
+    const toggleFolderSync = async (enabled: boolean) => {
+        try {
+            const response = await fetch("/api/content/folders/enabled", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ enabled }),
+            });
+            if (!response.ok) throw new Error("Failed to update folder sync setting");
+            setLocalFolderConfig((prev) => ({ ...prev, enabled }));
+            toast({
+                title: enabled ? "Folder Sync Enabled" : "Folder Sync Disabled",
+                description: enabled
+                    ? "Your configured folders will be automatically watched and indexed."
+                    : "Folder watching has been disabled.",
+            });
+        } catch (error) {
+            console.error("Error toggling folder sync:", error);
+            toast({
+                title: "Failed to Update Setting",
+                description: "Could not update folder sync setting. Please try again.",
+                variant: "destructive",
+            });
+        }
+    };
+
+    const syncLocalFolders = async () => {
+        setIsSyncingFolders(true);
+        try {
+            const response = await fetch("/api/content/folders/sync", {
+                method: "POST",
+            });
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.detail || "Failed to sync folders");
+            }
+            toast({
+                title: "Sync Started",
+                description: "Your folders are being synced in the background.",
+            });
+            // Refresh folder data after a short delay to get updated sync times
+            setTimeout(fetchLocalFolders, 2000);
+        } catch (error) {
+            console.error("Error syncing folders:", error);
+            toast({
+                title: "Failed to Sync Folders",
+                description: error instanceof Error ? error.message : "Unknown error",
+                variant: "destructive",
+            });
+        } finally {
+            setIsSyncingFolders(false);
+        }
+    };
+
     const disconnectContent = async (source: string) => {
         try {
             const response = await fetch(`/api/content/source/${source}`, {
@@ -996,7 +1133,7 @@ export default function SettingsView() {
                                                 <CardHeader className="flex flex-row text-xl">
                                                     <Brain className="h-8 w-8 mr-2" />
                                                     Knowledge Base
-                                                    {userConfig.enabled_content_source.computer && (
+                                                    {(userConfig.enabled_content_source.computer || localFolderConfig.folders.length > 0) && (
                                                         <CheckCircle
                                                             className="h-6 w-6 ml-auto text-green-500"
                                                             weight="fill"
@@ -1010,7 +1147,7 @@ export default function SettingsView() {
                                                     <Button
                                                         variant="outline"
                                                         size="sm"
-                                                        title="Search thorugh files"
+                                                        title="Search through files"
                                                         onClick={() =>
                                                             (window.location.href = "/search")
                                                         }
@@ -1018,6 +1155,118 @@ export default function SettingsView() {
                                                         <MagnifyingGlass className="h-5 w-5 inline mr-1" />
                                                         Search
                                                     </Button>
+                                                    <Dialog onOpenChange={(open) => open && fetchLocalFolders()}>
+                                                        <DialogTrigger asChild>
+                                                            <Button variant="outline" size="sm">
+                                                                <FolderSimple className="h-5 w-5 inline mr-1" />
+                                                                Manage Folders
+                                                            </Button>
+                                                        </DialogTrigger>
+                                                        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+                                                            <DialogHeader>
+                                                                <DialogTitle>Local Folder Sync</DialogTitle>
+                                                            </DialogHeader>
+                                                            <div className="grid gap-4 py-4">
+                                                                <div className="flex items-center justify-between">
+                                                                    <div>
+                                                                        <label
+                                                                            htmlFor="enable-folder-sync"
+                                                                            className="text-sm font-medium leading-none"
+                                                                        >
+                                                                            Enable Folder Watching
+                                                                        </label>
+                                                                        <p className="text-xs text-gray-400 mt-1">
+                                                                            Automatically index files when they change
+                                                                        </p>
+                                                                    </div>
+                                                                    <Switch
+                                                                        id="enable-folder-sync"
+                                                                        checked={localFolderConfig.enabled}
+                                                                        onCheckedChange={toggleFolderSync}
+                                                                    />
+                                                                </div>
+                                                                <div className="border-t pt-4">
+                                                                    <p className="text-sm font-medium mb-2">Add Folder</p>
+                                                                    <div className="flex gap-2">
+                                                                        <Input
+                                                                            value={newFolderPath}
+                                                                            onChange={(e) => setNewFolderPath(e.target.value)}
+                                                                            placeholder="/path/to/folder"
+                                                                            className="flex-1"
+                                                                            onKeyDown={(e) => {
+                                                                                if (e.key === "Enter") {
+                                                                                    addLocalFolder();
+                                                                                }
+                                                                            }}
+                                                                        />
+                                                                        <Button
+                                                                            variant="outline"
+                                                                            onClick={addLocalFolder}
+                                                                            disabled={!newFolderPath.trim()}
+                                                                        >
+                                                                            <Plus className="h-4 w-4" />
+                                                                        </Button>
+                                                                    </div>
+                                                                    <p className="text-xs text-gray-400 mt-1">
+                                                                        Enter an absolute path to a folder on the server
+                                                                    </p>
+                                                                </div>
+                                                                {localFolderConfig.folders.length > 0 && (
+                                                                    <div className="border-t pt-4">
+                                                                        <div className="flex items-center justify-between mb-2">
+                                                                            <p className="text-sm font-medium">
+                                                                                Configured Folders ({localFolderConfig.folders.length})
+                                                                            </p>
+                                                                            <Button
+                                                                                variant="outline"
+                                                                                size="sm"
+                                                                                onClick={syncLocalFolders}
+                                                                                disabled={isSyncingFolders || !localFolderConfig.enabled}
+                                                                            >
+                                                                                <ArrowsClockwise className={`h-4 w-4 mr-1 ${isSyncingFolders ? "animate-spin" : ""}`} />
+                                                                                Sync All
+                                                                            </Button>
+                                                                        </div>
+                                                                        <Table>
+                                                                            <TableBody>
+                                                                                {localFolderConfig.folders.map((folder) => (
+                                                                                    <TableRow key={folder.path}>
+                                                                                        <TableCell className="pl-0 py-2">
+                                                                                            <div className="flex flex-col">
+                                                                                                <span className="font-mono text-sm break-all">
+                                                                                                    {folder.path}
+                                                                                                </span>
+                                                                                                {folder.last_synced_at && (
+                                                                                                    <span className="text-xs text-gray-400">
+                                                                                                        Last synced: {new Date(folder.last_synced_at).toLocaleString()}
+                                                                                                    </span>
+                                                                                                )}
+                                                                                            </div>
+                                                                                        </TableCell>
+                                                                                        <TableCell className="pr-0 py-2 w-10">
+                                                                                            <Button
+                                                                                                variant="ghost"
+                                                                                                size="sm"
+                                                                                                onClick={() => removeLocalFolder(folder.path)}
+                                                                                                className="text-red-400 hover:text-red-500 hover:bg-red-50"
+                                                                                            >
+                                                                                                <Trash className="h-4 w-4" />
+                                                                                            </Button>
+                                                                                        </TableCell>
+                                                                                    </TableRow>
+                                                                                ))}
+                                                                            </TableBody>
+                                                                        </Table>
+                                                                    </div>
+                                                                )}
+                                                                {localFolderConfig.folders.length === 0 && (
+                                                                    <p className="text-center text-gray-500 py-4">
+                                                                        No folders configured. Add a folder path above to get started.
+                                                                    </p>
+                                                                )}
+                                                            </div>
+                                                        </DialogContent>
+                                                    </Dialog>
                                                     <Button
                                                         variant="outline"
                                                         size="sm"
