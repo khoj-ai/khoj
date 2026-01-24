@@ -39,6 +39,7 @@ from khoj.database.adapters import (
     AgentAdapters,
     ClientApplicationAdapters,
     ConversationAdapters,
+    LocalFolderConfigAdapters,
     ProcessLockAdapters,
     aget_or_create_user_by_phone_number,
     aget_user_by_phone_number,
@@ -49,6 +50,12 @@ from khoj.database.adapters import (
     get_or_create_search_models,
 )
 from khoj.database.models import ClientApplication, KhojUser, ProcessLock, Subscription
+from khoj.processor.content.folder_watcher import (
+    FolderWatcherService,
+    get_folder_watcher_service,
+    process_folder_changes,
+    sync_folder,
+)
 from khoj.processor.embeddings import CrossEncoderModel, EmbeddingsModel
 from khoj.routers.api_content import configure_content
 from khoj.routers.twilio import is_twilio_enabled
@@ -314,6 +321,70 @@ def initialize_content(user: KhojUser, regenerate: bool, search_type: Optional[S
             raise RuntimeError("Failed to update content index")
     except Exception as e:
         raise e
+
+
+@clean_connections
+def initialize_folder_watcher():
+    """
+    Initialize the folder watcher service and register all enabled user folders.
+
+    This should be called during server startup after Django is fully initialized.
+    The service watches configured local folders for file changes and triggers
+    content indexing when files are created, modified, or deleted.
+    """
+    try:
+        logger.info("📂 Initializing folder watcher service...")
+
+        # Get or create the global folder watcher service
+        watcher = get_folder_watcher_service()
+
+        # Set the callback for processing file changes
+        watcher.set_change_callback(process_folder_changes)
+
+        # Start the watcher service
+        watcher.start()
+
+        # Store reference in state for lifecycle management
+        state.folder_watcher_service = watcher
+
+        # Get all enabled folder configs and register their folders
+        enabled_configs = LocalFolderConfigAdapters.get_all_enabled_configs()
+        folders_registered = 0
+        folders_synced = 0
+
+        for config in enabled_configs:
+            user_id = config.user_id
+            for folder in config.folders.all():
+                folder_path = folder.path
+                # Register folder with watcher
+                if watcher.add_folder(user_id, folder_path):
+                    folders_registered += 1
+                    # Perform initial sync of the folder
+                    if sync_folder(user_id, folder_path):
+                        folders_synced += 1
+
+        logger.info(
+            f"📂 Folder watcher initialized: {folders_registered} folders registered, {folders_synced} folders synced"
+        )
+
+    except Exception as e:
+        logger.error(f"Failed to initialize folder watcher: {e}", exc_info=True)
+
+
+def stop_folder_watcher():
+    """
+    Stop the folder watcher service gracefully.
+
+    This should be called during server shutdown.
+    """
+    try:
+        if state.folder_watcher_service:
+            logger.info("📂 Stopping folder watcher service...")
+            state.folder_watcher_service.stop()
+            state.folder_watcher_service = None
+            logger.info("📂 Folder watcher service stopped")
+    except Exception as e:
+        logger.error(f"Error stopping folder watcher: {e}", exc_info=True)
 
 
 def configure_routes(app):

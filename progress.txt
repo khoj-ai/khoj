@@ -193,3 +193,36 @@
 - The callback mechanism is ready to be connected to the FolderWatcherService
 - Next steps: Initialize folder watcher on server startup
 
+---
+
+## Iteration 7 - 2026-01-24
+
+### Task Completed
+- Initialize folder watcher on server startup
+
+### Key Decisions
+- Added `folder_watcher_service` global variable to `state.py` to store the service instance
+- Created `initialize_folder_watcher()` function in `configure.py` that:
+  - Gets or creates the global FolderWatcherService singleton
+  - Sets `process_folder_changes` as the callback for file change events
+  - Starts the watcher service
+  - Queries all enabled LocalFolderConfigs from the database
+  - Registers each configured folder with the watcher
+  - Performs initial sync of each folder on startup
+  - Logs summary of folders registered and synced
+- Created `stop_folder_watcher()` function for graceful shutdown
+- Called `initialize_folder_watcher()` in `main.py run()` after `initialize_server()`
+- Called `stop_folder_watcher()` in `shutdown_scheduler()` before scheduler shutdown
+- Used `@clean_connections` decorator on `initialize_folder_watcher()` to properly manage Django DB connections
+
+### Files Changed
+- src/khoj/utils/state.py (added FolderWatcherService import and folder_watcher_service variable)
+- src/khoj/configure.py (added imports, initialize_folder_watcher(), stop_folder_watcher() functions)
+- src/khoj/main.py (added imports, call initialize_folder_watcher(), call stop_folder_watcher())
+
+### Notes
+- Python syntax verified with AST parse
+- Circular imports avoided by importing FolderWatcherService only in state.py (folder_watcher.py has no module-level khoj imports)
+- Service lifecycle: started after Django init and search models, stopped before scheduler shutdown
+- Next steps: Add folder management UI to Knowledge Base settings card
+

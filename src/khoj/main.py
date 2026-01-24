@@ -91,7 +91,7 @@ app.add_middleware(
 locale.setlocale(locale.LC_ALL, "")
 
 # We import these packages after setting up Django so that Django features are accessible to the app.
-from khoj.configure import configure_routes, initialize_server, configure_middleware
+from khoj.configure import configure_routes, configure_middleware, initialize_folder_watcher, initialize_server, stop_folder_watcher
 from khoj.utils import state
 from khoj.utils.cli import cli
 from khoj.utils.initialization import initialization
@@ -105,6 +105,9 @@ SCHEDULE_LEADER_NAME = ProcessLock.Operation.SCHEDULE_LEADER
 
 def shutdown_scheduler():
     logger.info("🌑 Shutting down Khoj")
+
+    # Stop the folder watcher service
+    stop_folder_watcher()
 
     if state.schedule_leader_process_lock:
         logger.info("🔓 Schedule Leader released")
@@ -195,6 +198,9 @@ def run(should_start_server=True):
     configure_middleware(app, state.ssl_config)
 
     initialize_server()
+
+    # Initialize folder watcher for local folder sync
+    initialize_folder_watcher()
 
     # If the server is started through gunicorn (external to the script), don't start the server
     if should_start_server:
