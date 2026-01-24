@@ -4,7 +4,7 @@ title: First class folder sync support
 status: done
 priority: high
 created: 2026-01-24T12:00:00Z
-updated: 2026-01-24T18:45:00.000Z
+updated: 2026-01-24T18:36:14.236Z
 ---
 
 ## Summary
