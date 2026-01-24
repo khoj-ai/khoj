@@ -112,3 +112,47 @@
 - Sync endpoint is a placeholder - actual sync logic will be in folder_watcher module
 - Next steps: Implement watchdog-based file watcher service
 
+---
+
+## Iteration 5 - 2026-01-24
+
+### Task Completed
+- Implemented `watchdog`-based file watcher service
+
+### Key Decisions
+- Created `src/khoj/processor/content/folder_watcher.py` with the following components:
+  - `SUPPORTED_EXTENSIONS`: Set of file extensions supported for indexing (.md, .org, .txt, .pdf, .docx, .jpg, .png, .webp)
+  - `get_file_type_from_extension()`: Maps file extensions to Khoj file types (markdown, org, plaintext, pdf, docx, image)
+  - `is_supported_file()`: Check if a file should be indexed based on extension
+  - `FolderEventHandler`: Watchdog event handler that:
+    - Handles file create/modify/delete events
+    - Filters to only supported file types
+    - Debounces events (2 second default) to batch changes
+    - Accumulates changes and calls callback with batched changes dict
+    - Handles directory creation by scanning for supported files
+  - `FolderWatcherService`: Main service class that:
+    - Manages multiple folder watches across users
+    - Provides start/stop lifecycle management
+    - Supports add_folder/remove_folder per user
+    - Uses threading.Lock for thread safety
+    - Provides get_watched_folders() and is_running() status methods
+  - `scan_folder_for_files()`: Utility to scan folder and categorize files by type
+  - `collect_files_for_indexing()`: Reads file contents into format expected by configure_content()
+  - `get_folder_watcher_service()`: Global singleton accessor
+- Added `watchdog >= 4.0.0` to dependencies in pyproject.toml
+- Event handling logic prevents duplicate events:
+  - Created then modified = still just created
+  - Modified then deleted = just deleted
+  - Created then deleted = removed from both
+
+### Files Changed
+- pyproject.toml (added watchdog dependency)
+- src/khoj/processor/content/folder_watcher.py (new file)
+
+### Notes
+- Python syntax verified
+- pyproject.toml TOML syntax verified
+- Service is designed to be started on server startup and stopped on shutdown
+- Callback mechanism allows integration with configure_content() pipeline
+- Next steps: Integrate file watcher with existing configure_content() pipeline
+
