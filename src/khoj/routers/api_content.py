@@ -30,7 +30,7 @@ from khoj.database.adapters import (
 from khoj.database.models import Entry as DbEntry
 from khoj.database.models import GithubConfig, GithubRepoConfig, LocalFolder, NotionConfig
 from khoj.processor.content.docx.docx_to_entries import DocxToEntries
-from khoj.processor.content.folder_watcher import sync_user_folders
+from khoj.processor.content.folder_watcher import sync_folder, sync_user_folders
 from khoj.processor.content.pdf.pdf_to_entries import PdfToEntries
 from khoj.routers.helpers import (
     ApiIndexedDataLimiter,
@@ -821,4 +821,47 @@ async def sync_local_folders(
         "status": "ok",
         "message": "Folder sync initiated",
         "folders": [LocalFolderResponse.from_db(f).model_dump() for f in folders],
+    }
+
+
+class LocalFolderSyncRequest(BaseModel):
+    path: str
+
+
+@api_content.post("/folders/sync/single", status_code=200)
+@requires(["authenticated"])
+async def sync_single_folder(
+    request: Request,
+    background_tasks: BackgroundTasks,
+    folder_request: LocalFolderSyncRequest,
+    client: Optional[str] = None,
+):
+    """Trigger a sync of a single local folder."""
+    user = request.user.object
+    path = folder_request.path
+
+    config = await LocalFolderConfigAdapters.aget_config(user)
+    if not config or not config.enabled:
+        raise HTTPException(status_code=400, detail="Local folder sync is not enabled")
+
+    # Verify the folder exists in user's configuration
+    folder = await LocalFolderConfigAdapters.aget_folder_by_path(user, path)
+    if not folder:
+        raise HTTPException(status_code=404, detail="Folder not found in your configuration")
+
+    # Trigger background sync for the single folder
+    background_tasks.add_task(run_in_executor, sync_folder, user.id, path)
+
+    update_telemetry_state(
+        request=request,
+        telemetry_type="api",
+        api="sync_single_folder",
+        client=client,
+        metadata={"path": path},
+    )
+
+    return {
+        "status": "ok",
+        "message": f"Sync initiated for folder: {path}",
+        "folder": LocalFolderResponse.from_db(folder).model_dump(),
     }

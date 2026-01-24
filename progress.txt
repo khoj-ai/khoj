@@ -264,3 +264,39 @@
 - Folder paths are validated server-side (must be absolute, exist, and be a directory)
 - Next steps: Add sync status indicator showing last indexed time per folder
 
+---
+
+## Iteration 9 - 2026-01-24
+
+### Task Completed
+- Add sync status indicator showing last indexed time per folder
+
+### Key Decisions
+- Added visual sync status indicators to the folder table:
+  - Green checkmark (CheckCircle) for folders that have been synced
+  - Yellow exclamation mark (ExclamationMark) for folders that have never been synced
+- Added relative time formatting for last_synced_at timestamps:
+  - "Just now" for less than 60 seconds
+  - "X minutes ago" / "X hours ago" / "X days ago" for recent times
+  - Date string for older times
+  - "Never synced" for null timestamps
+- Added per-folder sync button:
+  - Each folder row now has a sync icon button
+  - Shows spinning animation while syncing that specific folder
+  - Disabled when folder watching is disabled
+- Added new API endpoint `POST /api/content/folders/sync/single`:
+  - Accepts `{ path: string }` in request body
+  - Triggers background sync for a single folder
+  - Returns updated folder info after triggering sync
+- Added new state `syncingFolderPath` to track which folder is currently syncing
+
+### Files Changed
+- src/khoj/routers/api_content.py (added sync_folder import, LocalFolderSyncRequest model, sync_single_folder endpoint)
+- src/interface/web/app/settings/page.tsx (added syncingFolderPath state, formatRelativeTime helper, syncSingleFolder function, enhanced folder table UI)
+
+### Notes
+- TypeScript compiles successfully (verified via `npm run build`)
+- Python syntax verified via AST parse
+- No new ESLint errors (only pre-existing warnings)
+- Next steps: Handle file create/modify/delete events appropriately
+

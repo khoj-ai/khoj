@@ -359,7 +359,26 @@ export default function SettingsView() {
     });
     const [newFolderPath, setNewFolderPath] = useState("");
     const [isSyncingFolders, setIsSyncingFolders] = useState(false);
+    const [syncingFolderPath, setSyncingFolderPath] = useState<string | null>(null);
     const { toast } = useToast();
+
+    // Helper function to format relative time
+    const formatRelativeTime = (dateString: string | null): string => {
+        if (!dateString) return "Never synced";
+        const date = new Date(dateString);
+        const now = new Date();
+        const diffMs = now.getTime() - date.getTime();
+        const diffSecs = Math.floor(diffMs / 1000);
+        const diffMins = Math.floor(diffSecs / 60);
+        const diffHours = Math.floor(diffMins / 60);
+        const diffDays = Math.floor(diffHours / 24);
+
+        if (diffSecs < 60) return "Just now";
+        if (diffMins < 60) return `${diffMins} minute${diffMins !== 1 ? "s" : ""} ago`;
+        if (diffHours < 24) return `${diffHours} hour${diffHours !== 1 ? "s" : ""} ago`;
+        if (diffDays < 7) return `${diffDays} day${diffDays !== 1 ? "s" : ""} ago`;
+        return date.toLocaleDateString();
+    };
     const isMobileWidth = useIsMobileWidth();
 
     const title = "Settings";
@@ -880,6 +899,36 @@ export default function SettingsView() {
         }
     };
 
+    const syncSingleFolder = async (path: string) => {
+        setSyncingFolderPath(path);
+        try {
+            const response = await fetch("/api/content/folders/sync/single", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ path }),
+            });
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.detail || "Failed to sync folder");
+            }
+            toast({
+                title: "Sync Started",
+                description: `Syncing folder: ${path}`,
+            });
+            // Refresh folder data after a short delay to get updated sync times
+            setTimeout(fetchLocalFolders, 2000);
+        } catch (error) {
+            console.error("Error syncing folder:", error);
+            toast({
+                title: "Failed to Sync Folder",
+                description: error instanceof Error ? error.message : "Unknown error",
+                variant: "destructive",
+            });
+        } finally {
+            setSyncingFolderPath(null);
+        }
+    };
+
     const disconnectContent = async (source: string) => {
         try {
             const response = await fetch(`/api/content/source/${source}`, {
@@ -1232,26 +1281,49 @@ export default function SettingsView() {
                                                                                 {localFolderConfig.folders.map((folder) => (
                                                                                     <TableRow key={folder.path}>
                                                                                         <TableCell className="pl-0 py-2">
-                                                                                            <div className="flex flex-col">
-                                                                                                <span className="font-mono text-sm break-all">
-                                                                                                    {folder.path}
-                                                                                                </span>
-                                                                                                {folder.last_synced_at && (
-                                                                                                    <span className="text-xs text-gray-400">
-                                                                                                        Last synced: {new Date(folder.last_synced_at).toLocaleString()}
-                                                                                                    </span>
+                                                                                            <div className="flex items-start gap-2">
+                                                                                                {folder.last_synced_at ? (
+                                                                                                    <CheckCircle
+                                                                                                        className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0"
+                                                                                                        weight="fill"
+                                                                                                    />
+                                                                                                ) : (
+                                                                                                    <ExclamationMark
+                                                                                                        className="h-4 w-4 text-yellow-500 mt-0.5 flex-shrink-0"
+                                                                                                        weight="bold"
+                                                                                                    />
                                                                                                 )}
+                                                                                                <div className="flex flex-col min-w-0">
+                                                                                                    <span className="font-mono text-sm break-all">
+                                                                                                        {folder.path}
+                                                                                                    </span>
+                                                                                                    <span className={`text-xs ${folder.last_synced_at ? "text-gray-400" : "text-yellow-600"}`}>
+                                                                                                        {formatRelativeTime(folder.last_synced_at)}
+                                                                                                    </span>
+                                                                                                </div>
                                                                                             </div>
                                                                                         </TableCell>
-                                                                                        <TableCell className="pr-0 py-2 w-10">
-                                                                                            <Button
-                                                                                                variant="ghost"
-                                                                                                size="sm"
-                                                                                                onClick={() => removeLocalFolder(folder.path)}
-                                                                                                className="text-red-400 hover:text-red-500 hover:bg-red-50"
-                                                                                            >
-                                                                                                <Trash className="h-4 w-4" />
-                                                                                            </Button>
+                                                                                        <TableCell className="pr-0 py-2 w-20">
+                                                                                            <div className="flex items-center gap-1">
+                                                                                                <Button
+                                                                                                    variant="ghost"
+                                                                                                    size="sm"
+                                                                                                    onClick={() => syncSingleFolder(folder.path)}
+                                                                                                    disabled={!localFolderConfig.enabled || syncingFolderPath === folder.path}
+                                                                                                    title="Sync this folder"
+                                                                                                >
+                                                                                                    <ArrowsClockwise className={`h-4 w-4 ${syncingFolderPath === folder.path ? "animate-spin" : ""}`} />
+                                                                                                </Button>
+                                                                                                <Button
+                                                                                                    variant="ghost"
+                                                                                                    size="sm"
+                                                                                                    onClick={() => removeLocalFolder(folder.path)}
+                                                                                                    className="text-red-400 hover:text-red-500 hover:bg-red-50"
+                                                                                                    title="Remove folder"
+                                                                                                >
+                                                                                                    <Trash className="h-4 w-4" />
+                                                                                                </Button>
+                                                                                            </div>
                                                                                         </TableCell>
                                                                                     </TableRow>
                                                                                 ))}
