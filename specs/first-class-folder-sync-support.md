@@ -1,18 +1,18 @@
 ---
 id: first-class-folder-sync-support
 title: First class folder sync support
-status: todo
+status: in-progress
 priority: high
 created: 2026-01-24T12:00:00Z
-updated: 2026-01-24T12:00:00Z
+updated: 2026-01-24T17:57:00.000Z
 ---
 
 ## Summary
 Add server-side folder watching for self-hosted Khoj instances, allowing users to configure local folders in the Knowledge Base settings that are automatically monitored and indexed in real-time using Python's `watchdog` library.
 
 ## Tasks
-- [ ] Add `LocalFolderConfig` model (per-user parent config with enabled flag)
-- [ ] Add `LocalFolder` model (individual folder paths with last_synced_at)
+- [x] Add `LocalFolderConfig` model (per-user parent config with enabled flag)
+- [x] Add `LocalFolder` model (individual folder paths with last_synced_at)
 - [ ] Add database adapters for folder config CRUD operations
 - [ ] Create database migration for new models
 - [ ] Add API endpoints for folder management (list, add, remove, sync)
