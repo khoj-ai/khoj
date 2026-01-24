@@ -300,3 +300,43 @@
 - No new ESLint errors (only pre-existing warnings)
 - Next steps: Handle file create/modify/delete events appropriately
 
+---
+
+## Iteration 10 - 2026-01-24
+
+### Task Completed
+- Handle file create/modify/delete events appropriately
+
+### Key Decisions
+- Added support for file move/rename events via `on_moved` handler:
+  - For single file moves: treat as delete of source + create of destination
+  - For directory moves: scan destination, generate delete for source paths and create for dest paths
+- Added `FileMovedEvent` and `DirMovedEvent` imports from watchdog.events
+- Added new `_scan_directory_for_move()` method to handle directory moves properly
+- Added FileObject cleanup when deleting files:
+  - Import `FileObjectAdapters` in `process_folder_changes`
+  - Call `FileObjectAdapters.delete_file_object_by_name()` alongside entry deletion
+  - This ensures the full-text search index is properly cleaned up
+- The existing create/modify/delete flow was already working correctly:
+  - `FolderEventHandler` collects events with debouncing
+  - `process_folder_changes` callback handles:
+    - Deleted files: removes entries via `EntryAdapters.delete_entry_by_file()` + FileObject cleanup
+    - Created/modified files: indexes via `configure_content()` which handles deduplication
+
+### Files Changed
+- src/khoj/processor/content/folder_watcher.py:
+  - Added `FileMovedEvent` and `DirMovedEvent` to imports
+  - Added `on_moved()` handler for move/rename events
+  - Added `_scan_directory_for_move()` helper method
+  - Added `FileObjectAdapters` import and cleanup call in `process_folder_changes`
+  - Updated module docstring
+
+### Notes
+- Python syntax verified via AST parse and py_compile
+- TypeScript build still passes (npm run build)
+- All acceptance criteria for file event handling now met:
+  - Create: Files indexed automatically
+  - Modify: Files re-indexed with stale entries cleaned up
+  - Delete: Entries and FileObjects removed from index
+  - Move/Rename: Source deleted, destination indexed
+

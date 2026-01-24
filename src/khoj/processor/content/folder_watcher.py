@@ -2,7 +2,7 @@
 Folder watcher service for monitoring local folders and triggering content indexing.
 
 Uses watchdog library to watch for file system changes and triggers re-indexing
-when files are created, modified, or deleted.
+when files are created, modified, deleted, or moved/renamed.
 """
 
 import logging
@@ -16,9 +16,11 @@ from typing import Any, Callable, Optional, cast
 from watchdog.events import (
     DirCreatedEvent,
     DirDeletedEvent,
+    DirMovedEvent,
     FileCreatedEvent,
     FileDeletedEvent,
     FileModifiedEvent,
+    FileMovedEvent,
     FileSystemEventHandler,
 )
 from watchdog.observers import Observer
@@ -196,6 +198,20 @@ class FolderEventHandler(FileSystemEventHandler):
             # individual file deletion events or the next full sync
             logger.debug(f"Directory deleted: {event.src_path}")
 
+    def on_moved(self, event):
+        """Handle file/directory move/rename events."""
+        if isinstance(event, FileMovedEvent):
+            # Treat move as delete of source + create of destination
+            logger.debug(f"File moved: {event.src_path} -> {event.dest_path}")
+            self._handle_file_event("deleted", event.src_path)
+            self._handle_file_event("created", event.dest_path)
+        elif isinstance(event, DirMovedEvent):
+            # For directory moves, scan the destination for new files and
+            # mark files with corresponding old paths as deleted.
+            # The new files will be at: dest_path + relative_path_from_src
+            logger.debug(f"Directory moved: {event.src_path} -> {event.dest_path}")
+            self._scan_directory_for_move(event.src_path, event.dest_path)
+
     def _scan_directory(self, directory_path: str, event_type: str):
         """Scan a directory for supported files and add them to pending changes."""
         try:
@@ -206,6 +222,26 @@ class FolderEventHandler(FileSystemEventHandler):
                         self._handle_file_event(event_type, file_path)
         except OSError as e:
             logger.warning(f"Error scanning directory {directory_path}: {e}")
+
+    def _scan_directory_for_move(self, src_dir: str, dest_dir: str):
+        """
+        Handle directory move by scanning destination for files and generating
+        delete events for their corresponding source paths.
+        """
+        try:
+            for root, _dirs, files in os.walk(dest_dir):
+                for file in files:
+                    dest_file_path = os.path.join(root, file)
+                    if is_supported_file(dest_file_path):
+                        # Calculate the relative path from dest_dir
+                        rel_path = os.path.relpath(dest_file_path, dest_dir)
+                        # Calculate the corresponding source path
+                        src_file_path = os.path.join(src_dir, rel_path)
+                        # Mark old path as deleted, new path as created
+                        self._handle_file_event("deleted", src_file_path)
+                        self._handle_file_event("created", dest_file_path)
+        except OSError as e:
+            logger.warning(f"Error scanning moved directory {dest_dir}: {e}")
 
     def stop(self):
         """Stop any pending debounce timers."""
@@ -486,7 +522,7 @@ def process_folder_changes(user_id: int, folder_path: str, changes: dict[str, li
         True if processing succeeded, False otherwise
     """
     # Import here to avoid circular imports
-    from khoj.database.adapters import EntryAdapters, LocalFolderConfigAdapters
+    from khoj.database.adapters import EntryAdapters, FileObjectAdapters, LocalFolderConfigAdapters
     from khoj.database.models import KhojUser
     from khoj.routers.helpers import configure_content
 
@@ -506,13 +542,15 @@ def process_folder_changes(user_id: int, folder_path: str, changes: dict[str, li
             f"{len(created_files)} created, {len(modified_files)} modified, {len(deleted_files)} deleted"
         )
 
-        # Handle deleted files - remove from index
+        # Handle deleted files - remove from index and cleanup file objects
         if deleted_files:
             for file_path in deleted_files:
                 try:
                     deleted_count = EntryAdapters.delete_entry_by_file(user, file_path)
                     if deleted_count > 0:
                         logger.debug(f"Deleted {deleted_count} entries for file: {file_path}")
+                    # Also cleanup the FileObject used for full-text search
+                    FileObjectAdapters.delete_file_object_by_name(user, file_path)
                 except Exception as e:
                     logger.warning(f"Failed to delete entries for file {file_path}: {e}")
 
