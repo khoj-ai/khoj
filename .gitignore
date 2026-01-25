@@ -59,6 +59,7 @@ src/interface/android/local.properties
 
 # sonata
 .sonata
+progress.txt
 
 # orah CLI
 orah.yml
