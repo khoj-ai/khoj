@@ -18,12 +18,14 @@ import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
 import { Switch } from "@/components/ui/switch";
 
 import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuRadioGroup,
-    DropdownMenuRadioItem,
-    DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+    Command,
+    CommandEmpty,
+    CommandGroup,
+    CommandInput,
+    CommandItem,
+    CommandList,
+} from "@/components/ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
     AlertDialog,
     AlertDialogAction,
@@ -107,46 +109,55 @@ const DropdownComponent: React.FC<DropdownComponentProps> = ({
     callbackFunc,
 }) => {
     const [position, setPosition] = useState(selected?.toString() ?? "0");
+    const [open, setOpen] = useState(false);
 
     return (
         !!selected && (
             <div className="overflow-hidden shadow-md rounded-lg">
-                <DropdownMenu>
-                    <DropdownMenuTrigger asChild className="w-full rounded-lg">
-                        <Button variant="outline" className="justify-start py-6 rounded-lg">
+                <Popover open={open} onOpenChange={setOpen}>
+                    <PopoverTrigger asChild>
+                        <Button variant="outline" className="justify-start py-6 rounded-lg w-full">
                             {items.find((item) => item.id.toString() === position)?.name}{" "}
                             <CaretDown className="h-4 w-4 ml-auto text-muted-foreground" />
                         </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent
+                    </PopoverTrigger>
+                    <PopoverContent
+                        align="start"
+                        className="p-0"
                         style={{
-                            maxHeight: "200px",
-                            overflowY: "auto",
-                            minWidth: "var(--radix-dropdown-menu-trigger-width)",
+                            minWidth: "var(--radix-popover-trigger-width)",
                         }}
                     >
-                        <DropdownMenuRadioGroup
-                            value={position}
-                            onValueChange={async (value) => {
-                                setPosition(value);
-                                await callbackFunc(value);
-                            }}
-                        >
-                            {items.map((item) => (
-                                <DropdownMenuRadioItem
-                                    key={item.id.toString()}
-                                    value={item.id.toString()}
-                                    disabled={!isActive && item.tier !== "free"}
-                                >
-                                    {item.name}{" "}
-                                    {item.tier === "standard" && (
-                                        <span className="text-green-500 ml-2">(Futurist)</span>
-                                    )}
-                                </DropdownMenuRadioItem>
-                            ))}
-                        </DropdownMenuRadioGroup>
-                    </DropdownMenuContent>
-                </DropdownMenu>
+                        <Command loop>
+                            <CommandList className="max-h-52">
+                                <CommandInput placeholder="Search models..." />
+                                <CommandEmpty>No models found.</CommandEmpty>
+                                <CommandGroup>
+                                    {items.map((item) => (
+                                        <CommandItem
+                                            key={item.id.toString()}
+                                            value={item.name}
+                                            disabled={!isActive && item.tier !== "free"}
+                                            onSelect={async () => {
+                                                const value = item.id.toString();
+                                                setPosition(value);
+                                                await callbackFunc(value);
+                                                setOpen(false);
+                                            }}
+                                        >
+                                            {item.name}{" "}
+                                            {item.tier === "standard" && (
+                                                <span className="text-green-500 ml-2">
+                                                    (Futurist)
+                                                </span>
+                                            )}
+                                        </CommandItem>
+                                    ))}
+                                </CommandGroup>
+                            </CommandList>
+                        </Command>
+                    </PopoverContent>
+                </Popover>
             </div>
         )
     );
