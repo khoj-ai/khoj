@@ -675,6 +675,8 @@ async def delete_content_source(
         # Delete file objects from the given source
         file_list = await sync_to_async(list)(EntryAdapters.get_all_filenames_by_source(user, content_source))  # type: ignore[call-arg]
         await FileObjectAdapters.adelete_file_objects_by_names(user, file_list)
+        # Clear folder sync configuration
+        await LocalFolderConfigAdapters.aclear_all_folders(user)
     # Delete entries from the given source
     await EntryAdapters.adelete_all_entries(user, file_source=content_source)
 

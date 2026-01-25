@@ -357,7 +357,6 @@ export default function SettingsView() {
         enabled: false,
         folders: [],
     });
-    const [newFolderPath, setNewFolderPath] = useState("");
     const [isSyncingFolders, setIsSyncingFolders] = useState(false);
     const [syncingFolderPath, setSyncingFolderPath] = useState<string | null>(null);
     const { toast } = useToast();
@@ -790,62 +789,6 @@ export default function SettingsView() {
         }
     };
 
-    const addLocalFolder = async () => {
-        if (!newFolderPath.trim()) return;
-        try {
-            const response = await fetch("/api/content/folders", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ path: newFolderPath.trim() }),
-            });
-            if (!response.ok) {
-                const error = await response.json();
-                throw new Error(error.detail || "Failed to add folder");
-            }
-            const data = await response.json();
-            setLocalFolderConfig((prev) => ({
-                ...prev,
-                folders: [...prev.folders, data.folder],
-            }));
-            setNewFolderPath("");
-            toast({
-                title: "Folder Added",
-                description: `Added folder: ${newFolderPath}`,
-            });
-        } catch (error) {
-            console.error("Error adding folder:", error);
-            toast({
-                title: "Failed to Add Folder",
-                description: error instanceof Error ? error.message : "Unknown error",
-                variant: "destructive",
-            });
-        }
-    };
-
-    const removeLocalFolder = async (path: string) => {
-        try {
-            const response = await fetch(`/api/content/folders?path=${encodeURIComponent(path)}`, {
-                method: "DELETE",
-            });
-            if (!response.ok) throw new Error("Failed to remove folder");
-            setLocalFolderConfig((prev) => ({
-                ...prev,
-                folders: prev.folders.filter((f) => f.path !== path),
-            }));
-            toast({
-                title: "Folder Removed",
-                description: `Removed folder: ${path}`,
-            });
-        } catch (error) {
-            console.error("Error removing folder:", error);
-            toast({
-                title: "Failed to Remove Folder",
-                description: "Could not remove the folder. Please try again.",
-                variant: "destructive",
-            });
-        }
-    };
-
     const toggleFolderSync = async (enabled: boolean) => {
         try {
             const response = await fetch("/api/content/folders/enabled", {
@@ -1234,37 +1177,11 @@ export default function SettingsView() {
                                                                         onCheckedChange={toggleFolderSync}
                                                                     />
                                                                 </div>
-                                                                <div className="border-t pt-4">
-                                                                    <p className="text-sm font-medium mb-2">Add Folder</p>
-                                                                    <div className="flex gap-2">
-                                                                        <Input
-                                                                            value={newFolderPath}
-                                                                            onChange={(e) => setNewFolderPath(e.target.value)}
-                                                                            placeholder="/path/to/folder"
-                                                                            className="flex-1"
-                                                                            onKeyDown={(e) => {
-                                                                                if (e.key === "Enter") {
-                                                                                    addLocalFolder();
-                                                                                }
-                                                                            }}
-                                                                        />
-                                                                        <Button
-                                                                            variant="outline"
-                                                                            onClick={addLocalFolder}
-                                                                            disabled={!newFolderPath.trim()}
-                                                                        >
-                                                                            <Plus className="h-4 w-4" />
-                                                                        </Button>
-                                                                    </div>
-                                                                    <p className="text-xs text-gray-400 mt-1">
-                                                                        Enter an absolute path to a folder on the server
-                                                                    </p>
-                                                                </div>
                                                                 {localFolderConfig.folders.length > 0 && (
                                                                     <div className="border-t pt-4">
-                                                                        <div className="flex items-center justify-between mb-2">
+                                                                        <div className="flex items-center justify-between mb-3">
                                                                             <p className="text-sm font-medium">
-                                                                                Configured Folders ({localFolderConfig.folders.length})
+                                                                                Synced Folders
                                                                             </p>
                                                                             <Button
                                                                                 variant="outline"
@@ -1276,65 +1193,63 @@ export default function SettingsView() {
                                                                                 Sync All
                                                                             </Button>
                                                                         </div>
-                                                                        <Table>
-                                                                            <TableBody>
-                                                                                {localFolderConfig.folders.map((folder) => (
-                                                                                    <TableRow key={folder.path}>
-                                                                                        <TableCell className="pl-0 py-2">
-                                                                                            <div className="flex items-start gap-2">
-                                                                                                {folder.last_synced_at ? (
-                                                                                                    <CheckCircle
-                                                                                                        className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0"
-                                                                                                        weight="fill"
-                                                                                                    />
-                                                                                                ) : (
-                                                                                                    <ExclamationMark
-                                                                                                        className="h-4 w-4 text-yellow-500 mt-0.5 flex-shrink-0"
-                                                                                                        weight="bold"
-                                                                                                    />
-                                                                                                )}
-                                                                                                <div className="flex flex-col min-w-0">
-                                                                                                    <span className="font-mono text-sm break-all">
-                                                                                                        {folder.path}
-                                                                                                    </span>
-                                                                                                    <span className={`text-xs ${folder.last_synced_at ? "text-gray-400" : "text-yellow-600"}`}>
-                                                                                                        {formatRelativeTime(folder.last_synced_at)}
-                                                                                                    </span>
-                                                                                                </div>
-                                                                                            </div>
-                                                                                        </TableCell>
-                                                                                        <TableCell className="pr-0 py-2 w-20">
-                                                                                            <div className="flex items-center gap-1">
-                                                                                                <Button
-                                                                                                    variant="ghost"
-                                                                                                    size="sm"
-                                                                                                    onClick={() => syncSingleFolder(folder.path)}
-                                                                                                    disabled={!localFolderConfig.enabled || syncingFolderPath === folder.path}
-                                                                                                    title="Sync this folder"
-                                                                                                >
-                                                                                                    <ArrowsClockwise className={`h-4 w-4 ${syncingFolderPath === folder.path ? "animate-spin" : ""}`} />
-                                                                                                </Button>
-                                                                                                <Button
-                                                                                                    variant="ghost"
-                                                                                                    size="sm"
-                                                                                                    onClick={() => removeLocalFolder(folder.path)}
-                                                                                                    className="text-red-400 hover:text-red-500 hover:bg-red-50"
-                                                                                                    title="Remove folder"
-                                                                                                >
-                                                                                                    <Trash className="h-4 w-4" />
-                                                                                                </Button>
-                                                                                            </div>
-                                                                                        </TableCell>
-                                                                                    </TableRow>
-                                                                                ))}
-                                                                            </TableBody>
-                                                                        </Table>
+                                                                        <div className="space-y-2">
+                                                                            {localFolderConfig.folders.map((folder) => (
+                                                                                <div
+                                                                                    key={folder.path}
+                                                                                    className="flex items-center justify-between p-3 bg-secondary/50 dark:bg-secondary/30 rounded-lg"
+                                                                                >
+                                                                                    <div className="flex items-start gap-3 min-w-0 flex-1">
+                                                                                        <div className="mt-0.5">
+                                                                                            {folder.last_synced_at ? (
+                                                                                                <CheckCircle
+                                                                                                    className="h-5 w-5 text-green-500"
+                                                                                                    weight="fill"
+                                                                                                />
+                                                                                            ) : (
+                                                                                                <ExclamationMark
+                                                                                                    className="h-5 w-5 text-yellow-500"
+                                                                                                    weight="bold"
+                                                                                                />
+                                                                                            )}
+                                                                                        </div>
+                                                                                        <div className="flex flex-col min-w-0">
+                                                                                            <span className="font-medium text-sm">
+                                                                                                {folder.path.split('/').pop()}
+                                                                                            </span>
+                                                                                            <span className="font-mono text-xs text-gray-500 break-all">
+                                                                                                {folder.path}
+                                                                                            </span>
+                                                                                            <span className={`text-xs mt-1 ${folder.last_synced_at ? "text-gray-400" : "text-yellow-600"}`}>
+                                                                                                {formatRelativeTime(folder.last_synced_at)}
+                                                                                            </span>
+                                                                                        </div>
+                                                                                    </div>
+                                                                                    <Button
+                                                                                        variant="ghost"
+                                                                                        size="sm"
+                                                                                        onClick={() => syncSingleFolder(folder.path)}
+                                                                                        disabled={!localFolderConfig.enabled || syncingFolderPath === folder.path}
+                                                                                        title="Sync this folder"
+                                                                                        className="ml-2 flex-shrink-0"
+                                                                                    >
+                                                                                        <ArrowsClockwise className={`h-4 w-4 ${syncingFolderPath === folder.path ? "animate-spin" : ""}`} />
+                                                                                    </Button>
+                                                                                </div>
+                                                                            ))}
+                                                                        </div>
                                                                     </div>
                                                                 )}
                                                                 {localFolderConfig.folders.length === 0 && (
-                                                                    <p className="text-center text-gray-500 py-4">
-                                                                        No folders configured. Add a folder path above to get started.
-                                                                    </p>
+                                                                    <div className="border-t pt-4">
+                                                                        <div className="text-center py-6 text-gray-500">
+                                                                            <FolderSimple className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                                                                            <p className="font-medium mb-1">No folders configured</p>
+                                                                            <p className="text-sm">
+                                                                                Configure folders in <code className="bg-secondary px-1 py-0.5 rounded text-xs">orah.yml</code> and run <code className="bg-secondary px-1 py-0.5 rounded text-xs">./orah up</code>
+                                                                            </p>
+                                                                        </div>
+                                                                    </div>
                                                                 )}
                                                             </div>
                                                         </DialogContent>

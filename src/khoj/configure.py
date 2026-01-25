@@ -323,6 +323,74 @@ def initialize_content(user: KhojUser, regenerate: bool, search_type: Optional[S
         raise e
 
 
+DATA_SYNC_PATH = "/data/sync"
+
+
+@clean_connections
+def auto_register_sync_folders():
+    """
+    Auto-detect and register folders from /data/sync/ for the default user.
+    
+    This scans /data/sync/ for subdirectories and automatically registers them
+    as LocalFolder entries for the default user. This allows the orah CLI to
+    configure folder sync via orah.yml without manual UI interaction.
+    """
+    from khoj.database.models import KhojUser
+    
+    logger.info(f"📂 Checking for sync folders in {DATA_SYNC_PATH}...")
+    
+    # Check if /data/sync/ exists
+    if not os.path.exists(DATA_SYNC_PATH):
+        logger.info(f"📂 {DATA_SYNC_PATH} does not exist, skipping auto-registration")
+        return 0
+    
+    if not os.path.isdir(DATA_SYNC_PATH):
+        logger.warning(f"📂 {DATA_SYNC_PATH} is not a directory")
+        return 0
+    
+    # Get subdirectories in /data/sync/
+    subdirs = []
+    try:
+        for entry in os.listdir(DATA_SYNC_PATH):
+            entry_path = os.path.join(DATA_SYNC_PATH, entry)
+            if os.path.isdir(entry_path):
+                subdirs.append(entry_path)
+                logger.info(f"📂 Found sync folder: {entry_path}")
+    except PermissionError as e:
+        logger.error(f"📂 Permission denied accessing {DATA_SYNC_PATH}: {e}")
+        return 0
+    
+    if not subdirs:
+        logger.info(f"📂 No subdirectories found in {DATA_SYNC_PATH}")
+        return 0
+    
+    # Get the default user
+    default_user = KhojUser.objects.filter(username="default").first()
+    if not default_user:
+        logger.warning("📂 Default user not found, cannot auto-register folders")
+        return 0
+    
+    logger.info(f"📂 Registering {len(subdirs)} folders for user: {default_user.username}")
+    
+    # Register each subdirectory as a LocalFolder
+    folders_registered = 0
+    for folder_path in subdirs:
+        try:
+            # Add folder (get_or_create ensures no duplicates)
+            LocalFolderConfigAdapters.add_folder(default_user, folder_path)
+            folders_registered += 1
+            logger.info(f"📂 Auto-registered folder: {folder_path}")
+        except Exception as e:
+            logger.error(f"📂 Failed to register folder {folder_path}: {e}", exc_info=True)
+    
+    # Enable folder sync for the default user if we registered any folders
+    if folders_registered > 0:
+        LocalFolderConfigAdapters.set_enabled(default_user, True)
+        logger.info(f"📂 Auto-registered {folders_registered} folders from {DATA_SYNC_PATH}")
+    
+    return folders_registered
+
+
 @clean_connections
 def initialize_folder_watcher():
     """
@@ -334,6 +402,9 @@ def initialize_folder_watcher():
     """
     try:
         logger.info("📂 Initializing folder watcher service...")
+
+        # Auto-register folders from /data/sync/ for the default user
+        auto_register_sync_folders()
 
         # Get or create the global folder watcher service
         watcher = get_folder_watcher_service()

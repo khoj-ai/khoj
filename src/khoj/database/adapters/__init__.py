@@ -2540,3 +2540,29 @@ class LocalFolderConfigAdapters:
         return await sync_to_async(list)(
             LocalFolderConfig.objects.filter(enabled=True).prefetch_related("folders", "user")
         )
+
+    @staticmethod
+    @require_valid_user
+    def clear_all_folders(user: KhojUser) -> int:
+        """Remove all folders for a user and disable folder sync. Returns count of deleted folders."""
+        config = LocalFolderConfig.objects.filter(user=user).first()
+        if not config:
+            return 0
+        deleted_count = config.folders.count()
+        config.folders.all().delete()
+        config.enabled = False
+        config.save()
+        return deleted_count
+
+    @staticmethod
+    @arequire_valid_user
+    async def aclear_all_folders(user: KhojUser) -> int:
+        """Async remove all folders for a user and disable folder sync. Returns count of deleted folders."""
+        config = await LocalFolderConfig.objects.filter(user=user).afirst()
+        if not config:
+            return 0
+        deleted_count = await config.folders.acount()
+        await config.folders.all().adelete()
+        config.enabled = False
+        await config.asave()
+        return deleted_count
