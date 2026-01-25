@@ -1812,6 +1812,7 @@ def build_conversation_context(
     max_prompt_size: int = None,
     tokenizer_name: str = None,
     vision_available: bool = False,
+    strict_notes_mode: bool = False,
 ) -> List[ChatMessage]:
     """
     Construct system, context and chatml messages for chat response.
@@ -1854,7 +1855,13 @@ def build_conversation_context(
     # Build context message
     context_message = ""
     if not is_none_or_empty(references):
-        context_message = f"{prompts.notes_conversation.format(references=yaml_dump(references))}\n\n"
+        refs_yaml = yaml_dump(references)
+        if strict_notes_mode:
+            logger.debug(f"Using STRICT notes prompt with {len(references)} references")
+            context_message = f"{prompts.notes_conversation_strict.format(references=refs_yaml)}\n\n"
+        else:
+            logger.debug(f"Using regular notes prompt with {len(references)} references")
+            context_message = f"{prompts.notes_conversation.format(references=refs_yaml)}\n\n"
     if not is_none_or_empty(online_results):
         context_message += f"{prompts.online_search_conversation.format(online_results=yaml_dump(online_results))}\n\n"
     if not is_none_or_empty(code_results):
@@ -1910,6 +1917,7 @@ async def agenerate_chat_response(
     generated_asset_results: Dict[str, Dict] = {},
     is_subscribed: bool = False,
     tracer: dict = {},
+    strict_notes_mode: bool = False,
 ) -> Tuple[AsyncGenerator[ResponseWithThought, None], Dict[str, str]]:
     # Initialize Variables
     chat_response_generator: AsyncGenerator[ResponseWithThought, None] = None
@@ -1960,6 +1968,7 @@ async def agenerate_chat_response(
             max_prompt_size=max_prompt_size,
             tokenizer_name=chat_model.tokenizer,
             vision_available=vision_available,
+            strict_notes_mode=strict_notes_mode,
         )
 
         if chat_model.model_type == ChatModel.ModelType.OPENAI:

@@ -110,6 +110,26 @@ User's Notes:
 """.strip()
 )
 
+notes_conversation_strict = PromptTemplate.from_template(
+    """
+CRITICAL INSTRUCTION - READ CAREFULLY:
+The user explicitly used the /notes command to search their personal knowledge base.
+You MUST answer based ONLY on the Retrieved Notes below.
+
+STRICT RULES:
+1. IGNORE any previous conversation context that contradicts the Retrieved Notes
+2. ONLY use information from the Retrieved Notes section below
+3. DO NOT use your general knowledge or training data
+4. If the Retrieved Notes contain information about the topic, use THAT information even if it differs from what you "know"
+5. Cite the source file for each claim (e.g., [filename.pdf])
+6. If the notes truly don't contain relevant information, say "I couldn't find information about this in your notes"
+
+The Retrieved Notes below are the AUTHORITATIVE source for this query:
+-----
+{references}
+""".strip()
+)
+
 ## Image Generation
 ## --
 

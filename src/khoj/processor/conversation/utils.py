@@ -59,41 +59,195 @@ except ImportError:
         logger.warning("GitPython not installed. `pip install gitpython` to use prompt tracer.")
 
 model_to_prompt_size = {
+    # ===================
     # OpenAI Models
-    "gpt-4o": 60000,
-    "gpt-4o-mini": 60000,
-    "gpt-4.1": 60000,
-    "gpt-4.1-mini": 120000,
-    "gpt-4.1-nano": 120000,
-    "o1-mini": 90000,
-    "o1": 30000,
-    "o3-mini": 90000,
-    "o3": 60000,
-    "o3-pro": 30000,
-    "o4-mini": 90000,
-    "gpt-5-2025-08-07": 120000,
-    "gpt-5-mini-2025-08-07": 120000,
-    "gpt-5-nano-2025-08-07": 120000,
-    # Google Models
-    "gemini-3-pro-preview": 120000,
-    "gemini-2.5-flash": 120000,
-    "gemini-2.5-flash-lite": 120000,
-    "gemini-2.5-pro": 60000,
-    "gemini-2.0-flash": 120000,
-    "gemini-2.0-flash-lite": 120000,
-    "gemini-1.5-flash": 120000,
-    "gemini-1.5-pro": 60000,
-    # Anthropic Models
-    "claude-3-5-sonnet-20241022": 60000,
-    "claude-3-5-sonnet-latest": 60000,
-    "claude-3-7-sonnet-20250219": 60000,
-    "claude-3-7-sonnet-latest": 60000,
-    "claude-3-5-haiku-20241022": 60000,
-    "claude-haiku-4-5-20251001": 60000,
-    "claude-sonnet-4-0": 60000,
-    "claude-sonnet-4-20250514": 60000,
-    "claude-opus-4-0": 60000,
-    "claude-opus-4-20250514": 60000,
+    # ===================
+    # GPT-5 Series (400K context window)
+    "gpt-5.2": 380000,
+    "gpt-5.2-2025-12-11": 380000,
+    "gpt-5.2-pro": 380000,
+    "gpt-5.1": 380000,
+    "gpt-5.1-2025-11-13": 380000,
+    "gpt-5": 380000,
+    "gpt-5-2025-08-07": 380000,
+    "gpt-5-mini": 380000,
+    "gpt-5-mini-2025-08-07": 380000,
+    "gpt-5-nano": 380000,
+    "gpt-5-nano-2025-08-07": 380000,
+    "gpt-5-pro": 380000,
+    # GPT-5 Codex models
+    "gpt-5.2-codex": 380000,
+    "gpt-5.1-codex": 380000,
+    "gpt-5.1-codex-mini": 380000,
+    "gpt-5.1-codex-max": 380000,
+    "gpt-5-codex": 380000,
+    # o-series reasoning models (200K context window)
+    "o3": 180000,
+    "o3-2025-04-16": 180000,
+    "o3-pro": 180000,
+    "o3-mini": 180000,
+    "o4-mini": 180000,
+    "o4-mini-2025-04-16": 180000,
+    "o1": 120000,
+    "o1-mini": 120000,
+    "o1-pro": 120000,
+    # GPT-4.1 Series (1M context window)
+    "gpt-4.1": 900000,
+    "gpt-4.1-mini": 900000,
+    "gpt-4.1-nano": 900000,
+    # GPT-4o Series (128K context window)
+    "gpt-4o": 120000,
+    "gpt-4o-mini": 120000,
+    "gpt-4-turbo": 120000,
+    "gpt-4": 120000,
+    # GPT-OSS open-weight models (131K context window)
+    "gpt-oss-120b": 120000,
+    "gpt-oss-20b": 120000,
+    "openai/gpt-oss-120b": 120000,
+    "openai/gpt-oss-20b": 120000,
+    # ===================
+    # Google Gemini Models (1M+ context, using 500K practical limit)
+    # ===================
+    "gemini-3-pro-preview": 500000,
+    "gemini-3-flash": 500000,
+    "gemini-2.5-flash": 500000,
+    "gemini-2.5-flash-lite": 500000,
+    "gemini-2.5-pro": 500000,
+    "gemini-2.0-flash": 500000,
+    "gemini-2.0-flash-lite": 500000,
+    "gemini-1.5-flash": 500000,
+    "gemini-1.5-pro": 500000,
+    # ===================
+    # Anthropic Claude Models (200K context)
+    # ===================
+    # Claude 4.5 series
+    "claude-sonnet-4-5-20250929": 180000,
+    "claude-sonnet-4-5": 180000,
+    "claude-sonnet-4.5": 180000,
+    "claude-haiku-4-5-20251001": 180000,
+    "claude-haiku-4-5": 180000,
+    "claude-haiku-4.5": 180000,
+    "claude-opus-4-5-20251101": 180000,
+    "claude-opus-4-5": 180000,
+    "claude-opus-4.5": 180000,
+    # Claude 4.1 series
+    "claude-opus-4-1-20250805": 180000,
+    "claude-opus-4-1": 180000,
+    # Claude 4 series
+    "claude-sonnet-4-20250514": 180000,
+    "claude-sonnet-4-0": 180000,
+    "claude-opus-4-20250514": 180000,
+    "claude-opus-4-0": 180000,
+    # Claude 3.7 series
+    "claude-3-7-sonnet-20250219": 180000,
+    "claude-3-7-sonnet-latest": 180000,
+    # Claude 3.5 series
+    "claude-3-5-sonnet-20241022": 180000,
+    "claude-3-5-sonnet-latest": 180000,
+    "claude-3-5-haiku-20241022": 180000,
+    # Claude 3 series
+    "claude-3-haiku-20240307": 180000,
+    "claude-3-sonnet-20240229": 180000,
+    "claude-3-opus-20240229": 180000,
+    # Anthropic via OpenRouter/other providers
+    "anthropic/claude-sonnet-4.5": 180000,
+    "anthropic/claude-haiku-4.5": 180000,
+    "anthropic/claude-opus-4.5": 180000,
+    "anthropic/claude-haiku-4-5-20251001": 180000,
+    "anthropic/claude-3-5-sonnet": 180000,
+    "anthropic/claude-3-5-haiku": 180000,
+    "anthropic/claude-3-7-sonnet": 180000,
+    # ===================
+    # DeepSeek Models (128K context)
+    # ===================
+    "deepseek-chat": 120000,
+    "deepseek-reasoner": 120000,
+    "deepseek-r1": 120000,
+    "deepseek-v3": 120000,
+    "deepseek-v3.2": 120000,
+    "deepseek/deepseek-chat": 120000,
+    "deepseek/deepseek-r1": 120000,
+    # ===================
+    # Mistral Models
+    # ===================
+    # Large models (256K context)
+    "mistral-large-2512": 240000,
+    "mistral-large-latest": 240000,
+    "mistral-large-3": 240000,
+    "mistral-large-2411": 120000,
+    "mistral-large-2407": 120000,
+    # Medium models (256K context)
+    "mistral-medium-2508": 240000,
+    "mistral-medium-latest": 240000,
+    "mistral-medium-3": 240000,
+    # Small models (128K-256K context)
+    "mistral-small-2506": 120000,
+    "mistral-small-latest": 120000,
+    "mistral-small-3": 120000,
+    # Ministral models
+    "ministral-3b-2412": 120000,
+    "ministral-8b-2412": 120000,
+    "ministral-3-3b": 120000,
+    "ministral-3-8b": 120000,
+    "ministral-3-14b": 120000,
+    # Codestral
+    "codestral-2508": 240000,
+    "codestral-latest": 240000,
+    # Pixtral (multimodal)
+    "pixtral-large-2411": 120000,
+    "pixtral-12b-2409": 120000,
+    # Nemo
+    "mistral-nemo-2407": 120000,
+    "open-mistral-nemo": 120000,
+    # Magistral (reasoning)
+    "magistral-medium-2509": 120000,
+    "magistral-small-2509": 120000,
+    # Mixtral
+    "open-mixtral-8x22b": 60000,
+    "open-mixtral-8x7b": 30000,
+    # ===================
+    # Meta Llama Models (128K-131K context)
+    # ===================
+    "llama-3.3-70b-versatile": 120000,
+    "llama-3.1-8b-instant": 120000,
+    "llama-3.1-70b-versatile": 120000,
+    "llama-3.1-405b": 120000,
+    "llama-3.2-1b": 120000,
+    "llama-3.2-3b": 120000,
+    "llama-3.2-11b-vision": 120000,
+    "llama-3.2-90b-vision": 120000,
+    # Llama 4
+    "meta-llama/llama-4-maverick-17b-128e-instruct": 120000,
+    "meta-llama/llama-4-scout-17b-16e-instruct": 120000,
+    # ===================
+    # Cohere Models
+    # ===================
+    # Command A (256K context)
+    "command-a": 240000,
+    "command-a-03-2025": 240000,
+    "command-a-reasoning": 240000,
+    # Command R+ (128K context)
+    "command-r-plus": 120000,
+    "command-r-plus-08-2024": 120000,
+    # Command R (128K context)
+    "command-r": 120000,
+    "command-r-08-2024": 120000,
+    "command-r7b-12-2024": 120000,
+    # ===================
+    # Qwen Models (128K-131K context)
+    # ===================
+    "qwen/qwen3-32b": 120000,
+    "qwen3-32b": 120000,
+    "qwen2.5-72b-instruct": 120000,
+    "qwen2.5-32b-instruct": 120000,
+    "qwen2.5-14b-instruct": 120000,
+    "qwen2.5-7b-instruct": 120000,
+    "qwen2.5-coder-32b-instruct": 120000,
+    # ===================
+    # Moonshot / Kimi Models (262K context)
+    # ===================
+    "moonshotai/kimi-k2-instruct-0905": 250000,
+    "kimi-k2": 250000,
 }
 model_to_tokenizer: Dict[str, str] = {}
 
@@ -694,8 +848,10 @@ def generate_chatml_messages_with_context(
 ):
     """Generate chat messages with appropriate context from previous conversation to send to the chat model"""
     # Set max prompt size from user config or based on pre-configured for model and machine specs
+    # Default to 60,000 tokens (conservative for most modern models which support 128K-400K+)
     if not max_prompt_size:
-        max_prompt_size = model_to_prompt_size.get(model_name, 10000)
+        max_prompt_size = model_to_prompt_size.get(model_name, 60000)
+        logger.debug(f"Model '{model_name}' max_prompt_size: {max_prompt_size} tokens (from lookup: {model_name in model_to_prompt_size})")
 
     # Scale lookback turns proportional to max prompt size supported by model
     lookback_turns = max_prompt_size // 750
@@ -744,11 +900,8 @@ def generate_chatml_messages_with_context(
 
         if not is_none_or_empty(chat.context):
             references = "\n\n".join(
-                {
-                    f"# URI: {item.uri or item.file}\n## {item.compiled}\n"
-                    for item in chat.context or []
-                    if isinstance(item, dict)
-                }
+                f"# URI: {item.uri or item.file}\n## {item.compiled}\n"
+                for item in chat.context
             )
             message_context += [{"type": "text", "text": f"{prompts.notes_conversation.format(references=references)}"}]
 

@@ -1378,6 +1378,24 @@ async def event_generator(
     async for result in send_event(ChatEvent.STATUS, "**Generating a well-informed response**"):
         yield result
 
+    # Use strict notes mode when user explicitly used /notes command as the only data source
+    # Note: conversation_commands includes both sources (Notes, Online, etc.) and output (Text, Image, etc.)
+    # We want strict mode when Notes is the ONLY source, regardless of output format
+    other_source_commands = {
+        ConversationCommand.Online,
+        ConversationCommand.Webpage,
+        ConversationCommand.Code,
+        ConversationCommand.Research,
+        ConversationCommand.Operator,
+        ConversationCommand.General,
+    }
+    has_only_notes_source = (
+        ConversationCommand.Notes in conversation_commands
+        and not any(cmd in conversation_commands for cmd in other_source_commands)
+    )
+    strict_notes_mode = has_only_notes_source and not is_none_or_empty(compiled_references)
+    logger.debug(f"Strict notes mode: {strict_notes_mode}, commands: {conversation_commands}, has_refs: {not is_none_or_empty(compiled_references)}")
+
     llm_response, chat_metadata = await agenerate_chat_response(
         defiltered_query,
         chat_history,
@@ -1397,6 +1415,7 @@ async def event_generator(
         generated_asset_results,
         is_subscribed,
         tracer,
+        strict_notes_mode=strict_notes_mode,
     )
 
     full_response = ""
