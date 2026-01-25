@@ -56,3 +56,11 @@ src/interface/android/*.apk
 src/interface/android/*.apk.idsig
 src/interface/android/*.keystore
 src/interface/android/local.properties
+
+# sonata
+.sonata
+progress.txt
+
+# orah CLI
+orah.yml
+docker-compose.override.yml

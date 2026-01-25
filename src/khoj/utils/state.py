@@ -9,6 +9,7 @@ from openai import OpenAI
 from whisper import Whisper
 
 from khoj.database.models import ProcessLock
+from khoj.processor.content.folder_watcher import FolderWatcherService
 from khoj.processor.embeddings import CrossEncoderModel, EmbeddingsModel
 from khoj.utils import config as utils_config
 from khoj.utils.helpers import LRU, get_device, is_env_var_true
@@ -39,3 +40,4 @@ billing_enabled: bool = (
     and os.getenv("STRIPE_SIGNING_SECRET") is not None
     and os.getenv("KHOJ_CLOUD_SUBSCRIPTION_URL") is not None
 )
+folder_watcher_service: FolderWatcherService = None

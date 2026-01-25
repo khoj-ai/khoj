@@ -43,7 +43,7 @@ import {
     DialogContent,
     DialogHeader,
     DialogTitle,
-    DialogTrigger
+    DialogTrigger,
 } from "@/components/ui/dialog";
 
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
@@ -80,6 +80,7 @@ import {
     Eye,
     Download,
     TrashSimple,
+    FolderSimple,
 } from "@phosphor-icons/react";
 
 import Loading from "../components/loading/loading";
@@ -166,6 +167,16 @@ const DropdownComponent: React.FC<DropdownComponentProps> = ({
 interface TokenObject {
     token: string;
     name: string;
+}
+
+interface LocalFolder {
+    path: string;
+    last_synced_at: string | null;
+}
+
+interface LocalFolderConfig {
+    enabled: boolean;
+    folders: LocalFolder[];
 }
 
 const useApiKeys = () => {
@@ -353,7 +364,31 @@ export default function SettingsView() {
     const [exportProgress, setExportProgress] = useState(0);
     const [exportedConversations, setExportedConversations] = useState(0);
     const [totalConversations, setTotalConversations] = useState(0);
+    const [localFolderConfig, setLocalFolderConfig] = useState<LocalFolderConfig>({
+        enabled: false,
+        folders: [],
+    });
+    const [isSyncingFolders, setIsSyncingFolders] = useState(false);
+    const [syncingFolderPath, setSyncingFolderPath] = useState<string | null>(null);
     const { toast } = useToast();
+
+    // Helper function to format relative time
+    const formatRelativeTime = (dateString: string | null): string => {
+        if (!dateString) return "Never synced";
+        const date = new Date(dateString);
+        const now = new Date();
+        const diffMs = now.getTime() - date.getTime();
+        const diffSecs = Math.floor(diffMs / 1000);
+        const diffMins = Math.floor(diffSecs / 60);
+        const diffHours = Math.floor(diffMins / 60);
+        const diffDays = Math.floor(diffHours / 24);
+
+        if (diffSecs < 60) return "Just now";
+        if (diffMins < 60) return `${diffMins} minute${diffMins !== 1 ? "s" : ""} ago`;
+        if (diffHours < 24) return `${diffHours} hour${diffHours !== 1 ? "s" : ""} ago`;
+        if (diffDays < 7) return `${diffDays} day${diffDays !== 1 ? "s" : ""} ago`;
+        return date.toLocaleDateString();
+    };
     const isMobileWidth = useIsMobileWidth();
 
     const title = "Settings";
@@ -754,6 +789,100 @@ export default function SettingsView() {
         }
     };
 
+    const fetchLocalFolders = async () => {
+        try {
+            const response = await fetch("/api/content/folders");
+            if (!response.ok) throw new Error("Failed to fetch folders");
+            const data = await response.json();
+            setLocalFolderConfig(data);
+        } catch (error) {
+            console.error("Error fetching local folders:", error);
+        }
+    };
+
+    const toggleFolderSync = async (enabled: boolean) => {
+        try {
+            const response = await fetch("/api/content/folders/enabled", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ enabled }),
+            });
+            if (!response.ok) throw new Error("Failed to update folder sync setting");
+            setLocalFolderConfig((prev) => ({ ...prev, enabled }));
+            toast({
+                title: enabled ? "Folder Sync Enabled" : "Folder Sync Disabled",
+                description: enabled
+                    ? "Your configured folders will be automatically watched and indexed."
+                    : "Folder watching has been disabled.",
+            });
+        } catch (error) {
+            console.error("Error toggling folder sync:", error);
+            toast({
+                title: "Failed to Update Setting",
+                description: "Could not update folder sync setting. Please try again.",
+                variant: "destructive",
+            });
+        }
+    };
+
+    const syncLocalFolders = async () => {
+        setIsSyncingFolders(true);
+        try {
+            const response = await fetch("/api/content/folders/sync", {
+                method: "POST",
+            });
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.detail || "Failed to sync folders");
+            }
+            toast({
+                title: "Sync Started",
+                description: "Your folders are being synced in the background.",
+            });
+            // Refresh folder data after a short delay to get updated sync times
+            setTimeout(fetchLocalFolders, 2000);
+        } catch (error) {
+            console.error("Error syncing folders:", error);
+            toast({
+                title: "Failed to Sync Folders",
+                description: error instanceof Error ? error.message : "Unknown error",
+                variant: "destructive",
+            });
+        } finally {
+            setIsSyncingFolders(false);
+        }
+    };
+
+    const syncSingleFolder = async (path: string) => {
+        setSyncingFolderPath(path);
+        try {
+            const response = await fetch("/api/content/folders/sync/single", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ path }),
+            });
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.detail || "Failed to sync folder");
+            }
+            toast({
+                title: "Sync Started",
+                description: `Syncing folder: ${path}`,
+            });
+            // Refresh folder data after a short delay to get updated sync times
+            setTimeout(fetchLocalFolders, 2000);
+        } catch (error) {
+            console.error("Error syncing folder:", error);
+            toast({
+                title: "Failed to Sync Folder",
+                description: error instanceof Error ? error.message : "Unknown error",
+                variant: "destructive",
+            });
+        } finally {
+            setSyncingFolderPath(null);
+        }
+    };
+
     const disconnectContent = async (source: string) => {
         try {
             const response = await fetch(`/api/content/source/${source}`, {
@@ -1007,7 +1136,7 @@ export default function SettingsView() {
                                                 <CardHeader className="flex flex-row text-xl">
                                                     <Brain className="h-8 w-8 mr-2" />
                                                     Knowledge Base
-                                                    {userConfig.enabled_content_source.computer && (
+                                                    {(userConfig.enabled_content_source.computer || localFolderConfig.folders.length > 0) && (
                                                         <CheckCircle
                                                             className="h-6 w-6 ml-auto text-green-500"
                                                             weight="fill"
@@ -1021,7 +1150,7 @@ export default function SettingsView() {
                                                     <Button
                                                         variant="outline"
                                                         size="sm"
-                                                        title="Search thorugh files"
+                                                        title="Search through files"
                                                         onClick={() =>
                                                             (window.location.href = "/search")
                                                         }
@@ -1029,6 +1158,113 @@ export default function SettingsView() {
                                                         <MagnifyingGlass className="h-5 w-5 inline mr-1" />
                                                         Search
                                                     </Button>
+                                                    <Dialog onOpenChange={(open) => open && fetchLocalFolders()}>
+                                                        <DialogTrigger asChild>
+                                                            <Button variant="outline" size="sm">
+                                                                <FolderSimple className="h-5 w-5 inline mr-1" />
+                                                                Manage Folders
+                                                            </Button>
+                                                        </DialogTrigger>
+                                                        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+                                                            <DialogHeader>
+                                                                <DialogTitle>Local Folder Sync</DialogTitle>
+                                                            </DialogHeader>
+                                                            <div className="grid gap-4 py-4">
+                                                                <div className="flex items-center justify-between">
+                                                                    <div>
+                                                                        <label
+                                                                            htmlFor="enable-folder-sync"
+                                                                            className="text-sm font-medium leading-none"
+                                                                        >
+                                                                            Enable Folder Watching
+                                                                        </label>
+                                                                        <p className="text-xs text-gray-400 mt-1">
+                                                                            Automatically index files when they change
+                                                                        </p>
+                                                                    </div>
+                                                                    <Switch
+                                                                        id="enable-folder-sync"
+                                                                        checked={localFolderConfig.enabled}
+                                                                        onCheckedChange={toggleFolderSync}
+                                                                    />
+                                                                </div>
+                                                                {localFolderConfig.folders.length > 0 && (
+                                                                    <div className="border-t pt-4">
+                                                                        <div className="flex items-center justify-between mb-3">
+                                                                            <p className="text-sm font-medium">
+                                                                                Synced Folders
+                                                                            </p>
+                                                                            <Button
+                                                                                variant="outline"
+                                                                                size="sm"
+                                                                                onClick={syncLocalFolders}
+                                                                                disabled={isSyncingFolders || !localFolderConfig.enabled}
+                                                                            >
+                                                                                <ArrowsClockwise className={`h-4 w-4 mr-1 ${isSyncingFolders ? "animate-spin" : ""}`} />
+                                                                                Sync All
+                                                                            </Button>
+                                                                        </div>
+                                                                        <div className="space-y-2">
+                                                                            {localFolderConfig.folders.map((folder) => (
+                                                                                <div
+                                                                                    key={folder.path}
+                                                                                    className="flex items-center justify-between p-3 bg-secondary/50 dark:bg-secondary/30 rounded-lg"
+                                                                                >
+                                                                                    <div className="flex items-start gap-3 min-w-0 flex-1">
+                                                                                        <div className="mt-0.5">
+                                                                                            {folder.last_synced_at ? (
+                                                                                                <CheckCircle
+                                                                                                    className="h-5 w-5 text-green-500"
+                                                                                                    weight="fill"
+                                                                                                />
+                                                                                            ) : (
+                                                                                                <ExclamationMark
+                                                                                                    className="h-5 w-5 text-yellow-500"
+                                                                                                    weight="bold"
+                                                                                                />
+                                                                                            )}
+                                                                                        </div>
+                                                                                        <div className="flex flex-col min-w-0">
+                                                                                            <span className="font-medium text-sm">
+                                                                                                {folder.path.split('/').pop()}
+                                                                                            </span>
+                                                                                            <span className="font-mono text-xs text-gray-500 break-all">
+                                                                                                {folder.path}
+                                                                                            </span>
+                                                                                            <span className={`text-xs mt-1 ${folder.last_synced_at ? "text-gray-400" : "text-yellow-600"}`}>
+                                                                                                {formatRelativeTime(folder.last_synced_at)}
+                                                                                            </span>
+                                                                                        </div>
+                                                                                    </div>
+                                                                                    <Button
+                                                                                        variant="ghost"
+                                                                                        size="sm"
+                                                                                        onClick={() => syncSingleFolder(folder.path)}
+                                                                                        disabled={!localFolderConfig.enabled || syncingFolderPath === folder.path}
+                                                                                        title="Sync this folder"
+                                                                                        className="ml-2 flex-shrink-0"
+                                                                                    >
+                                                                                        <ArrowsClockwise className={`h-4 w-4 ${syncingFolderPath === folder.path ? "animate-spin" : ""}`} />
+                                                                                    </Button>
+                                                                                </div>
+                                                                            ))}
+                                                                        </div>
+                                                                    </div>
+                                                                )}
+                                                                {localFolderConfig.folders.length === 0 && (
+                                                                    <div className="border-t pt-4">
+                                                                        <div className="text-center py-6 text-gray-500">
+                                                                            <FolderSimple className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                                                                            <p className="font-medium mb-1">No folders configured</p>
+                                                                            <p className="text-sm">
+                                                                                Configure folders in <code className="bg-secondary px-1 py-0.5 rounded text-xs">orah.yml</code> and run <code className="bg-secondary px-1 py-0.5 rounded text-xs">./orah up</code>
+                                                                            </p>
+                                                                        </div>
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        </DialogContent>
+                                                    </Dialog>
                                                     <Button
                                                         variant="outline"
                                                         size="sm"

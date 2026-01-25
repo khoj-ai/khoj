@@ -1,0 +1,18 @@
+# Orah Configuration
+# Copy this file to orah.yml and customize it:
+#   cp orah.yml.example orah.yml
+
+# Folders to sync with Khoj
+# These folders will be watched for changes and automatically indexed
+sync:
+  folders:
+    # Simple format - uses folder name as identifier:
+    # - ~/Documents/notes
+    
+    # Named format - specify a custom name (required if folders have the same name):
+    # - path: ~/Documents/notes
+    #   name: personal-notes
+    # - path: ~/Projects/notes
+    #   name: project-notes
+    
+    - ~/Documents/tmp/notes

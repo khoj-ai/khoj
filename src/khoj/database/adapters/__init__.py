@@ -49,6 +49,8 @@ from khoj.database.models import (
     GoogleUser,
     KhojApiUser,
     KhojUser,
+    LocalFolder,
+    LocalFolderConfig,
     McpServer,
     NotionConfig,
     PriceTier,
@@ -2372,3 +2374,195 @@ class UserMemoryAdapters:
             }
             for memory in memories
         ]
+
+
+class LocalFolderConfigAdapters:
+    """Database adapters for LocalFolderConfig and LocalFolder CRUD operations."""
+
+    @staticmethod
+    @require_valid_user
+    def get_or_create_config(user: KhojUser) -> LocalFolderConfig:
+        """Get or create the LocalFolderConfig for a user."""
+        config, _ = LocalFolderConfig.objects.get_or_create(user=user)
+        return config
+
+    @staticmethod
+    @arequire_valid_user
+    async def aget_or_create_config(user: KhojUser) -> LocalFolderConfig:
+        """Async get or create the LocalFolderConfig for a user."""
+        config, _ = await LocalFolderConfig.objects.aget_or_create(user=user)
+        return config
+
+    @staticmethod
+    @require_valid_user
+    def get_config(user: KhojUser) -> Optional[LocalFolderConfig]:
+        """Get the LocalFolderConfig for a user, returns None if not exists."""
+        return LocalFolderConfig.objects.filter(user=user).prefetch_related("folders").first()
+
+    @staticmethod
+    @arequire_valid_user
+    async def aget_config(user: KhojUser) -> Optional[LocalFolderConfig]:
+        """Async get the LocalFolderConfig for a user, returns None if not exists."""
+        return await LocalFolderConfig.objects.filter(user=user).prefetch_related("folders").afirst()
+
+    @staticmethod
+    @require_valid_user
+    def set_enabled(user: KhojUser, enabled: bool) -> LocalFolderConfig:
+        """Enable or disable folder sync for a user."""
+        config = LocalFolderConfigAdapters.get_or_create_config(user)
+        config.enabled = enabled
+        config.save()
+        return config
+
+    @staticmethod
+    @arequire_valid_user
+    async def aset_enabled(user: KhojUser, enabled: bool) -> LocalFolderConfig:
+        """Async enable or disable folder sync for a user."""
+        config = await LocalFolderConfigAdapters.aget_or_create_config(user)
+        config.enabled = enabled
+        await config.asave()
+        return config
+
+    @staticmethod
+    @require_valid_user
+    def is_enabled(user: KhojUser) -> bool:
+        """Check if folder sync is enabled for a user."""
+        config = LocalFolderConfig.objects.filter(user=user).first()
+        return config.enabled if config else False
+
+    @staticmethod
+    @arequire_valid_user
+    async def ais_enabled(user: KhojUser) -> bool:
+        """Async check if folder sync is enabled for a user."""
+        config = await LocalFolderConfig.objects.filter(user=user).afirst()
+        return config.enabled if config else False
+
+    @staticmethod
+    @require_valid_user
+    def get_folders(user: KhojUser) -> List[LocalFolder]:
+        """Get all folders for a user."""
+        config = LocalFolderConfig.objects.filter(user=user).first()
+        if not config:
+            return []
+        return list(config.folders.all())
+
+    @staticmethod
+    @arequire_valid_user
+    async def aget_folders(user: KhojUser) -> List[LocalFolder]:
+        """Async get all folders for a user."""
+        config = await LocalFolderConfig.objects.filter(user=user).afirst()
+        if not config:
+            return []
+        return await sync_to_async(list)(config.folders.all())
+
+    @staticmethod
+    @require_valid_user
+    def add_folder(user: KhojUser, path: str) -> LocalFolder:
+        """Add a folder path for a user. Returns existing folder if path already exists."""
+        config = LocalFolderConfigAdapters.get_or_create_config(user)
+        folder, _ = LocalFolder.objects.get_or_create(config=config, path=path)
+        return folder
+
+    @staticmethod
+    @arequire_valid_user
+    async def aadd_folder(user: KhojUser, path: str) -> LocalFolder:
+        """Async add a folder path for a user. Returns existing folder if path already exists."""
+        config = await LocalFolderConfigAdapters.aget_or_create_config(user)
+        folder, _ = await LocalFolder.objects.aget_or_create(config=config, path=path)
+        return folder
+
+    @staticmethod
+    @require_valid_user
+    def remove_folder(user: KhojUser, path: str) -> bool:
+        """Remove a folder path for a user. Returns True if deleted, False if not found."""
+        config = LocalFolderConfig.objects.filter(user=user).first()
+        if not config:
+            return False
+        deleted_count, _ = LocalFolder.objects.filter(config=config, path=path).delete()
+        return deleted_count > 0
+
+    @staticmethod
+    @arequire_valid_user
+    async def aremove_folder(user: KhojUser, path: str) -> bool:
+        """Async remove a folder path for a user. Returns True if deleted, False if not found."""
+        config = await LocalFolderConfig.objects.filter(user=user).afirst()
+        if not config:
+            return False
+        deleted_count, _ = await LocalFolder.objects.filter(config=config, path=path).adelete()
+        return deleted_count > 0
+
+    @staticmethod
+    @require_valid_user
+    def get_folder_by_path(user: KhojUser, path: str) -> Optional[LocalFolder]:
+        """Get a specific folder by path for a user."""
+        config = LocalFolderConfig.objects.filter(user=user).first()
+        if not config:
+            return None
+        return LocalFolder.objects.filter(config=config, path=path).first()
+
+    @staticmethod
+    @arequire_valid_user
+    async def aget_folder_by_path(user: KhojUser, path: str) -> Optional[LocalFolder]:
+        """Async get a specific folder by path for a user."""
+        config = await LocalFolderConfig.objects.filter(user=user).afirst()
+        if not config:
+            return None
+        return await LocalFolder.objects.filter(config=config, path=path).afirst()
+
+    @staticmethod
+    @require_valid_user
+    def update_folder_sync_time(user: KhojUser, path: str) -> Optional[LocalFolder]:
+        """Update the last_synced_at timestamp for a folder."""
+        folder = LocalFolderConfigAdapters.get_folder_by_path(user, path)
+        if folder:
+            folder.last_synced_at = django_timezone.now()
+            folder.save()
+        return folder
+
+    @staticmethod
+    @arequire_valid_user
+    async def aupdate_folder_sync_time(user: KhojUser, path: str) -> Optional[LocalFolder]:
+        """Async update the last_synced_at timestamp for a folder."""
+        folder = await LocalFolderConfigAdapters.aget_folder_by_path(user, path)
+        if folder:
+            folder.last_synced_at = django_timezone.now()
+            await folder.asave()
+        return folder
+
+    @staticmethod
+    def get_all_enabled_configs() -> List[LocalFolderConfig]:
+        """Get all enabled LocalFolderConfigs across all users (for server-wide operations)."""
+        return list(LocalFolderConfig.objects.filter(enabled=True).prefetch_related("folders", "user"))
+
+    @staticmethod
+    async def aget_all_enabled_configs() -> List[LocalFolderConfig]:
+        """Async get all enabled LocalFolderConfigs across all users (for server-wide operations)."""
+        return await sync_to_async(list)(
+            LocalFolderConfig.objects.filter(enabled=True).prefetch_related("folders", "user")
+        )
+
+    @staticmethod
+    @require_valid_user
+    def clear_all_folders(user: KhojUser) -> int:
+        """Remove all folders for a user and disable folder sync. Returns count of deleted folders."""
+        config = LocalFolderConfig.objects.filter(user=user).first()
+        if not config:
+            return 0
+        deleted_count = config.folders.count()
+        config.folders.all().delete()
+        config.enabled = False
+        config.save()
+        return deleted_count
+
+    @staticmethod
+    @arequire_valid_user
+    async def aclear_all_folders(user: KhojUser) -> int:
+        """Async remove all folders for a user and disable folder sync. Returns count of deleted folders."""
+        config = await LocalFolderConfig.objects.filter(user=user).afirst()
+        if not config:
+            return 0
+        deleted_count = await config.folders.acount()
+        await config.folders.all().adelete()
+        config.enabled = False
+        await config.asave()
+        return deleted_count

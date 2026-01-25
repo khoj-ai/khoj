@@ -862,3 +862,33 @@ class UserMemory(DbBaseModel):
     embeddings = VectorField(dimensions=None)
     raw = models.TextField()
     search_model = models.ForeignKey(SearchModelConfig, on_delete=models.SET_NULL, default=None, null=True, blank=True)
+
+
+class LocalFolderConfig(DbBaseModel):
+    """
+    Per-user configuration for local folder sync feature.
+    Controls whether folder watching is enabled for the user.
+    """
+
+    user = models.OneToOneField(KhojUser, on_delete=models.CASCADE, related_name="local_folder_config")
+    enabled = models.BooleanField(default=True)
+
+    def __str__(self):
+        return f"LocalFolderConfig(user={self.user}, enabled={self.enabled})"
+
+
+class LocalFolder(DbBaseModel):
+    """
+    Individual folder path configured for local sync.
+    Each folder belongs to a user's LocalFolderConfig and tracks its last sync time.
+    """
+
+    config = models.ForeignKey(LocalFolderConfig, on_delete=models.CASCADE, related_name="folders")
+    path = models.CharField(max_length=1000)
+    last_synced_at = models.DateTimeField(null=True, blank=True, default=None)
+
+    class Meta:
+        unique_together = ["config", "path"]
+
+    def __str__(self):
+        return f"LocalFolder(path={self.path}, last_synced={self.last_synced_at})"
