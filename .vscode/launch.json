@@ -22,8 +22,7 @@
             "env": {
                 "KHOJ_ADMIN_EMAIL": "admin",
                 "KHOJ_ADMIN_PASSWORD": "admin",
-                // "USE_EMBEDDED_DB": "true",
-                "POSTGRES_DB": "khoj_test",
+                "USE_EMBEDDED_DB": "true",
                 "KHOJ_DEBUG": "true",
                 "KHOJ_TELEMETRY_DISABLED": "true",
                 // Configure Code Sandbox
