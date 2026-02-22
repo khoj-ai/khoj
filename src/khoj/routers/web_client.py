@@ -1,7 +1,7 @@
 # System Packages
 import json
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from starlette.authentication import requires
@@ -46,7 +46,10 @@ def home_page(request: Request):
 @web_client.get("/home/{file_path:path}", response_class=FileResponse)
 def home_static_files(file_path: str):
     """Serve static files from the home landing page directory"""
-    return FileResponse(constants.home_directory / file_path)
+    resolved = (constants.home_directory / file_path).resolve()
+    if not resolved.is_relative_to(constants.home_directory.resolve()):
+        raise HTTPException(status_code=404)
+    return FileResponse(resolved)
 
 
 @web_client.get("/search", response_class=FileResponse)
