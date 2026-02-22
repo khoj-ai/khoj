@@ -90,7 +90,7 @@ export class KhojSearchModal extends SuggestModal<SearchResult> {
         // Set Placeholder Text for Modal
         this.setPlaceholder('Search with Khoj...');
 
-        // Initialize allFiles with files in valut
+        // Initialize allFiles with files in vault
         this.allFiles = this.app.vault.getFiles().map(file => ({
             path: file.path,
             inVault: true
@@ -98,25 +98,27 @@ export class KhojSearchModal extends SuggestModal<SearchResult> {
 
         // Update isFileFilterMode when input changes
         this.inputEl.addEventListener('input', () => {
-            const fileFilterMatch = this.inputEl.value.match(/file:([^"\s]*|"[^"]*")?/);
-            // Reset fileSelected when input no longer matches file filter pattern
-            if (!fileFilterMatch) {
-                this.fileSelected = "";
-            }
-            // Set isFileFilterMode when file filter pattern is detected and no file has been selected yet
-            if (!this.fileSelected && !this.isFileFilterMode && fileFilterMatch) {
+            // Match file: at the end of input, with an optional unquoted partial path
+            const fileFilterMatch = this.inputEl.value.match(/file:([^"\s]*)$/);
+            if (fileFilterMatch) {
+                // Enter file filter mode when we see an unquoted file: token
                 this.isFileFilterMode = true;
+            } else {
+                // Exit file filter mode when input no longer ends with an unquoted file: token
+                this.isFileFilterMode = false;
+                this.fileSelected = "";
             }
         });
 
-        // Override the default selectSuggestion method
+        // Override selectSuggestion to prevent modal close during file filter selection
+        const originalSelectSuggestion = this.selectSuggestion.bind(this);
         this.selectSuggestion = async (value: SearchResult & { inVault: boolean }, evt: MouseEvent | KeyboardEvent) => {
             if (this.isFileFilterMode) {
+                // In file filter mode, handle selection without closing the modal
                 await this.onChooseSuggestion(value, evt);
             } else {
-                // Close only for non-file-filter mode
-                this.close();
-                await this.onChooseSuggestion(value, evt);
+                // For normal search results, use the original behavior
+                originalSelectSuggestion(value, evt);
             }
         };
 
@@ -142,7 +144,7 @@ export class KhojSearchModal extends SuggestModal<SearchResult> {
 
     async getSuggestions(query: string): Promise<SearchResult[]> {
         // Check if we are in file filter mode and input matches file filter pattern
-        const fileFilterMatch = query.match(/file:([^,]*)?$/);
+        const fileFilterMatch = query.match(/file:([^"\s]*)$/);
         if (this.isFileFilterMode && fileFilterMatch) {
             const partialPath = fileFilterMatch[1] || '';
             // Update title for file filter mode
