@@ -1,8 +1,7 @@
 # System Packages
 import json
 import uuid
-from pathlib import Path
-from typing import Dict, List, Optional
+from typing import List, Optional
 
 from pydantic import BaseModel
 
@@ -48,17 +47,6 @@ class FilesFilterRequest(BaseModel):
     conversation_id: str
 
 
-class TextConfigBase(ConfigBase):
-    compressed_jsonl: Path
-    embeddings_file: Path
-
-
-class TextContentConfig(ConfigBase):
-    input_files: Optional[List[Path]] = None
-    input_filter: Optional[List[str]] = None
-    index_heading_entries: Optional[bool] = False
-
-
 class GithubRepoConfig(ConfigBase):
     name: str
     owner: str
@@ -72,62 +60,6 @@ class GithubContentConfig(ConfigBase):
 
 class NotionContentConfig(ConfigBase):
     token: str
-
-
-class ContentConfig(ConfigBase):
-    org: Optional[TextContentConfig] = None
-    markdown: Optional[TextContentConfig] = None
-    pdf: Optional[TextContentConfig] = None
-    plaintext: Optional[TextContentConfig] = None
-    github: Optional[GithubContentConfig] = None
-    notion: Optional[NotionContentConfig] = None
-    image: Optional[TextContentConfig] = None
-    docx: Optional[TextContentConfig] = None
-
-
-class ImageSearchConfig(ConfigBase):
-    encoder: str
-    encoder_type: Optional[str] = None
-    model_directory: Optional[Path] = None
-
-    class Config:
-        protected_namespaces = ()
-
-
-class SearchConfig(ConfigBase):
-    image: Optional[ImageSearchConfig] = None
-
-
-class OpenAIProcessorConfig(ConfigBase):
-    api_key: str
-    chat_model: Optional[str] = "gpt-4o-mini"
-
-
-class OfflineChatProcessorConfig(ConfigBase):
-    chat_model: Optional[str] = "bartowski/Meta-Llama-3.1-8B-Instruct-GGUF"
-
-
-class ConversationProcessorConfig(ConfigBase):
-    openai: Optional[OpenAIProcessorConfig] = None
-    offline_chat: Optional[OfflineChatProcessorConfig] = None
-    max_prompt_size: Optional[int] = None
-    tokenizer: Optional[str] = None
-
-
-class ProcessorConfig(ConfigBase):
-    conversation: Optional[ConversationProcessorConfig] = None
-
-
-class AppConfig(ConfigBase):
-    should_log_telemetry: bool = True
-
-
-class FullConfig(ConfigBase):
-    content_type: Optional[ContentConfig] = None
-    search_type: Optional[SearchConfig] = None
-    processor: Optional[ProcessorConfig] = None
-    app: Optional[AppConfig] = AppConfig()
-    version: Optional[str] = None
 
 
 class SearchResponse(ConfigBase):
@@ -175,6 +107,7 @@ class Entry:
     compiled: str
     heading: Optional[str]
     file: Optional[str]
+    uri: Optional[str] = None
     corpus_id: str
 
     def __init__(
@@ -183,6 +116,7 @@ class Entry:
         compiled: str = None,
         heading: Optional[str] = None,
         file: Optional[str] = None,
+        uri: Optional[str] = None,
         corpus_id: uuid.UUID = None,
     ):
         self.raw = raw
@@ -190,6 +124,14 @@ class Entry:
         self.heading = heading
         self.file = file
         self.corpus_id = str(corpus_id)
+        if uri:
+            self.uri = uri
+        elif file and (file.startswith("http") or file.startswith("file://")):
+            self.uri = file
+        elif file:
+            self.uri = f"file://{file}"
+        else:
+            self.uri = None
 
     def to_json(self) -> str:
         return json.dumps(self.__dict__, ensure_ascii=False)
@@ -205,4 +147,5 @@ class Entry:
             file=dictionary.get("file", None),
             heading=dictionary.get("heading", None),
             corpus_id=dictionary.get("corpus_id", None),
+            uri=dictionary.get("uri", None),
         )

@@ -2,30 +2,79 @@
 # ---
 PROJECT_ROOT=$(git rev-parse --show-toplevel)
 
-# Install Web App
-# ---
-echo "Installing Web App..."
-cd $PROJECT_ROOT/src/interface/web
-yarn install
+# Default to minimal installation unless --full flag passed
+INSTALL_FULL=false
+DEVCONTAINER=false
+for arg in "$@"
+do
+    if [ "$arg" = "--full" ]
+    then
+        INSTALL_FULL=true
+    fi
+    if [ "$arg" = "--devcontainer" ]
+    then
+        DEVCONTAINER=true
+    fi
+done
+
+if [ "$DEVCONTAINER" = true ]; then
+    echo "Dev container setup - using pre-installed dependencies..."
+    cd "$PROJECT_ROOT"
+
+    # Use devcontainer launch.json
+    mkdir -p .vscode && cp .devcontainer/launch.json .vscode/launch.json
+
+    # Install Server App using pre-installed dependencies
+    echo "Setup Server App with UV. Use pre-installed dependencies in $UV_PROJECT_ENVIRONMENT."
+    sed -i "s/dynamic = \\[\"version\"\\]/version = \"$VERSION\"/" pyproject.toml
+    cp /opt/uv.lock.linux uv.lock
+    uv sync --all-extras
+
+    # Install Web App using cached dependencies
+    echo "Setup Web App with Bun. Use pre-installed dependencies in /opt/khoj_web."
+    cd "$PROJECT_ROOT/src/interface/web"
+    ln -sf /opt/khoj_web/node_modules node_modules
+    bun install && bun run ciexport
+else
+    # Standard setup
+    echo "Installing Server App..."
+    cd "$PROJECT_ROOT"
+    if command -v uv &> /dev/null
+    then
+        uv venv
+        uv sync --all-extras
+    else
+        python3 -m venv .venv && . .venv/bin/activate
+        python3 -m pip install -e '.[dev]'
+    fi
+
+    echo "Installing Web App..."
+    cd "$PROJECT_ROOT/src/interface/web"
+    if command -v bun &> /dev/null
+    then
+        echo "using Bun."
+        bun install && bun run export
+    else
+        echo "using Yarn."
+        yarn install && yarn export
+    fi
+fi
 
 # Install Obsidian App
 # ---
-echo "Installing Obsidian App..."
-cd $PROJECT_ROOT/src/interface/obsidian
-yarn install
+if [ "$INSTALL_FULL" = true ] ; then
+    echo "Installing Obsidian App..."
+    cd $PROJECT_ROOT/src/interface/obsidian
+    yarn install
+fi
 
 # Install Desktop App
 # ---
-echo "Installing Desktop App..."
-cd $PROJECT_ROOT/src/interface/desktop
-yarn install
-
-# Install Server App
-# ---
-echo "Installing Server App..."
-cd $PROJECT_ROOT
-# pip install --user pipenv && pipenv install -e '.[dev]' --skip-lock && pipenv shell
-python3 -m venv .venv && pip install -e '.[dev]' && . .venv/bin/activate
+if [ "$INSTALL_FULL" = true ] ; then
+    echo "Installing Desktop App..."
+    cd $PROJECT_ROOT/src/interface/desktop
+    yarn install
+fi
 
 # Install pre-commit hooks
 # ----

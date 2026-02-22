@@ -58,15 +58,15 @@ def makelist_with_filepath(filename):
     return makelist(f, filename)
 
 
-def makelist(file, filename) -> List["Orgnode"]:
+def makelist(file, filename, start_line: int = 1, ancestry_lines: int = 0) -> List["Orgnode"]:
     """
     Read an org-mode file and return a list of Orgnode objects
     created from this file.
     """
     ctr = 0
 
-    if type(file) == str:
-        f = file.split("\n")
+    if isinstance(file, str):
+        f = file.splitlines()
     else:
         f = file
 
@@ -114,14 +114,23 @@ def makelist(file, filename) -> List["Orgnode"]:
                     logbook = list()
                 thisNode.properties = property_map
                 nodelist.append(thisNode)
-            property_map = {"LINE": f"file:{normalize_filename(filename)}::{ctr}"}
+            # Account for ancestry lines that were prepended when calculating line numbers
+            if ancestry_lines > 0:
+                calculated_line = start_line + ctr - 1 - ancestry_lines
+                if calculated_line <= 0:
+                    calculated_line = 1  # Fallback to line 1 if calculation results in invalid line number
+            else:
+                calculated_line = start_line + ctr - 1
+                if calculated_line <= 0:
+                    calculated_line = ctr  # Use the original behavior if start_line calculation fails
+            property_map = {"LINE": f"file://{normalize_filename(filename)}#line={calculated_line}"}
             previous_level = level
             previous_heading: str = heading
             level = heading_search.group(1)
             heading = heading_search.group(2)
             bodytext = ""
             tags = list()  # set of all tags in headline
-            tag_search = re.search(r"(.*?)\s*:([a-zA-Z0-9].*?):$", heading)
+            tag_search = re.search(r"(.*?)\s+:([a-zA-Z0-9@_].*?):\s*$", heading)
             if tag_search:
                 heading = tag_search.group(1)
                 parsedtags = tag_search.group(2)
@@ -259,14 +268,6 @@ def makelist(file, filename) -> List["Orgnode"]:
 
         # Prefix filepath/title to ancestors
         n.ancestors = [file_title] + n.ancestors
-
-        # Set SOURCE property to a file+heading based org-mode link to the entry
-        if n.level == 0:
-            n.properties["LINE"] = f"file:{normalize_filename(filename)}::0"
-            n.properties["SOURCE"] = f"[[file:{normalize_filename(filename)}]]"
-        else:
-            escaped_heading = n.heading.replace("[", "\\[").replace("]", "\\]")
-            n.properties["SOURCE"] = f"[[file:{normalize_filename(filename)}::*{escaped_heading}]]"
 
     return nodelist
 
@@ -511,19 +512,20 @@ class Orgnode(object):
         if self._closed or self._scheduled or self._deadline:
             n = n + indent
         if self._closed:
-            n = n + f'CLOSED: [{self._closed.strftime("%Y-%m-%d %a")}] '
+            n = n + f"CLOSED: [{self._closed.strftime('%Y-%m-%d %a')}] "
         if self._scheduled:
-            n = n + f'SCHEDULED: <{self._scheduled.strftime("%Y-%m-%d %a")}> '
+            n = n + f"SCHEDULED: <{self._scheduled.strftime('%Y-%m-%d %a')}> "
         if self._deadline:
-            n = n + f'DEADLINE: <{self._deadline.strftime("%Y-%m-%d %a")}> '
+            n = n + f"DEADLINE: <{self._deadline.strftime('%Y-%m-%d %a')}> "
         if self._closed or self._scheduled or self._deadline:
             n = n + "\n"
 
         # Output Property Drawer
-        n = n + indent + ":PROPERTIES:\n"
-        for key, value in self._properties.items():
-            n = n + indent + f":{key}: {value}\n"
-        n = n + indent + ":END:\n"
+        if self._properties:
+            n = n + indent + ":PROPERTIES:\n"
+            for key, value in self._properties.items():
+                n = n + indent + f":{key}: {value}\n"
+            n = n + indent + ":END:\n"
 
         # Output Body
         if self.hasBody:

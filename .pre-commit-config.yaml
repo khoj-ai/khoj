@@ -1,8 +1,12 @@
 repos:
-- repo: https://github.com/psf/black
-  rev: 23.1.0
+- repo: https://github.com/astral-sh/ruff-pre-commit
+  rev: v0.12.3
   hooks:
-  - id: black
+    - id: ruff-check
+      args: [ --fix ]
+      files: \.py$
+    - id: ruff-format
+      files: \.py$
 
 - repo: https://github.com/pre-commit/pre-commit-hooks
   rev: v4.4.0
@@ -12,15 +16,9 @@ repos:
     # Exclude elisp files to not clear page breaks
     exclude: \.el$
   - id: check-json
+    exclude: (devcontainer\.json|launch\.json|settings\.json)$
   - id: check-toml
   - id: check-yaml
-
-- repo: https://github.com/pycqa/isort
-  rev: 5.12.0
-  hooks:
-  - id: isort
-    name: isort (python)
-    args: ["--profile", "black", "--filter-files"]
 
 - repo: https://github.com/pre-commit/mirrors-mypy
   rev: v1.0.0

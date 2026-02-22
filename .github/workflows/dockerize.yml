@@ -6,12 +6,14 @@ on:
       - "*"
     branches:
       - master
+      - release/1.x
     paths:
       - src/khoj/**
       - src/interface/web/**
       - pyproject.toml
       - Dockerfile
       - prod.Dockerfile
+      - computer.Dockerfile
       - docker-compose.yml
       - .github/workflows/dockerize.yml
   workflow_dispatch:
@@ -27,13 +29,17 @@ on:
         description: 'Build Khoj cloud docker image'
         type: boolean
         default: true
+      khoj-computer:
+        description: 'Build computer for Khoj'
+        type: boolean
+        default: true
 
 env:
   # Tag Image with tag name on release
   # else with user specified tag (default 'dev') if triggered via workflow
   # else with run_id if triggered via a pull request
-  # else with 'pre' (if push to master)
-  DOCKER_IMAGE_TAG: ${{ github.ref_type == 'tag' && github.ref_name || github.event_name == 'workflow_dispatch' && github.event.inputs.tag || 'pre' }}
+  # else with 'pre' (if push to master) or 'pre-1x' (if push to release/1.x)
+  DOCKER_IMAGE_TAG: ${{ github.ref_type == 'tag' && github.ref_name || github.event_name == 'workflow_dispatch' && github.event.inputs.tag || github.ref_name == 'release/1.x' && 'pre-1x' || 'pre' }}
 
 jobs:
   build:
@@ -115,6 +121,21 @@ jobs:
             org.opencontainers.image.description=Khoj AI Cloud - Your second brain powered by LLMs and Neural Search
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
 
+      - name: 📦️️💻 Build and Push Computer for Khoj
+        uses: docker/build-push-action@v4
+        if: github.event_name == 'workflow_dispatch' && github.event.inputs.khoj-computer == 'true' && matrix.image == 'local'
+        with:
+          context: .
+          file: computer.Dockerfile
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}-computer:${{ env.DOCKER_IMAGE_TAG }}-${{ matrix.platform == 'linux/amd64' && 'amd64' || 'arm64' }}
+          cache-from: type=gha,scope=computer-${{ matrix.platform }}
+          cache-to: type=gha,mode=max,scope=computer-${{ matrix.platform }}
+          labels: |
+            org.opencontainers.image.description=Khoj AI Computer - A computer for your second brain to operate
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+
   manifest:
     needs: build
     runs-on: ubuntu-latest
@@ -133,17 +154,40 @@ jobs:
       - name: Create and Push Local Manifest
         if: github.event.inputs.khoj == 'true' || github.event_name == 'push'
         run: |
+          # Only put "latest.*" tag on stable releases (i.e 1.x, 2.x+)
+          if [[ "${{ env.DOCKER_IMAGE_TAG }}" =~ ^[1-9]\.[0-9]+\.[0-9]+$ ]]; then
+            LATEST_TAG="latest"
+          else
+            LATEST_TAG="${{ env.DOCKER_IMAGE_TAG }}"
+          fi
+
           docker buildx imagetools create \
             -t ghcr.io/${{ github.repository }}:${{ env.DOCKER_IMAGE_TAG }} \
-            -t ghcr.io/${{ github.repository }}:${{ github.ref_type == 'tag' && 'latest' || env.DOCKER_IMAGE_TAG }} \
+            -t ghcr.io/${{ github.repository }}:${LATEST_TAG} \
             ghcr.io/${{ github.repository }}:${{ env.DOCKER_IMAGE_TAG }}-amd64 \
             ghcr.io/${{ github.repository }}:${{ env.DOCKER_IMAGE_TAG }}-arm64
 
       - name: Create and Push Cloud Manifest
         if: github.event.inputs.khoj-cloud == 'true' || github.event_name == 'push'
         run: |
+          # Only put "latest.*" tag on stable releases (i.e 1.x, 2.x+)
+          if [[ "${{ env.DOCKER_IMAGE_TAG }}" =~ ^[1-9]\.[0-9]+\.[0-9]+$ ]]; then
+            LATEST_TAG="latest"
+          else
+            LATEST_TAG="${{ env.DOCKER_IMAGE_TAG }}"
+          fi
+
           docker buildx imagetools create \
             -t ghcr.io/${{ github.repository }}-cloud:${{ env.DOCKER_IMAGE_TAG }} \
-            -t ghcr.io/${{ github.repository }}-cloud:${{ github.ref_type == 'tag' && 'latest' || env.DOCKER_IMAGE_TAG }} \
+            -t ghcr.io/${{ github.repository }}-cloud:${LATEST_TAG} \
             ghcr.io/${{ github.repository }}-cloud:${{ env.DOCKER_IMAGE_TAG }}-amd64 \
             ghcr.io/${{ github.repository }}-cloud:${{ env.DOCKER_IMAGE_TAG }}-arm64
+
+      - name: Create and Push Computer Manifest
+        if: github.event.inputs.khoj-computer == 'true'
+        run: |
+          docker buildx imagetools create \
+            -t ghcr.io/${{ github.repository }}-computer:${{ env.DOCKER_IMAGE_TAG }} \
+            -t ghcr.io/${{ github.repository }}-computer:${{ github.ref_type == 'tag' && 'latest' || env.DOCKER_IMAGE_TAG }} \
+            ghcr.io/${{ github.repository }}-computer:${{ env.DOCKER_IMAGE_TAG }}-amd64 \
+            ghcr.io/${{ github.repository }}-computer:${{ env.DOCKER_IMAGE_TAG }}-arm64

@@ -20,8 +20,9 @@
     "@mdx-js/react": "^3.0.0",
     "clsx": "^2.0.0",
     "prism-react-renderer": "^2.3.0",
-    "react": "^18.0.0",
-    "react-dom": "^18.0.0"
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "webpack-dev-server": "^5.2.1"
   },
   "devDependencies": {
     "@docusaurus/module-type-aliases": "^3.2.1",
@@ -41,5 +42,8 @@
   },
   "engines": {
     "node": ">=18.0"
+  },
+  "resolutions": {
+    "webpack-dev-server": "^5.2.1"
   }
 }

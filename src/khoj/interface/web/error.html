@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html data-theme="light">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0 maximum-scale=1.0">
+    <link rel="icon" type="image/png" sizes="128x128" href="https://assets.khoj.dev/khoj_lantern_128x128.png?v={{ khoj_version }}">
+    <title>Khoj - Service Temporarily Unavailable</title>
+    <style>
+        body {
+            font-family: system-ui, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            color: #2c3e50;
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+        .error-container {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 500px;
+            margin: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.8);
+        }
+        .logo {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 20px;
+            background-image: url('https://assets.khoj.dev/khoj_lantern_128x128.png?v={{ khoj_version }}');
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        h1 {
+            margin: 0 0 20px 0;
+            font-size: 28px;
+            font-weight: 600;
+            color: #34495e;
+        }
+        .error-code {
+            font-size: 14px;
+            opacity: 0.7;
+            margin-bottom: 20px;
+            font-family: monospace;
+            background: rgba(52, 73, 94, 0.1);
+            color: #34495e;
+            padding: 8px 12px;
+            border-radius: 8px;
+            display: inline-block;
+        }
+        p {
+            margin: 0 0 30px 0;
+            font-size: 16px;
+            line-height: 1.6;
+            opacity: 0.8;
+            color: #5d6d7e;
+        }
+        .action-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            align-items: center;
+        }
+        .button {
+            background: rgba(52, 152, 219, 0.1);
+            color: #3498db;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(52, 152, 219, 0.3);
+        }
+        .button:hover {
+            background: rgba(52, 152, 219, 0.2);
+            transform: translateY(-2px);
+            color: #2980b9;
+        }
+        .button.primary {
+            background: #3498db;
+            color: white;
+        }
+        .button.primary:hover {
+            background: #2980b9;
+        }
+        .support-links {
+            margin-top: 30px;
+            font-size: 14px;
+            opacity: 0.7;
+            color: #7f8c8d;
+        }
+        .support-links a {
+            color: #3498db;
+            text-decoration: none;
+            margin: 0 10px;
+            padding: 5px 10px;
+            border-radius: 5px;
+            transition: background 0.3s ease;
+        }
+        .support-links a:hover {
+            background: rgba(52, 152, 219, 0.1);
+            color: #2980b9;
+        }
+        @media (max-width: 768px) {
+            .error-container {
+                margin: 10px;
+                padding: 30px 20px;
+            }
+            h1 {
+                font-size: 24px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="error-container">
+        <div class="logo"></div>
+        <h1>Khoj Temporarily Unavailable</h1>
+        <p>
+            Sorry, I am experiencing temporary service issues.
+            My team has been notified and is working to resolve this quickly.
+        </p>
+        <div class="action-buttons">
+            <a href="/" class="button primary">Return to Home</a>
+        </div>
+        <div class="support-links">
+            Need help? Reach team via
+            <a title="Email team@khoj.dev" href="mailto:team@khoj.dev">Email</a>
+            <a title="Message on Discord" href="https://discord.gg/BDgyabRM6e" target="_blank">Discord</a>
+            <a title="Open Issue on Github" href="https://github.com/khoj-ai/khoj/issues" target="_blank">Github</a>
+        </div>
+    </div>
+</body>
+</html>

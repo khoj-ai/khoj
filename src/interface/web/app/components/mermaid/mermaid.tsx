@@ -147,9 +147,7 @@ const Mermaid: React.FC<MermaidProps> = ({ chart }) => {
                         <span>{mermaidError}</span>
                     </div>
                     <code className="block bg-secondary text-secondary-foreground p-4 mt-3 rounded-lg font-mono text-sm whitespace-pre-wrap overflow-x-auto max-h-[400px] border border-gray-200">
-                        {
-                            chart
-                        }
+                        {chart}
                     </code>
                 </>
             ) : (

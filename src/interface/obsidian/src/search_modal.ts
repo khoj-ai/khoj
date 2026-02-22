@@ -16,6 +16,10 @@ export class KhojSearchModal extends SuggestModal<SearchResult> {
     currentController: AbortController | null = null;  // To cancel requests
     isLoading: boolean = false;
     loadingEl: HTMLElement;
+    private isFileFilterMode: boolean = false;
+    private fileSelected: string = "";
+    private allFiles: Array<{path: string, inVault: boolean}> = [];
+    private resultsTitle: HTMLDivElement;
 
     constructor(app: App, setting: KhojSetting, find_similar_notes: boolean = false) {
         super(app);
@@ -85,6 +89,46 @@ export class KhojSearchModal extends SuggestModal<SearchResult> {
 
         // Set Placeholder Text for Modal
         this.setPlaceholder('Search with Khoj...');
+
+        // Initialize allFiles with files in vault
+        this.allFiles = this.app.vault.getFiles().map(file => ({
+            path: file.path,
+            inVault: true
+        }));
+
+        // Update isFileFilterMode when input changes
+        this.inputEl.addEventListener('input', () => {
+            // Match file: at the end of input, with an optional unquoted partial path
+            const fileFilterMatch = this.inputEl.value.match(/file:([^"\s]*)$/);
+            if (fileFilterMatch) {
+                // Enter file filter mode when we see an unquoted file: token
+                this.isFileFilterMode = true;
+            } else {
+                // Exit file filter mode when input no longer ends with an unquoted file: token
+                this.isFileFilterMode = false;
+                this.fileSelected = "";
+            }
+        });
+
+        // Override selectSuggestion to prevent modal close during file filter selection
+        const originalSelectSuggestion = this.selectSuggestion.bind(this);
+        this.selectSuggestion = async (value: SearchResult & { inVault: boolean }, evt: MouseEvent | KeyboardEvent) => {
+            if (this.isFileFilterMode) {
+                // In file filter mode, handle selection without closing the modal
+                await this.onChooseSuggestion(value, evt);
+            } else {
+                // For normal search results, use the original behavior
+                originalSelectSuggestion(value, evt);
+            }
+        };
+
+        // Add title element
+        this.resultsTitle = createDiv();
+        this.resultsTitle.style.padding = "8px";
+        this.resultsTitle.style.fontWeight = "bold";
+
+        // Insert title before results container
+        this.resultContainerEl.parentElement?.insertBefore(this.resultsTitle, this.resultContainerEl);
     }
 
     // Check if the file exists in the vault
@@ -99,7 +143,30 @@ export class KhojSearchModal extends SuggestModal<SearchResult> {
     }
 
     async getSuggestions(query: string): Promise<SearchResult[]> {
-        // Do not show loading if the query is empty
+        // Check if we are in file filter mode and input matches file filter pattern
+        const fileFilterMatch = query.match(/file:([^"\s]*)$/);
+        if (this.isFileFilterMode && fileFilterMatch) {
+            const partialPath = fileFilterMatch[1] || '';
+            // Update title for file filter mode
+            this.resultsTitle.setText("Select a file:");
+            // Return filtered file suggestions
+            return this.allFiles
+                .filter(file => file.path.toLowerCase().includes(partialPath.toLowerCase().trim()))
+                .map(file => ({
+                    entry: file.path,
+                    file: file.path,
+                    inVault: file.inVault
+                }));
+        }
+
+        // Update title for search results
+        if (query.trim()) {
+            this.resultsTitle.setText("Search results:");
+        } else {
+            this.resultsTitle.setText("");
+        }
+
+        // If not in file filter mode, continue with normal search
         if (!query.trim()) {
             this.isLoading = false;
             this.updateLoadingState();
@@ -138,22 +205,29 @@ export class KhojSearchModal extends SuggestModal<SearchResult> {
 
             const data = await response.json();
 
-            // Parse search results
+            // Parse search results and update allFiles with any new non-vault files
             let results = data
                 .filter((result: any) =>
                     !this.find_similar_notes || !result.additional.file.endsWith(this.app.workspace.getActiveFile()?.path)
                 )
                 .map((result: any) => {
+                    const isInVault = this.isFileInVault(result.additional.file);
+
+                    // Add new non-vault files to allFiles if they don't exist
+                    if (!this.allFiles.some(file => file.path === result.additional.file)) {
+                        this.allFiles.push({
+                            path: result.additional.file,
+                            inVault: isInVault
+                        });
+                    }
+
                     return {
                         entry: result.entry,
                         file: result.additional.file,
-                        inVault: this.isFileInVault(result.additional.file)
+                        inVault: isInVault
                     } as SearchResult & { inVault: boolean };
                 })
-                .sort((a: SearchResult & { inVault: boolean }, b: SearchResult & { inVault: boolean }) => {
-                    if (a.inVault === b.inVault) return 0;
-                    return a.inVault ? -1 : 1;
-                });
+                .sort((a: SearchResult & { inVault: boolean }, b: SearchResult & { inVault: boolean }) => Number(b.inVault) - Number(a.inVault));
 
             this.query = query;
 
@@ -203,6 +277,15 @@ export class KhojSearchModal extends SuggestModal<SearchResult> {
     }
 
     async renderSuggestion(result: SearchResult & { inVault: boolean }, el: HTMLElement) {
+        if (this.isFileFilterMode) {
+            // Render file suggestions
+            el.createEl("div", {
+                text: result.entry,
+                cls: "khoj-file-suggestion"
+            });
+            return;
+        }
+
         // Max number of lines to render
         let lines_to_render = 8;
 
@@ -251,6 +334,20 @@ export class KhojSearchModal extends SuggestModal<SearchResult> {
     }
 
     async onChooseSuggestion(result: SearchResult & { inVault: boolean }, _: MouseEvent | KeyboardEvent) {
+        if (this.isFileFilterMode) {
+            // When a file suggestion is selected, append it to the current input
+            const currentValue = this.inputEl.value;
+            const beforeFile = currentValue.substring(0, currentValue.lastIndexOf('file:'));
+            this.inputEl.value = `${beforeFile}file:"${result.entry}"`;
+            // Set fileSelected to the selected file
+            this.fileSelected = result.entry;
+            // Reset isFileFilterMode when a file is selected
+            this.isFileFilterMode = false;
+            // Trigger input event to refresh suggestions
+            this.inputEl.dispatchEvent(new Event('input'));
+            return;
+        }
+
         // Only open files that are in the vault
         if (!result.inVault) {
             new Notice("This file is not in your vault");

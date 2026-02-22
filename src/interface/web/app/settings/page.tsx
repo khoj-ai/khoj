@@ -15,6 +15,8 @@ import { Button } from "@/components/ui/button";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
+import { Switch } from "@/components/ui/switch";
+
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -23,9 +25,25 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
-    AlertDialog, AlertDialogAction, AlertDialogCancel,
-    AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger
+} from "@/components/ui/dialog";
+
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 
 import {
@@ -67,20 +85,27 @@ import Loading from "../components/loading/loading";
 import IntlTelInput from "intl-tel-input/react";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "../components/appSidebar/appSidebar";
+import { UserMemory, UserMemorySchema } from "../components/userMemory/userMemory";
 import { Separator } from "@/components/ui/separator";
 import { KhojLogoType } from "../components/logo/khojLogo";
 import { Progress } from "@/components/ui/progress";
 
 import JSZip from "jszip";
-import { saveAs } from 'file-saver';
+import { saveAs } from "file-saver";
 
 interface DropdownComponentProps {
     items: ModelOptions[];
     selected: number;
+    isActive?: boolean;
     callbackFunc: (value: string) => Promise<void>;
 }
 
-const DropdownComponent: React.FC<DropdownComponentProps> = ({ items, selected, callbackFunc }) => {
+const DropdownComponent: React.FC<DropdownComponentProps> = ({
+    items,
+    selected,
+    isActive,
+    callbackFunc,
+}) => {
     const [position, setPosition] = useState(selected?.toString() ?? "0");
 
     return (
@@ -111,8 +136,12 @@ const DropdownComponent: React.FC<DropdownComponentProps> = ({ items, selected, 
                                 <DropdownMenuRadioItem
                                     key={item.id.toString()}
                                     value={item.id.toString()}
+                                    disabled={!isActive && item.tier !== "free"}
                                 >
-                                    {item.name}
+                                    {item.name}{" "}
+                                    {item.tier === "standard" && (
+                                        <span className="text-green-500 ml-2">(Futurist)</span>
+                                    )}
                                 </DropdownMenuRadioItem>
                             ))}
                         </DropdownMenuRadioGroup>
@@ -306,6 +335,9 @@ export default function SettingsView() {
     const [numberValidationState, setNumberValidationState] = useState<PhoneNumberValidationState>(
         PhoneNumberValidationState.Verified,
     );
+    const [memories, setMemories] = useState<UserMemorySchema[]>([]);
+    const [enableMemory, setEnableMemory] = useState<boolean>(true);
+    const [serverMemoryMode, setServerMemoryMode] = useState<string>("enabled_default_on");
     const [isExporting, setIsExporting] = useState(false);
     const [exportProgress, setExportProgress] = useState(0);
     const [exportedConversations, setExportedConversations] = useState(0);
@@ -325,11 +357,13 @@ export default function SettingsView() {
             initialUserConfig?.is_phone_number_verified
                 ? PhoneNumberValidationState.Verified
                 : initialUserConfig?.phone_number
-                    ? PhoneNumberValidationState.SendOTP
-                    : PhoneNumberValidationState.Setup,
+                  ? PhoneNumberValidationState.SendOTP
+                  : PhoneNumberValidationState.Setup,
         );
         setName(initialUserConfig?.given_name);
         setNotionToken(initialUserConfig?.notion_token ?? null);
+        setEnableMemory(initialUserConfig?.enable_memory ?? true);
+        setServerMemoryMode(initialUserConfig?.server_memory_mode ?? "enabled_default_on");
     }, [initialUserConfig]);
 
     const sendOTP = async () => {
@@ -443,51 +477,6 @@ export default function SettingsView() {
         }
     };
 
-    const enableFreeTrial = async () => {
-        const formatDate = (dateString: Date) => {
-            const date = new Date(dateString);
-            return new Intl.DateTimeFormat("en-US", {
-                day: "2-digit",
-                month: "short",
-                year: "numeric",
-            }).format(date);
-        };
-
-        try {
-            const response = await fetch(`/api/subscription/trial`, {
-                method: "POST",
-            });
-            if (!response.ok) throw new Error("Failed to enable free trial");
-
-            const responseBody = await response.json();
-
-            // Set updated user settings
-            if (responseBody.trial_enabled && userConfig) {
-                let newUserConfig = userConfig;
-                newUserConfig.subscription_state = SubscriptionStates.TRIAL;
-                const renewalDate = new Date(
-                    Date.now() + userConfig.length_of_free_trial * 24 * 60 * 60 * 1000,
-                );
-                newUserConfig.subscription_renewal_date = formatDate(renewalDate);
-                newUserConfig.subscription_enabled_trial_at = new Date().toISOString();
-                setUserConfig(newUserConfig);
-
-                // Notify user of free trial
-                toast({
-                    title: "🎉 Trial Enabled",
-                    description: `Your free trial will end on ${newUserConfig.subscription_renewal_date}`,
-                });
-            }
-        } catch (error) {
-            console.error("Error enabling free trial:", error);
-            toast({
-                title: "⚠️ Failed to Enable Free Trial",
-                description:
-                    "Failed to enable free trial. Try again or contact us at team@khoj.dev",
-            });
-        }
-    };
-
     const saveName = async () => {
         if (!name) return;
         try {
@@ -520,33 +509,46 @@ export default function SettingsView() {
         }
     };
 
-    const updateModel = (name: string) => async (id: string) => {
-        if (!userConfig?.is_active) {
+    const updateModel = (modelType: string) => async (id: string) => {
+        // Get the selected model from the options
+        const modelOptions =
+            modelType === "chat"
+                ? userConfig?.chat_model_options
+                : modelType === "paint"
+                  ? userConfig?.paint_model_options
+                  : userConfig?.voice_model_options;
+
+        const selectedModel = modelOptions?.find((model) => model.id.toString() === id);
+        const modelName = selectedModel?.name;
+
+        // Check if the model is free tier or if the user is active
+        if (!userConfig?.is_active && selectedModel?.tier !== "free") {
             toast({
                 title: `Model Update`,
-                description: `You need to be subscribed to update ${name} models`,
+                description: `Subscribe to switch ${modelType} model to ${modelName}.`,
                 variant: "destructive",
             });
             return;
         }
 
         try {
-            const response = await fetch(`/api/model/${name}?id=` + id, {
+            const response = await fetch(`/api/model/${modelType}?id=` + id, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
                 },
             });
 
-            if (!response.ok) throw new Error("Failed to update model");
+            if (!response.ok)
+                throw new Error(`Failed to switch ${modelType} model to ${modelName}`);
 
             toast({
-                title: `✅ Updated ${toTitleCase(name)} Model`,
+                title: `✅ Switched ${modelType} model to ${modelName}`,
             });
         } catch (error) {
-            console.error(`Failed to update ${name} model:`, error);
+            console.error(`Failed to update ${modelType} model to ${modelName}:`, error);
             toast({
-                description: `❌ Failed to update ${toTitleCase(name)} model. Try again.`,
+                description: `❌ Failed to switch ${modelType} model to ${modelName}. Try again.`,
                 variant: "destructive",
             });
         }
@@ -557,7 +559,7 @@ export default function SettingsView() {
             setIsExporting(true);
 
             // Get total conversation count
-            const statsResponse = await fetch('/api/chat/stats');
+            const statsResponse = await fetch("/api/chat/stats");
             const stats = await statsResponse.json();
             const total = stats.num_conversations;
             setTotalConversations(total);
@@ -573,7 +575,7 @@ export default function SettingsView() {
                 conversations.push(...data);
 
                 setExportedConversations((page + 1) * 10);
-                setExportProgress(((page + 1) * 10 / total) * 100);
+                setExportProgress((((page + 1) * 10) / total) * 100);
             }
 
             // Add conversations to zip
@@ -592,7 +594,7 @@ export default function SettingsView() {
             toast({
                 title: "Export Failed",
                 description: "Failed to export chats. Please try again.",
-                variant: "destructive"
+                variant: "destructive",
             });
         } finally {
             setIsExporting(false);
@@ -635,6 +637,88 @@ export default function SettingsView() {
             });
         }
     };
+
+    const fetchMemories = async () => {
+        try {
+            console.log("Fetching memories...");
+            const response = await fetch('/api/memories/');
+            if (!response.ok) throw new Error('Failed to fetch memories');
+            const data = await response.json();
+            setMemories(data);
+        } catch (error) {
+            console.error('Error fetching memories:', error);
+            toast({
+                title: "Error",
+                description: "Failed to fetch memories. Please try again.",
+                variant: "destructive"
+            });
+        }
+    };
+
+    const handleDeleteMemory = async (id: number) => {
+        try {
+            const response = await fetch(`/api/memories/${id}`, {
+                method: 'DELETE'
+            });
+            if (!response.ok) throw new Error('Failed to delete memory');
+            setMemories(memories.filter(memory => memory.id !== id));
+        } catch (error) {
+            console.error('Error deleting memory:', error);
+            toast({
+                title: "Error",
+                description: "Failed to delete memory. Please try again.",
+                variant: "destructive"
+            });
+        }
+    };
+
+    const handleUpdateMemory = async (id: number, raw: string) => {
+        try {
+            const response = await fetch(`/api/memories/${id}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ raw, memory_id: id }),
+            });
+            if (!response.ok) throw new Error('Failed to update memory');
+            const updatedMemory: UserMemorySchema = await response.json();
+            setMemories(memories.map(memory =>
+                memory.id === id ? updatedMemory : memory
+            ));
+        } catch (error) {
+            console.error('Error updating memory:', error);
+            toast({
+                title: "Error",
+                description: "Failed to update memory. Please try again.",
+                variant: "destructive"
+            });
+        }
+    };
+
+    const handleToggleMemory = async (enabled: boolean) => {
+        try {
+            const response = await fetch(`/api/user/memory?enable_memory=${enabled}`, {
+                method: 'PATCH',
+            });
+            if (!response.ok) throw new Error('Failed to update memory setting');
+            setEnableMemory(enabled);
+            toast({
+                title: enabled ? "Memory enabled" : "Memory disabled",
+                description: enabled
+                    ? "Khoj will learn and remember from your conversations."
+                    : "Khoj will no longer learn or remember from your conversations.",
+            });
+        } catch (error) {
+            console.error('Error toggling memory:', error);
+            toast({
+                title: "Error",
+                description: "Failed to update memory setting. Please try again.",
+                variant: "destructive"
+            });
+        }
+    };
+
 
     const syncContent = async (type: string) => {
         try {
@@ -746,7 +830,7 @@ export default function SettingsView() {
                                                     <Input
                                                         type="text"
                                                         onChange={(e) => setName(e.target.value)}
-                                                        value={name}
+                                                        value={name || ""}
                                                         className="w-full border border-gray-300 rounded-lg p-4 py-6"
                                                     />
                                                 </CardContent>
@@ -795,94 +879,94 @@ export default function SettingsView() {
                                                     )) ||
                                                         (userConfig.subscription_state ===
                                                             "subscribed" && (
-                                                                <>
-                                                                    <p className="text-xl text-primary/80">
-                                                                        Futurist
-                                                                    </p>
-                                                                    <p className="text-gray-400">
-                                                                        Subscription <b>renews</b> on{" "}
-                                                                        <b>
-                                                                            {
-                                                                                userConfig.subscription_renewal_date
-                                                                            }
-                                                                        </b>
-                                                                    </p>
-                                                                </>
-                                                            )) ||
+                                                            <>
+                                                                <p className="text-xl text-primary/80">
+                                                                    Futurist
+                                                                </p>
+                                                                <p className="text-gray-400">
+                                                                    Subscription <b>renews</b> on{" "}
+                                                                    <b>
+                                                                        {
+                                                                            userConfig.subscription_renewal_date
+                                                                        }
+                                                                    </b>
+                                                                </p>
+                                                            </>
+                                                        )) ||
                                                         (userConfig.subscription_state ===
                                                             "unsubscribed" && (
-                                                                <>
-                                                                    <p className="text-xl">Futurist</p>
+                                                            <>
+                                                                <p className="text-xl">Futurist</p>
+                                                                <p className="text-gray-400">
+                                                                    Subscription <b>ends</b> on{" "}
+                                                                    <b>
+                                                                        {
+                                                                            userConfig.subscription_renewal_date
+                                                                        }
+                                                                    </b>
+                                                                </p>
+                                                            </>
+                                                        )) ||
+                                                        (userConfig.subscription_state ===
+                                                            "expired" && (
+                                                            <>
+                                                                <p className="text-xl">Humanist</p>
+                                                                {(userConfig.subscription_renewal_date && (
                                                                     <p className="text-gray-400">
-                                                                        Subscription <b>ends</b> on{" "}
+                                                                        Subscription <b>expired</b>{" "}
+                                                                        on{" "}
                                                                         <b>
                                                                             {
                                                                                 userConfig.subscription_renewal_date
                                                                             }
                                                                         </b>
                                                                     </p>
-                                                                </>
-                                                            )) ||
-                                                        (userConfig.subscription_state ===
-                                                            "expired" && (
-                                                                <>
-                                                                    <p className="text-xl">Humanist</p>
-                                                                    {(userConfig.subscription_renewal_date && (
-                                                                        <p className="text-gray-400">
-                                                                            Subscription <b>expired</b>{" "}
-                                                                            on{" "}
-                                                                            <b>
-                                                                                {
-                                                                                    userConfig.subscription_renewal_date
-                                                                                }
-                                                                            </b>
-                                                                        </p>
-                                                                    )) || (
-                                                                            <p className="text-gray-400">
-                                                                                Check{" "}
-                                                                                <a
-                                                                                    href="https://khoj.dev/#pricing"
-                                                                                    target="_blank"
-                                                                                >
-                                                                                    pricing page
-                                                                                </a>{" "}
-                                                                                to compare plans.
-                                                                            </p>
-                                                                        )}
-                                                                </>
-                                                            ))}
+                                                                )) || (
+                                                                    <p className="text-gray-400">
+                                                                        Check{" "}
+                                                                        <a
+                                                                            href="https://khoj.dev/#pricing"
+                                                                            target="_blank"
+                                                                        >
+                                                                            pricing page
+                                                                        </a>{" "}
+                                                                        to compare plans.
+                                                                    </p>
+                                                                )}
+                                                            </>
+                                                        ))}
                                                 </CardContent>
                                                 <CardFooter className="flex flex-wrap gap-4">
                                                     {(userConfig.subscription_state ==
                                                         "subscribed" && (
-                                                            <Button
-                                                                variant="outline"
-                                                                className="hover:text-red-400"
-                                                                onClick={() =>
-                                                                    setSubscription("cancel")
-                                                                }
-                                                            >
-                                                                <ArrowCircleDown className="h-5 w-5 mr-2" />
-                                                                Unsubscribe
-                                                            </Button>
-                                                        )) ||
+                                                        <Button
+                                                            variant="outline"
+                                                            className="hover:text-red-400"
+                                                            onClick={() =>
+                                                                setSubscription("cancel")
+                                                            }
+                                                        >
+                                                            <ArrowCircleDown className="h-5 w-5 mr-2" />
+                                                            Unsubscribe
+                                                        </Button>
+                                                    )) ||
                                                         (userConfig.subscription_state ==
                                                             "unsubscribed" && (
-                                                                <Button
-                                                                    variant="outline"
-                                                                    className="text-primary/80 hover:text-primary"
-                                                                    onClick={() =>
-                                                                        setSubscription("resubscribe")
-                                                                    }
-                                                                >
-                                                                    <ArrowCircleUp
-                                                                        weight="bold"
-                                                                        className="h-5 w-5 mr-2"
-                                                                    />
-                                                                    Resubscribe
-                                                                </Button>
-                                                            )) ||
-                                                        (userConfig.subscription_enabled_trial_at && (
+                                                            <Button
+                                                                variant="outline"
+                                                                className="text-primary/80 hover:text-primary"
+                                                                onClick={() =>
+                                                                    setSubscription("resubscribe")
+                                                                }
+                                                            >
+                                                                <ArrowCircleUp
+                                                                    weight="bold"
+                                                                    className="h-5 w-5 mr-2"
+                                                                />
+                                                                Resubscribe
+                                                            </Button>
+                                                        )) ||
+                                                        (
                                                             <Button
                                                                 variant="outline"
                                                                 className="text-primary/80 hover:text-primary"
@@ -899,18 +983,6 @@ export default function SettingsView() {
                                                                     className="h-5 w-5 mr-2"
                                                                 />
                                                                 Subscribe
-                                                            </Button>
-                                                        )) || (
-                                                            <Button
-                                                                variant="outline"
-                                                                className="text-primary/80 hover:text-primary"
-                                                                onClick={enableFreeTrial}
-                                                            >
-                                                                <ArrowCircleUp
-                                                                    weight="bold"
-                                                                    className="h-5 w-5 mr-2"
-                                                                />
-                                                                Enable Trial
                                                             </Button>
                                                         )}
                                                 </CardFooter>
@@ -971,16 +1043,16 @@ export default function SettingsView() {
                                                     <Button variant="outline" size="sm">
                                                         {(userConfig.enabled_content_source
                                                             .github && (
-                                                                <>
-                                                                    <Files className="h-5 w-5 inline mr-1" />
-                                                                    Manage
-                                                                </>
-                                                            )) || (
-                                                                <>
-                                                                    <Plugs className="h-5 w-5 inline mr-1" />
-                                                                    Connect
-                                                                </>
-                                                            )}
+                                                            <>
+                                                                <Files className="h-5 w-5 inline mr-1" />
+                                                                Manage
+                                                            </>
+                                                        )) || (
+                                                            <>
+                                                                <Plugs className="h-5 w-5 inline mr-1" />
+                                                                Connect
+                                                            </>
+                                                        )}
                                                     </Button>
                                                     <Button
                                                         variant="outline"
@@ -1022,8 +1094,8 @@ export default function SettingsView() {
                                                     {
                                                         /* Show connect to notion button if notion oauth url setup and user disconnected*/
                                                         userConfig.notion_oauth_url &&
-                                                            !userConfig.enabled_content_source
-                                                                .notion ? (
+                                                        !userConfig.enabled_content_source
+                                                            .notion ? (
                                                             <Button
                                                                 variant="outline"
                                                                 size="sm"
@@ -1037,39 +1109,39 @@ export default function SettingsView() {
                                                                 Connect
                                                             </Button>
                                                         ) : /* Show sync button if user connected to notion and API key unchanged */
-                                                            userConfig.enabled_content_source.notion &&
-                                                                notionToken ===
-                                                                userConfig.notion_token ? (
-                                                                <Button
-                                                                    variant="outline"
-                                                                    size="sm"
-                                                                    onClick={() =>
-                                                                        syncContent("notion")
-                                                                    }
-                                                                >
-                                                                    <ArrowsClockwise className="h-5 w-5 inline mr-1" />
-                                                                    Sync
-                                                                </Button>
-                                                            ) : /* Show set API key button notion oauth url not set setup */
-                                                                !userConfig.notion_oauth_url ? (
-                                                                    <Button
-                                                                        variant="outline"
-                                                                        size="sm"
-                                                                        onClick={saveNotionToken}
-                                                                        disabled={
-                                                                            notionToken ===
-                                                                            userConfig.notion_token
-                                                                        }
-                                                                    >
-                                                                        <FloppyDisk className="h-5 w-5 inline mr-1" />
-                                                                        {(userConfig.enabled_content_source
-                                                                            .notion &&
-                                                                            "Update API Key") ||
-                                                                            "Set API Key"}
-                                                                    </Button>
-                                                                ) : (
-                                                                    <></>
-                                                                )
+                                                        userConfig.enabled_content_source.notion &&
+                                                          notionToken ===
+                                                              userConfig.notion_token ? (
+                                                            <Button
+                                                                variant="outline"
+                                                                size="sm"
+                                                                onClick={() =>
+                                                                    syncContent("notion")
+                                                                }
+                                                            >
+                                                                <ArrowsClockwise className="h-5 w-5 inline mr-1" />
+                                                                Sync
+                                                            </Button>
+                                                        ) : /* Show set API key button notion oauth url not set setup */
+                                                        !userConfig.notion_oauth_url ? (
+                                                            <Button
+                                                                variant="outline"
+                                                                size="sm"
+                                                                onClick={saveNotionToken}
+                                                                disabled={
+                                                                    notionToken ===
+                                                                    userConfig.notion_token
+                                                                }
+                                                            >
+                                                                <FloppyDisk className="h-5 w-5 inline mr-1" />
+                                                                {(userConfig.enabled_content_source
+                                                                    .notion &&
+                                                                    "Update API Key") ||
+                                                                    "Set API Key"}
+                                                            </Button>
+                                                        ) : (
+                                                            <></>
+                                                        )
                                                     }
                                                     <Button
                                                         variant="outline"
@@ -1103,13 +1175,19 @@ export default function SettingsView() {
                                                             selected={
                                                                 userConfig.selected_chat_model_config
                                                             }
+                                                            isActive={userConfig.is_active}
                                                             callbackFunc={updateModel("chat")}
                                                         />
                                                     </CardContent>
                                                     <CardFooter className="flex flex-wrap gap-4">
                                                         {!userConfig.is_active && (
                                                             <p className="text-gray-400">
-                                                                Subscribe to switch model
+                                                                {userConfig.chat_model_options.some(
+                                                                    (model) =>
+                                                                        model.tier === "free",
+                                                                )
+                                                                    ? "Free models available"
+                                                                    : "Subscribe to switch model"}
                                                             </p>
                                                         )}
                                                     </CardFooter>
@@ -1131,13 +1209,19 @@ export default function SettingsView() {
                                                             selected={
                                                                 userConfig.selected_paint_model_config
                                                             }
+                                                            isActive={userConfig.is_active}
                                                             callbackFunc={updateModel("paint")}
                                                         />
                                                     </CardContent>
                                                     <CardFooter className="flex flex-wrap gap-4">
                                                         {!userConfig.is_active && (
                                                             <p className="text-gray-400">
-                                                                Subscribe to switch model
+                                                                {userConfig.paint_model_options.some(
+                                                                    (model) =>
+                                                                        model.tier === "free",
+                                                                )
+                                                                    ? "Free models available"
+                                                                    : "Subscribe to switch model"}
                                                             </p>
                                                         )}
                                                     </CardFooter>
@@ -1159,13 +1243,19 @@ export default function SettingsView() {
                                                             selected={
                                                                 userConfig.selected_voice_model_config
                                                             }
+                                                            isActive={userConfig.is_active}
                                                             callbackFunc={updateModel("voice")}
                                                         />
                                                     </CardContent>
                                                     <CardFooter className="flex flex-wrap gap-4">
                                                         {!userConfig.is_active && (
                                                             <p className="text-gray-400">
-                                                                Subscribe to switch model
+                                                                {userConfig.voice_model_options.some(
+                                                                    (model) =>
+                                                                        model.tier === "free",
+                                                                )
+                                                                    ? "Free models available"
+                                                                    : "Subscribe to switch model"}
                                                             </p>
                                                         )}
                                                     </CardFooter>
@@ -1179,138 +1269,6 @@ export default function SettingsView() {
                                         </div>
                                         <div className="cards flex flex-col flex-wrap gap-8">
                                             {!userConfig.anonymous_mode && <ApiKeyCard />}
-                                            <Card className={`${cardClassName} lg:w-2/3`}>
-                                                <CardHeader className="text-xl flex flex-row">
-                                                    <WhatsappLogo className="h-7 w-7 mr-2" />
-                                                    Chat on Whatsapp
-                                                    {(numberValidationState ===
-                                                        PhoneNumberValidationState.Verified && (
-                                                            <CheckCircle
-                                                                weight="bold"
-                                                                className="h-4 w-4 ml-1 text-green-400"
-                                                            />
-                                                        )) ||
-                                                        (numberValidationState !==
-                                                            PhoneNumberValidationState.Setup && (
-                                                                <ExclamationMark
-                                                                    weight="bold"
-                                                                    className="h-4 w-4 ml-1 text-yellow-400"
-                                                                />
-                                                            ))}
-                                                </CardHeader>
-                                                <CardContent className="grid gap-4">
-                                                    <p className="text-gray-400">
-                                                        Connect your number to chat with Khoj on
-                                                        WhatsApp. Learn more about the integration{" "}
-                                                        <a href="https://docs.khoj.dev/clients/whatsapp">
-                                                            here
-                                                        </a>
-                                                        .
-                                                    </p>
-                                                    <div>
-                                                        <IntlTelInput
-                                                            initialValue={phoneNumber || ""}
-                                                            onChangeNumber={setPhoneNumber}
-                                                            disabled={
-                                                                numberValidationState ===
-                                                                PhoneNumberValidationState.VerifyOTP
-                                                            }
-                                                            initOptions={{
-                                                                separateDialCode: true,
-                                                                initialCountry: "af",
-                                                                utilsScript:
-                                                                    "https://assets.khoj.dev/intl-tel-input%4023.8.0_build_js_utils.js",
-                                                                containerClass: `${styles.phoneInput}`,
-                                                            }}
-                                                        />
-                                                        {numberValidationState ===
-                                                            PhoneNumberValidationState.VerifyOTP && (
-                                                                <>
-                                                                    <p>{`Enter the OTP sent to your number: ${phoneNumber}`}</p>
-                                                                    <InputOTP
-                                                                        autoFocus={true}
-                                                                        maxLength={6}
-                                                                        value={otp || ""}
-                                                                        onChange={setOTP}
-                                                                        onComplete={() =>
-                                                                            setNumberValidationState(
-                                                                                PhoneNumberValidationState.VerifyOTP,
-                                                                            )
-                                                                        }
-                                                                    >
-                                                                        <InputOTPGroup>
-                                                                            <InputOTPSlot index={0} />
-                                                                            <InputOTPSlot index={1} />
-                                                                            <InputOTPSlot index={2} />
-                                                                            <InputOTPSlot index={3} />
-                                                                            <InputOTPSlot index={4} />
-                                                                            <InputOTPSlot index={5} />
-                                                                        </InputOTPGroup>
-                                                                    </InputOTP>
-                                                                </>
-                                                            )}
-                                                    </div>
-                                                </CardContent>
-                                                <CardFooter className="flex flex-wrap gap-4">
-                                                    {(numberValidationState ===
-                                                        PhoneNumberValidationState.VerifyOTP && (
-                                                            <Button
-                                                                variant="outline"
-                                                                onClick={verifyOTP}
-                                                            >
-                                                                Verify
-                                                            </Button>
-                                                        )) || (
-                                                            <Button
-                                                                variant="outline"
-                                                                disabled={
-                                                                    !phoneNumber ||
-                                                                    (phoneNumber ===
-                                                                        userConfig.phone_number &&
-                                                                        numberValidationState ===
-                                                                        PhoneNumberValidationState.Verified) ||
-                                                                    !isValidPhoneNumber(phoneNumber)
-                                                                }
-                                                                onClick={sendOTP}
-                                                            >
-                                                                {!userConfig.phone_number ? (
-                                                                    <>
-                                                                        <Plugs className="inline mr-2" />
-                                                                        Setup Whatsapp
-                                                                    </>
-                                                                ) : !phoneNumber ||
-                                                                    (phoneNumber ===
-                                                                        userConfig.phone_number &&
-                                                                        numberValidationState ===
-                                                                        PhoneNumberValidationState.Verified) ||
-                                                                    !isValidPhoneNumber(phoneNumber) ? (
-                                                                    <>
-                                                                        <PlugsConnected className="inline mr-2 text-green-400" />
-                                                                        Switch Number
-                                                                    </>
-                                                                ) : (
-                                                                    <>
-                                                                        Send OTP{" "}
-                                                                        <ArrowRight
-                                                                            className="inline ml-2"
-                                                                            weight="bold"
-                                                                        />
-                                                                    </>
-                                                                )}
-                                                            </Button>
-                                                        )}
-                                                    {numberValidationState ===
-                                                        PhoneNumberValidationState.Verified && (
-                                                            <Button
-                                                                variant="outline"
-                                                                onClick={() => disconnectNumber()}
-                                                            >
-                                                                <CloudSlash className="h-5 w-5 mr-2" />
-                                                                Disconnect
-                                                            </Button>
-                                                        )}
-                                                </CardFooter>
-                                            </Card>
                                         </div>
                                     </div>
                                     <div className="section grid gap-8">
@@ -1329,9 +1287,13 @@ export default function SettingsView() {
                                                     </p>
                                                     {exportProgress > 0 && (
                                                         <div className="w-full mt-4">
-                                                            <Progress value={exportProgress} className="w-full" />
+                                                            <Progress
+                                                                value={exportProgress}
+                                                                className="w-full"
+                                                            />
                                                             <p className="text-sm text-gray-500 mt-2">
-                                                                Exported {exportedConversations} of {totalConversations} conversations
+                                                                Exported {exportedConversations} of{" "}
+                                                                {totalConversations} conversations
                                                             </p>
                                                         </div>
                                                     )}
@@ -1343,11 +1305,70 @@ export default function SettingsView() {
                                                         disabled={isExporting}
                                                     >
                                                         <Download className="h-5 w-5 mr-2" />
-                                                        {isExporting ? "Exporting..." : "Export Chats"}
+                                                        {isExporting
+                                                            ? "Exporting..."
+                                                            : "Export Chats"}
                                                     </Button>
                                                 </CardFooter>
                                             </Card>
-
+                                            <Card className={cardClassName}>
+                                                <CardHeader className="text-xl flex flex-row">
+                                                    <Brain className="h-7 w-7 mr-2" />
+                                                    Memories
+                                                </CardHeader>
+                                                <CardContent className="overflow-hidden">
+                                                    <p className="pb-4 text-gray-400">
+                                                        View and manage your long-term memories
+                                                    </p>
+                                                    <div className="flex items-center justify-between">
+                                                        <label
+                                                            htmlFor="enable-memory"
+                                                            className={`text-sm font-medium leading-none ${serverMemoryMode === "disabled" ? "text-gray-400" : ""}`}
+                                                        >
+                                                            Enable Memory
+                                                        </label>
+                                                        <Switch
+                                                            id="enable-memory"
+                                                            checked={enableMemory}
+                                                            onCheckedChange={(checked) => handleToggleMemory(checked)}
+                                                            disabled={serverMemoryMode === "disabled"}
+                                                        />
+                                                    </div>
+                                                    {serverMemoryMode === "disabled" && (
+                                                        <p className="text-xs text-gray-400 mt-2">
+                                                            Memory has been disabled by the server administrator.
+                                                        </p>
+                                                    )}
+                                                </CardContent>
+                                                <CardFooter className="flex flex-wrap gap-4">
+                                                    <Dialog onOpenChange={(open) => open && fetchMemories()}>
+                                                        <DialogTrigger asChild>
+                                                            <Button variant="outline">
+                                                                <Brain className="h-5 w-5 mr-2" />
+                                                                Browse Memories
+                                                            </Button>
+                                                        </DialogTrigger>
+                                                        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+                                                            <DialogHeader>
+                                                                <DialogTitle>Your Memories</DialogTitle>
+                                                            </DialogHeader>
+                                                            <div className="grid gap-4 py-4">
+                                                                {memories.map((memory) => (
+                                                                    <UserMemory
+                                                                        key={memory.id}
+                                                                        memory={memory}
+                                                                        onDelete={handleDeleteMemory}
+                                                                        onUpdate={handleUpdateMemory}
+                                                                    />
+                                                                ))}
+                                                                {memories.length === 0 && (
+                                                                    <p className="text-center text-gray-500">No memories found</p>
+                                                                )}
+                                                            </div>
+                                                        </DialogContent>
+                                                    </Dialog>
+                                                </CardFooter>
+                                            </Card>
                                             <Card className={cardClassName}>
                                                 <CardHeader className="text-xl flex flex-row">
                                                     <TrashSimple className="h-7 w-7 mr-2 text-red-500" />
@@ -1355,7 +1376,11 @@ export default function SettingsView() {
                                                 </CardHeader>
                                                 <CardContent className="overflow-hidden">
                                                     <p className="pb-4 text-gray-400">
-                                                        This will delete all your account data, including conversations, agents, and any assets you{"'"}ve generated. Be sure to export before you do this if you want to keep your information.
+                                                        This will delete all your account data,
+                                                        including conversations, agents, and any
+                                                        assets you{"'"}ve generated. Be sure to
+                                                        export before you do this if you want to
+                                                        keep your information.
                                                     </p>
                                                 </CardContent>
                                                 <CardFooter className="flex flex-wrap gap-4">
@@ -1371,36 +1396,56 @@ export default function SettingsView() {
                                                         </AlertDialogTrigger>
                                                         <AlertDialogContent>
                                                             <AlertDialogHeader>
-                                                                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                                                                <AlertDialogTitle>
+                                                                    Are you absolutely sure?
+                                                                </AlertDialogTitle>
                                                                 <AlertDialogDescription>
-                                                                    This action is irreversible. This will permanently delete your account
-                                                                    and remove all your data from our servers.
+                                                                    This action is irreversible.
+                                                                    This will permanently delete
+                                                                    your account and remove all your
+                                                                    data from our servers.
                                                                 </AlertDialogDescription>
                                                             </AlertDialogHeader>
                                                             <AlertDialogFooter>
-                                                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                                                <AlertDialogCancel>
+                                                                    Cancel
+                                                                </AlertDialogCancel>
                                                                 <AlertDialogAction
                                                                     className="bg-red-500 hover:bg-red-600"
                                                                     onClick={async () => {
                                                                         try {
-                                                                            const response = await fetch('/api/self', {
-                                                                                method: 'DELETE'
-                                                                            });
-                                                                            if (!response.ok) throw new Error('Failed to delete account');
+                                                                            const response =
+                                                                                await fetch(
+                                                                                    "/api/self",
+                                                                                    {
+                                                                                        method: "DELETE",
+                                                                                    },
+                                                                                );
+                                                                            if (!response.ok)
+                                                                                throw new Error(
+                                                                                    "Failed to delete account",
+                                                                                );
 
                                                                             toast({
                                                                                 title: "Account Deleted",
-                                                                                description: "Your account has been successfully deleted.",
+                                                                                description:
+                                                                                    "Your account has been successfully deleted.",
                                                                             });
 
                                                                             // Redirect to home page after successful deletion
-                                                                            window.location.href = "/";
+                                                                            window.location.href =
+                                                                                "/";
                                                                         } catch (error) {
-                                                                            console.error('Error deleting account:', error);
+                                                                            console.error(
+                                                                                "Error deleting account:",
+                                                                                error,
+                                                                            );
                                                                             toast({
                                                                                 title: "Error",
-                                                                                description: "Failed to delete account. Please try again or contact support.",
-                                                                                variant: "destructive"
+                                                                                description:
+                                                                                    "Failed to delete account. Please try again or contact support.",
+                                                                                variant:
+                                                                                    "destructive",
                                                                             });
                                                                         }
                                                                     }}

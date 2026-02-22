@@ -2,13 +2,17 @@ import json
 import logging
 from typing import Dict, Optional, Union
 
-from fastapi import APIRouter, HTTPException, Request
-from fastapi.requests import Request
+from fastapi import APIRouter, Request
 from fastapi.responses import Response
 from starlette.authentication import has_required_scope, requires
 
-from khoj.database import adapters
-from khoj.database.adapters import ConversationAdapters, EntryAdapters
+from khoj.database.adapters import ConversationAdapters
+from khoj.database.models import (
+    ChatModel,
+    PriceTier,
+    TextToImageModelConfig,
+    VoiceModelOption,
+)
 from khoj.routers.helpers import update_telemetry_state
 
 api_model = APIRouter()
@@ -26,7 +30,7 @@ def get_chat_model_options(
     for chat_model in chat_models:
         chat_model_options.append(
             {
-                "name": chat_model.name,
+                "name": chat_model.friendly_name,
                 "id": chat_model.id,
                 "strengths": chat_model.strengths,
                 "description": chat_model.description,
@@ -49,17 +53,28 @@ def get_user_chat_model(
     if chat_model is None:
         chat_model = ConversationAdapters.get_default_chat_model(user)
 
-    return Response(status_code=200, content=json.dumps({"id": chat_model.id, "chat_model": chat_model.name}))
+    return Response(status_code=200, content=json.dumps({"id": chat_model.id, "chat_model": chat_model.friendly_name}))
 
 
 @api_model.post("/chat", status_code=200)
-@requires(["authenticated", "premium"])
+@requires(["authenticated"])
 async def update_chat_model(
     request: Request,
     id: str,
     client: Optional[str] = None,
 ):
     user = request.user.object
+    subscribed = has_required_scope(request, ["premium"])
+
+    # Validate if model can be switched
+    chat_model = await ChatModel.objects.filter(id=int(id)).afirst()
+    if chat_model is None:
+        return Response(status_code=404, content=json.dumps({"status": "error", "message": "Chat model not found"}))
+    if not subscribed and chat_model.price_tier != PriceTier.FREE:
+        return Response(
+            status_code=403,
+            content=json.dumps({"status": "error", "message": "Subscribe to switch to this chat model"}),
+        )
 
     new_config = await ConversationAdapters.aset_user_conversation_processor(user, int(id))
 
@@ -78,13 +93,24 @@ async def update_chat_model(
 
 
 @api_model.post("/voice", status_code=200)
-@requires(["authenticated", "premium"])
+@requires(["authenticated"])
 async def update_voice_model(
     request: Request,
     id: str,
     client: Optional[str] = None,
 ):
     user = request.user.object
+    subscribed = has_required_scope(request, ["premium"])
+
+    # Validate if model can be switched
+    voice_model = await VoiceModelOption.objects.filter(model_id=id).afirst()
+    if voice_model is None:
+        return Response(status_code=404, content=json.dumps({"status": "error", "message": "Voice model not found"}))
+    if not subscribed and voice_model.price_tier != PriceTier.FREE:
+        return Response(
+            status_code=403,
+            content=json.dumps({"status": "error", "message": "Subscribe to switch to this voice model"}),
+        )
 
     new_config = await ConversationAdapters.aset_user_voice_model(user, id)
 
@@ -111,8 +137,15 @@ async def update_paint_model(
     user = request.user.object
     subscribed = has_required_scope(request, ["premium"])
 
-    if not subscribed:
-        raise HTTPException(status_code=403, detail="User is not subscribed to premium")
+    # Validate if model can be switched
+    image_model = await TextToImageModelConfig.objects.filter(id=int(id)).afirst()
+    if image_model is None:
+        return Response(status_code=404, content=json.dumps({"status": "error", "message": "Image model not found"}))
+    if not subscribed and image_model.price_tier != PriceTier.FREE:
+        return Response(
+            status_code=403,
+            content=json.dumps({"status": "error", "message": "Subscribe to switch to this image model"}),
+        )
 
     new_config = await ConversationAdapters.aset_user_text_to_image_model(user, int(id))
 

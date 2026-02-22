@@ -5,6 +5,7 @@ tests/data/models
 tests/data/embeddings
 tests/evals/**.txt
 tests/evals/**.csv
+pgserver_data/
 
 # External app artifacts
 __pycache__
@@ -14,6 +15,7 @@ __pycache__
 .vscode
 .env
 .venv/*
+.obsidian
 todesktop.json
 
 # Build artifacts

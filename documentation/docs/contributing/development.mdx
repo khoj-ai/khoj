@@ -4,7 +4,7 @@ sidebar_position: 0
 
 # Development
 
-Welcome to the development docs of Khoj! Thanks for you interesting in being a contributor ❤️. Open source contributors are a corner-store of the Khoj community. We welcome all contributions, big or small.
+Welcome to the development docs of Khoj! Thanks for your interest in being a contributor ❤️. Open source contributors are a corner-store of the Khoj community. We welcome all contributions, big or small.
 
 To get started with contributing, check out the official GitHub docs on [contributing to an open-source project](https://docs.github.com/en/get-started/exploring-projects-on-github/contributing-to-a-project).
 
@@ -30,7 +30,7 @@ git clone https://github.com/khoj-ai/khoj && cd khoj
 python3 -m venv .venv && source .venv/bin/activate
 
 # For MacOS or zsh users run this
-pip install -e '.[dev]'
+uv sync --all-extras
     ```
     </TabItem>
     <TabItem value="windows" label="Windows">
@@ -42,7 +42,7 @@ git clone https://github.com/khoj-ai/khoj && cd khoj
 python3 -m venv .venv && .venv\Scripts\activate
 
 # Install Khoj for Development
-pip install -e '.[dev]'
+uv sync --all-extras
       ```
     </TabItem>
     <TabItem value="linux" label="Linux">
@@ -54,7 +54,7 @@ git clone https://github.com/khoj-ai/khoj && cd khoj
 python3 -m venv .venv && source .venv/bin/activate
 
 # Install Khoj for Development
-pip install -e '.[dev]'
+uv sync --all-extras
       ```
     </TabItem>
   </Tabs>
@@ -106,13 +106,13 @@ sudo -u postgres createdb khoj --password
 
 ```shell
 cd src/interface/web/
-yarn install
-yarn export
+bun install
+bun export
 ```
 
-You can optionally use `yarn dev` to start a development server for the front-end which will be available at http://localhost:3000. This is especially useful if you're making changes to the front-end code, but not necessary for running Khoj. Note that streaming does not work on the dev server due to how it is handled with SSR in Next.js.
+You can optionally use `bun dev` to start a development server for the front-end which will be available at http://localhost:3000. This is especially useful if you're making changes to the front-end code, but not necessary for running Khoj. Note that streaming does not work on the dev server due to how it is handled with SSR in Next.js.
 
-Always run `yarn export` to test your front-end changes on http://localhost:42110 before creating a PR.
+Always run `bun export` to test your front-end changes on http://localhost:42110 before creating a PR.
 
 #### 4. Run
 1. Start Khoj
@@ -129,7 +129,7 @@ Always run `yarn export` to test your front-end changes on http://localhost:4211
     - Try reactivating the virtual environment and rerunning the `khoj` command.
     - If it still doesn't work repeat the installation process.
 2. Python Package Missing
-    - Use `pip install xxx` and try running the `khoj` command.
+    - Use `uv add xxx` and try running the `khoj` command.
 3. Command `createdb` Not Recognized
     - make sure path to postgres binaries is included in environment variables. It usually looks something like
     ```
@@ -191,18 +191,19 @@ In whichever clients you're using for testing, you'll need to update the server 
 
 ## Validate
 ### Before Making Changes
-1. Install Git Hooks for Validation
+1. Install Khoj. Setup Git Hooks for Validation
    ```shell
    ./scripts/dev_setup.sh
    ```
-   - This ensures standard code formatting fixes and other checks run automatically on every commit and push
+   - Installs the khoj server and web app by default. Use the `--full` flag to install the Khoj Desktop and Obsidian client apps as well.
+   - Git hooks format code, check types automatically on every commit and push respectively.
    - Note 1: If [pre-commit](https://pre-commit.com/#intro) didn't already get installed, [install it](https://pre-commit.com/#install) via `pip install pre-commit`
    - Note 2: To run the pre-commit changes manually, use `pre-commit run --hook-stage manual --all` before creating PR
 
 ### Before Creating PR
 
 :::tip[Note]
-You should be in an active virtual environment for Khoj in order to run the unit tests and linter.
+You should be in an active virtual environment for Khoj in order to run the unit tests and linter. The `dev_setup.sh` script wil automatically create and activate it for you.
 :::
 
 1. Ensure that you have a [Github Issue](https://github.com/khoj-ai/khoj/issues) that can be linked to the PR. If not, create one. Make sure you've tagged one of the maintainers to the issue. This will ensure that the maintainers are notified of the PR and can review it. It's best discuss the code design on an existing issue or Discord thread before creating a PR. This helps get your PR merged faster.

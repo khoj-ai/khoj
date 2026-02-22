@@ -17,38 +17,34 @@ from pathlib import Path
 
 from django.templatetags.static import static
 
-from khoj.utils.helpers import in_debug_mode, is_env_var_true
+from khoj.utils.helpers import is_env_var_true
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
-
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.getenv("KHOJ_DJANGO_SECRET_KEY", "!secret")
 
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = in_debug_mode()
+# Set KHOJ_DOMAIN to custom domain for production deployments.
+KHOJ_DOMAIN = os.getenv("KHOJ_DOMAIN") or "khoj.dev"
 
-# All Subdomains of KHOJ_DOMAIN are trusted
-KHOJ_DOMAIN = os.getenv("KHOJ_DOMAIN", "khoj.dev")
+# Set KHOJ_ALLOWED_DOMAIN to the i.p or domain of the Khoj service on the internal network.
+# Useful to set when running the service behind a reverse proxy.
 KHOJ_ALLOWED_DOMAIN = os.getenv("KHOJ_ALLOWED_DOMAIN", KHOJ_DOMAIN)
 ALLOWED_HOSTS = [f".{KHOJ_ALLOWED_DOMAIN}", "localhost", "127.0.0.1", "[::1]", f"{KHOJ_ALLOWED_DOMAIN}"]
 
+# All Subdomains of KHOJ_DOMAIN are trusted for CSRF
 CSRF_TRUSTED_ORIGINS = [
     f"https://*.{KHOJ_DOMAIN}",
     f"https://{KHOJ_DOMAIN}",
     f"http://*.{KHOJ_DOMAIN}",
     f"http://{KHOJ_DOMAIN}",
-    f"https://app.{KHOJ_DOMAIN}",
 ]
 
 DISABLE_HTTPS = is_env_var_true("KHOJ_NO_HTTPS")
 
-COOKIE_SAMESITE = "None"
-if DEBUG and os.getenv("KHOJ_DOMAIN") == None:
+# WARNING: Change this check only if you know what you are doing.
+if not os.getenv("KHOJ_DOMAIN"):
     SESSION_COOKIE_DOMAIN = "localhost"
     CSRF_COOKIE_DOMAIN = "localhost"
 else:
@@ -143,10 +139,10 @@ if USE_EMBEDDED_DB:
         import pgserver
 
         # Set up data directory
-        PGSERVER_DATA_DIR = os.path.join(BASE_DIR, "pgserver_data")
+        PGSERVER_DATA_DIR = os.getenv("PGSERVER_DATA_DIR") or os.path.join(BASE_DIR, "pgserver_data")
         os.makedirs(PGSERVER_DATA_DIR, exist_ok=True)
 
-        logger.debug(f"Initializing embedded Postgres DB with data directory: {PGSERVER_DATA_DIR}")
+        logger.info(f"Initializing embedded Postgres DB with data directory: {PGSERVER_DATA_DIR}")
 
         # Start server
         PGSERVER_INSTANCE = pgserver.get_server(PGSERVER_DATA_DIR)

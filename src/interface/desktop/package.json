@@ -1,6 +1,6 @@
 {
   "name": "Khoj",
-  "version": "1.38.0",
+  "version": "2.0.0-beta.24",
   "description": "Your Second Brain",
   "author": "Khoj Inc. <team@khoj.dev>",
   "license": "GPL-3.0-or-later",
@@ -10,15 +10,18 @@
   "main": "main.js",
   "private": false,
   "devDependencies": {
-    "electron": "28.2.1"
+    "electron": "35.7.5"
   },
   "scripts": {
     "start": "yarn electron ."
   },
   "dependencies": {
     "@todesktop/runtime": "^2.0.0",
-    "axios": "^1.8.2",
+    "axios": "^1.13.5",
     "cron": "^2.4.3",
     "electron-store": "^8.1.0"
+  },
+  "resolutions": {
+    "ajv": "^8.18.0"
   }
 }

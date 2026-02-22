@@ -1,6 +1,6 @@
 services:
   database:
-    image: ankane/pgvector
+    image: docker.io/pgvector/pgvector:pg15
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
@@ -25,6 +25,18 @@ services:
       - khoj_search:/etc/searxng
     environment:
       - SEARXNG_BASE_URL=http://localhost:8080/
+  # Creates Computer for Khoj to use.
+  # Set KHOJ_OPERATOR_ENABLED=True in the server service environment variable to enable.
+  computer:
+    container_name: khoj-computer
+    image: ghcr.io/khoj-ai/khoj-computer:latest
+    # build:
+    #   context: .
+    #   dockerfile: computer.Dockerfile
+    ports:
+      - "5900:5900"
+    volumes:
+      - khoj_computer:/home/operator
   server:
     depends_on:
       database:
@@ -47,6 +59,8 @@ services:
       - khoj_config:/root/.khoj/
       - khoj_models:/root/.cache/torch/sentence_transformers
       - khoj_models:/root/.cache/huggingface
+      # uncomment line below to mount docker socket to allow khoj to use its computer.
+      # - /var/run/docker.sock:/var/run/docker.sock
     # Use 0.0.0.0 to explicitly set the host ip for the service on the container. https://pythonspeed.com/articles/docker-connection-refused/
     environment:
       - POSTGRES_DB=postgres
@@ -65,8 +79,9 @@ services:
       # Default URL of SearxNG, the default web search engine used by Khoj. Its container is specified above
       - KHOJ_SEARXNG_URL=http://search:8080
       # Uncomment line below to use with Ollama running on your local machine at localhost:11434.
-      # Change URL to use with other OpenAI API compatible providers like VLLM, LMStudio etc.
+      # Change URL to use with other OpenAI API compatible providers like VLLM, LMStudio, DeepInfra, DeepSeek etc.
       # - OPENAI_BASE_URL=http://host.docker.internal:11434/v1/
+      # - KHOJ_DEFAULT_CHAT_MODEL=qwen3
       #
       # Uncomment appropriate lines below to use chat models by OpenAI, Anthropic, Google.
       # Ensure you set your provider specific API keys.
@@ -75,17 +90,19 @@ services:
       # - GEMINI_API_KEY=your_gemini_api_key
       # - ANTHROPIC_API_KEY=your_anthropic_api_key
       #
+      # Uncomment line below to enable Khoj to use its computer.
+      # - KHOJ_OPERATOR_ENABLED=True
       # Uncomment appropriate lines below to enable web results with Khoj
       # Ensure you set your provider specific API keys.
       # ---
-      # Free, Slower API. Does both web search and webpage read. Get API key from https://jina.ai/
-      # - JINA_API_KEY=your_jina_api_key
       # Paid, Fast API. Only does web search. Get API key from https://serper.dev/
       # - SERPER_DEV_API_KEY=your_serper_dev_api_key
-      # Paid, Fast, Open API. Only does webpage read. Get API key from https://firecrawl.dev/
-      # - FIRECRAWL_API_KEY=your_firecrawl_api_key
-      # Paid, Fast, Higher Read Success API. Only does webpage read. Get API key from https://olostep.com/
+      # Paid, Higher Read Success API. Only does webpage read. Get API key from https://olostep.com/
       # - OLOSTEP_API_KEY=your_olostep_api_key
+      # Paid, Open API. Does both web search and webpage read. Get API key from https://firecrawl.dev/
+      # - FIRECRAWL_API_KEY=your_firecrawl_api_key
+      # Paid, Fast API. Does both web search and webpage read. Get API key from https://exa.ai/
+      # - EXA_API_KEY=your_exa_api_key
       #
       # Uncomment the necessary lines below to make your instance publicly accessible.
       # Proceed with caution, especially if you are using anonymous mode.
@@ -112,3 +129,4 @@ volumes:
   khoj_db:
   khoj_models:
   khoj_search:
+  khoj_computer:

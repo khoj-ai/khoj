@@ -23,6 +23,57 @@ div.chatMessageWrapper a span {
     display: revert !important;
 }
 
+/* File link styling */
+.chatMessageWrapper a.file-link {
+    color: hsl(var(--primary));
+    text-decoration: underline;
+    cursor: pointer;
+    transition: color 0.2s ease;
+}
+
+.chatMessageWrapper a.file-link:hover {
+    color: hsl(var(--primary-foreground));
+    background-color: hsl(var(--primary));
+    text-decoration: none;
+    padding: 2px 4px;
+    border-radius: 4px;
+}
+
+/* Table styling */
+.chatMessageWrapper table {
+    border-collapse: collapse;
+    border: 1px solid hsl(var(--border));
+    margin: 1rem 0;
+    width: 100%;
+}
+
+.chatMessageWrapper table th,
+.chatMessageWrapper table td {
+    border: 1px solid hsl(var(--border));
+    padding: 8px 12px;
+    text-align: left;
+    min-width: 120px;
+}
+
+.chatMessageWrapper table th {
+    background-color: hsl(var(--muted));
+    font-weight: 600;
+}
+
+/* Alternating row colors for better readability */
+.chatMessageWrapper table tbody tr:nth-child(even) {
+    background-color: hsl(var(--muted) / 0.3);
+}
+
+.chatMessageWrapper table tbody tr:nth-child(odd) {
+    background-color: transparent;
+}
+
+/* Hover effect for table rows */
+.chatMessageWrapper table tbody tr:hover {
+    background-color: hsl(var(--muted) / 0.5);
+}
+
 div.khojfullHistory {
     padding-left: 4px;
 }
@@ -76,7 +127,9 @@ div.imageWrapper img {
 }
 
 div.khoj div.imageWrapper img {
-    height: 512px;
+    max-height: 512px;
+    height: auto;
+    object-fit: contain;
 }
 
 div.khoj div.imageWrapper {
@@ -158,7 +211,8 @@ button.codeCopyButton:hover {
 
 div.feedbackButtons img,
 button.codeCopyButton img,
-button.copyButton img {
+button.copyButton img,
+button.retryButton img {
     width: 24px;
 }
 
@@ -195,5 +249,142 @@ div.trainOfThoughtElement ul {
     div.khoj div.imageWrapper img {
         width: 100%;
         height: auto;
+    }
+
+    .chatMessageWrapper table th,
+    .chatMessageWrapper table td {
+        min-width: 40px;
+    }
+}
+
+/* Print-specific styles for chat messages */
+@media print {
+    div.chatMessageContainer {
+        background: transparent !important;
+        border: 1px solid #ccc !important;
+        border-radius: 8px !important;
+        margin: 0.5rem 0 !important;
+        padding: 0.5rem !important;
+        width: 100% !important;
+        max-width: none !important;
+    }
+
+    div.chatMessageContainer.you {
+        margin: 1rem 0 0 0 !important;
+        background: transparent !important;
+        border: none !important;
+    }
+
+    div.chatMessageContainer.khoj {
+        margin: 0 !important;
+    }
+
+    div.chatMessageWrapper {
+        padding-left: 0.5rem !important;
+        padding-bottom: 0.5rem !important;
+        width: 100% !important;
+        max-width: none !important;
+    }
+
+    div.you div.chatMessageWrapper {
+        padding: 0 !important;
+    }
+
+    div.you {
+        background-color: transparent !important;
+        color: #000 !important;
+        font-size: 16pt !important;
+        font-weight: 500 !important;
+        padding: 0.8rem 0 0.1rem 0 !important;
+        align-self: flex-start !important;
+        text-align: left !important;
+    }
+
+    div.khoj {
+        background-color: transparent !important;
+        color: #000 !important;
+        width: 100% !important;
+        max-width: none !important;
+        align-self: stretch !important;
+    }
+
+    div.youfullHistory,
+    div.khojfullHistory {
+        width: 100% !important;
+        max-width: none !important;
+    }
+
+    div.author {
+        color: #666 !important;
+        font-size: 0.7rem !important;
+    }
+
+    /* Add timestamp as divider between title and body */
+    div.you.chatMessageContainer::after {
+        content: "🕐 " attr(data-created) !important;
+        display: block !important;
+        color: #888 !important;
+        font-size: 9pt !important;
+        font-weight: normal !important;
+        margin: 0.2rem 0 0.6rem 0 !important;
+        padding-bottom: 0.4rem !important;
+    }
+
+    /* Hide interactive elements */
+    div.chatFooter,
+    div.chatButtons,
+    button.codeCopyButton,
+    button.copyButton,
+    button.retryButton,
+    div.feedbackButtons {
+        display: none !important;
+    }
+
+    /* Image styling for print */
+    div.imagesContainer {
+        display: block !important;
+        overflow: visible !important;
+        margin-bottom: 0.5rem !important;
+    }
+
+    div.imageWrapper {
+        margin-right: 0 !important;
+        margin-bottom: 0.5rem !important;
+    }
+
+    div.imageWrapper img,
+    div.khoj div.imageWrapper img {
+        width: auto !important;
+        height: auto !important;
+        max-width: 100% !important;
+        max-height: 4in !important;
+        object-fit: contain !important;
+        page-break-inside: avoid;
+    }
+
+    /* Train of thought styling for print */
+    div.trainOfThought {
+        border-left: 2px solid #ccc !important;
+        margin: 0.5rem 0 !important;
+        padding: 0.5rem !important;
+        font-size: 0.9em !important;
+        color: #666 !important;
+    }
+
+    div.trainOfThought strong {
+        color: #000 !important;
+    }
+
+    div.trainOfThought.primary {
+        border-left-color: #000 !important;
+    }
+
+    div.trainOfThought.primary strong {
+        color: #000 !important;
+    }
+
+    div.trainOfThoughtElement {
+        display: block !important;
+        margin-bottom: 0.5rem !important;
     }
 }

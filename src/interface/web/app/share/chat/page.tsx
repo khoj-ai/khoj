@@ -61,6 +61,7 @@ function UnshareButton({ slug, className }: { slug: string; className?: string }
             <Button
                 className="p-0 text-sm h-auto text-rose-500 hover:text-rose-600"
                 variant={"ghost"}
+                title="Unshare conversation"
                 onClick={handleUnshare}
             >
                 <Trash className={`${className}`} />

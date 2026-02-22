@@ -1,6 +1,5 @@
 import logging
 import re
-from pathlib import Path
 from typing import Dict, List, Tuple
 
 import urllib3
@@ -97,7 +96,7 @@ class PlaintextToEntries(TextToEntries):
         for parsed_entry in parsed_entries:
             raw_filename = entry_to_file_map[parsed_entry]
             # Check if raw_filename is a URL. If so, save it as is. If not, convert it to a Path.
-            if type(raw_filename) == str and re.search(r"^https?://", raw_filename):
+            if isinstance(raw_filename, str) and re.search(r"^https?://", raw_filename):
                 # Escape the URL to avoid issues with special characters
                 entry_filename = urllib3.util.parse_url(raw_filename).url
             else:

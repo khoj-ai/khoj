@@ -1,7 +1,7 @@
 # Admin Panel
 > Describes the Khoj settings configurable via the admin panel
 
-By default, you admin panel is available at `http://localhost:42110/server/admin/`. You can access the admin panel by logging in with your admin credentials (this would be your `KHOJ_ADMIN_EMAIL` and `KHOJ_ADMIN_PASSWORD`). The admin panel allows you to configure various settings for your Khoj server.
+By default, your admin panel is available at `http://localhost:42110/server/admin/`. You can access the admin panel by logging in with your admin credentials (this would be your `KHOJ_ADMIN_EMAIL` and `KHOJ_ADMIN_PASSWORD`). The admin panel allows you to configure various settings for your Khoj server.
 
 ## App Settings
 ### Agents
@@ -9,7 +9,7 @@ Add all the agents you want to use for your different use-cases like Writer, Res
 - `Personality`: This is a prompt to tell the chat model how to tune the personality of the agent.
 - `Chat model`: The chat model to use for the agent.
 - `Name`: The name of the agent. This field helps give the agent a unique identity across the app.
-- `Avatar`: Url to the agents profile picture. It help give the agent a unique visual identity across the app.
+- `Avatar`: Url to the agents profile picture. It helps give the agent a unique visual identity across the app.
 - `Style color`, `Style icon`: These fields help give the agent a unique, visually identifiable identity across the app.
 - `Slug`: This is the agent name to use in urls.
 - `Public`: Check this if the agent is expected to be visible to all users on this Khoj server.
@@ -20,7 +20,7 @@ Add all the agents you want to use for your different use-cases like Writer, Res
 ### Chat Model Options
 Add all the chat models you want to try, use and switch between for your different use-cases. For each chat model you add:
 - `Chat model`: The name of an [OpenAI](https://platform.openai.com/docs/models), [Anthropic](https://docs.anthropic.com/en/docs/about-claude/models#model-names), [Gemini](https://cloud.google.com/vertex-ai/generative-ai/docs/learn/models#gemini-models) or [Offline](https://huggingface.co/models?pipeline_tag=text-generation&library=gguf) chat model.
-- `Model type`: The chat model provider like `OpenAI`, `Offline`.
+- `Model type`: The chat model provider like `OpenAI`, `Google`.
 - `Vision enabled`: Set to `true` if your model supports vision. This is currently only supported for vision capable OpenAI models like `gpt-4o`
 - `Max prompt size`, `Subscribed max prompt size`: These are optional fields. They are used to truncate the context to the maximum context size that can be passed to the model. This can help with accuracy and cost-saving.<br />
 - `Tokenizer`: This is an optional field. It is used to accurately count tokens and truncate context passed to the chat model to stay within the models max prompt size.
@@ -52,8 +52,8 @@ Search models are used to generate vector embeddings of your documents for natur
 <img src="/img/example_search_model_admin_settings.png" alt="Example Search Model Settings" style={{width: 500}} />
 
 ### Text to Image Model Options
-Add text to image generation models with these settings. Khoj currently supports text to image models available via OpenAI, Stability or Replicate API
-- `api-key`: Set to your OpenAI, Stability or Replicate API key
+Add text to image generation models with these settings. Khoj currently supports text to image models available via OpenAI, Google or Replicate API
+- `api-key`: Set to your OpenAI, Google AI or Replicate API key
 - `model`: Set the model name available over the selected model provider
 - `model-type`: Set to the appropriate model provider
 - `openai-config`: For image generation models available via OpenAI (compatible) API you can set the appropriate OpenAI Processor Conversation Settings instead of specifying the `api-key` field above
@@ -65,7 +65,7 @@ Add speech to text models with these settings. Khoj currently only supports whis
 Add text to speech models with these settings. Khoj currently supports models from [ElevenLabs](https://elevenlabs.io/).
 
 ### Reflective Questions
-This is a static list of starter question suggestions for each user. It is not current used in any client app. It used to be shown on the web app home page. We may turn it into a dynamic list of starter questions personalized to each users, say based on their recent conversations or synced knowledge base.
+This is a static list of starter question suggestions for each user. It is not currently used in any client app. It used to be shown on the web app home page. We may turn it into a dynamic list of starter questions personalized to each users, say based on their recent conversations or synced knowledge base.
 
 ## User Data
 - Users, Entrys, Conversations, Subscriptions, Github configs, Notion configs, User search configs, User conversation configs, User voice configs

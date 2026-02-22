@@ -43,13 +43,36 @@ on:
       chat_model:
         description: 'Chat model to use'
         required: false
-        default: 'gemini-2.0-flash'
+        default: 'gemini-2.5-flash'
         type: string
       max_research_iterations:
         description: 'Maximum number of iterations in research mode'
         required: false
         default: 5
         type: number
+      openai_api_key:
+        description: 'OpenAI API key'
+        required: false
+        default: ''
+        type: string
+      openai_base_url:
+        description: 'Base URL of OpenAI compatible API'
+        required: false
+        default: 'https://api.openai.com/v1'
+        type: string
+      randomize:
+        description: 'Randomize the sample of questions'
+        required: false
+        default: 'true'
+        type: choice
+        options:
+          - 'false'
+          - 'true'
+      dataset_seed:
+        description: 'Seed to deterministically shuffle questions'
+        required: false
+        default: ''
+        type: string
 
 jobs:
   eval:
@@ -80,45 +103,60 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
         with:
-          python-version: '3.10'
+          version: "latest"
+
+      - name: Set up Python
+        run: uv python install 3.10
 
       - name: Get App Version
         id: hatch
-        run: echo "version=$(pipx run hatch version)" >> $GITHUB_OUTPUT
+        run: |
+          # Mask relevant workflow inputs as secret early
+          OPENAI_API_KEY=$(jq -r '.inputs.openai_api_key' $GITHUB_EVENT_PATH)
+          echo ::add-mask::$OPENAI_API_KEY
+          echo OPENAI_API_KEY="$OPENAI_API_KEY" >> $GITHUB_ENV
+
+          # Get app version from hatch
+          echo "version=$(pipx run hatch version)" >> $GITHUB_OUTPUT
 
       - name: ⏬️ Install Dependencies
         env:
           DEBIAN_FRONTEND: noninteractive
         run: |
-          # install postgres and other dependencies
-          sudo apt update && sudo apt install -y git python3-pip libegl1 sqlite3 libsqlite3-dev libsqlite3-0 ffmpeg libsm6 libxext6
-          sudo apt install -y postgresql postgresql-client && sudo apt install -y postgresql-server-dev-16
-          # upgrade pip
-          python -m ensurepip --upgrade && python -m pip install --upgrade pip
+          # install dependencies
+          sudo apt update && sudo apt install -y git libegl1 sqlite3 libsqlite3-dev libsqlite3-0 ffmpeg libsm6 libxext6
           # install terrarium for code sandbox
           git clone https://github.com/khoj-ai/terrarium.git && cd terrarium && npm install --legacy-peer-deps && mkdir pyodide_cache
 
       - name: ⬇️ Install Application
+        env:
+          UV_INDEX: "https://download.pytorch.org/whl/cpu"
+          UV_INDEX_STRATEGY: "unsafe-best-match"
+          CUDA_VISIBLE_DEVICES: ""
         run: |
           sed -i 's/dynamic = \["version"\]/version = "${{ steps.hatch.outputs.version }}"/' pyproject.toml
-          pip install --upgrade .[dev]
+          uv sync --all-extras
 
       - name: 📝 Run Eval
         env:
           KHOJ_MODE: ${{ matrix.khoj_mode }}
           SAMPLE_SIZE: ${{ github.event_name == 'workflow_dispatch' && inputs.sample_size || 200 }}
           BATCH_SIZE: "20"
-          RANDOMIZE: "True"
-          KHOJ_URL: "http://localhost:42110"
-          KHOJ_DEFAULT_CHAT_MODEL: ${{ github.event_name == 'workflow_dispatch' && inputs.chat_model || 'gemini-2.0-flash' }}
+          RANDOMIZE: ${{ github.event_name == 'workflow_dispatch' && inputs.randomize || 'true' }}
+          DATASET_SEED: ${{ github.event_name == 'workflow_dispatch' && inputs.dataset_seed || github.run_id }}
           KHOJ_LLM_SEED: "42"
-          KHOJ_RESEARCH_ITERATIONS: ${{ github.event_name == 'workflow_dispatch' && inputs.max_research_iterations || 5 }}
+          KHOJ_URL: "http://localhost:42110"
+          KHOJ_DEFAULT_CHAT_MODEL: ${{ github.event_name == 'workflow_dispatch' && inputs.chat_model || 'gemini-2.5-flash' }}
+          KHOJ_RESEARCH_ITERATIONS: ${{ github.event_name == 'workflow_dispatch' && inputs.max_research_iterations || 10 }}
+          KHOJ_AUTO_READ_WEBPAGE: ${{ github.event_name == 'workflow_dispatch' && inputs.auto_read_webpage || 'false' }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          OPENAI_BASE_URL: ${{ github.event_name == 'workflow_dispatch' && inputs.openai_base_url || 'https://api.openai.com/v1' }}
           SERPER_DEV_API_KEY: ${{ matrix.dataset != 'math500' && secrets.SERPER_DEV_API_KEY || '' }}
           OLOSTEP_API_KEY: ${{ matrix.dataset != 'math500' && secrets.OLOSTEP_API_KEY || ''}}
+          FIRECRAWL_API_KEY: ${{ matrix.dataset != 'math500' && secrets.FIRECRAWL_API_KEY || '' }}
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
           E2B_API_KEY: ${{ inputs.sandbox == 'e2b' && secrets.E2B_API_KEY || '' }}
           E2B_TEMPLATE: ${{ vars.E2B_TEMPLATE }}
@@ -129,10 +167,16 @@ jobs:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
           POSTGRES_DB: postgres
+          USE_EMBEDDED_DB: "true"
           KHOJ_TELEMETRY_DISABLE: "True"  # To disable telemetry for tests
         run: |
+          set -euo pipefail
+
           # Start Khoj server in background
-          khoj --anonymous-mode --non-interactive &
+          # Capture stdout/stderr to a log for debugging if startup fails
+          uv run khoj --anonymous-mode --non-interactive -vv > khoj_server.log 2>&1 &
+          KHOJ_PID=$!
+          echo "Started Khoj (PID=$KHOJ_PID)"
 
           # Start code sandbox
           npm install -g pm2
@@ -141,17 +185,25 @@ jobs:
           # Wait for server to be ready
           timeout=120
           while ! curl -s http://localhost:42110/api/health > /dev/null; do
-            if [ $timeout -le 0 ]; then
-              echo "Timed out waiting for Khoj server"
+            # If process died, surface logs and fail fast
+            if ! kill -0 "$KHOJ_PID" 2>/dev/null; then
+              echo "Khoj process exited before becoming healthy. Logs:" >&2
+              sed -n '1,200p' khoj_server.log >&2 || true
               exit 1
             fi
-            echo "Waiting for Khoj server..."
+            if [ $timeout -le 0 ]; then
+              echo "Timed out waiting for Khoj server. Partial logs:" >&2
+              sed -n '1,200p' khoj_server.log >&2 || true
+              exit 1
+            fi
+            echo "Waiting for Khoj server... ($timeout s left)"
             sleep 2
             timeout=$((timeout-2))
           done
+          echo "Khoj server is healthy"
 
           # Run evals
-          python tests/evals/eval.py -d ${{ matrix.dataset }}
+          uv run python tests/evals/eval.py -d ${{ matrix.dataset }}
 
       - name: Upload Results
         if: always()  # Upload results even if tests fail
@@ -161,6 +213,7 @@ jobs:
           path: |
             *_evaluation_results_*.csv
             *_evaluation_summary_*.txt
+            khoj_server.log
 
       - name: Display Results
         if: always()
@@ -169,7 +222,7 @@ jobs:
           echo "## Evaluation Summary of Khoj on ${{ matrix.dataset }} in ${{ matrix.khoj_mode }} mode" >> $GITHUB_STEP_SUMMARY
           echo "**$(head -n 1 *_evaluation_summary_*.txt)**" >> $GITHUB_STEP_SUMMARY
           echo "- Khoj Version: ${{ steps.hatch.outputs.version }}" >> $GITHUB_STEP_SUMMARY
-          echo "- Chat Model: ${{ inputs.chat_model || 'gemini-2.0-flash' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Chat Model: ${{ inputs.chat_model || 'gemini-2.5-flash' }}" >> $GITHUB_STEP_SUMMARY
           echo "- Code Sandbox: ${{ inputs.sandbox || 'terrarium' }}" >> $GITHUB_STEP_SUMMARY
           echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
           tail -n +2 *_evaluation_summary_*.txt >> $GITHUB_STEP_SUMMARY

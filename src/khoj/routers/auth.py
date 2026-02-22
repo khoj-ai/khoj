@@ -3,11 +3,10 @@ import datetime
 import logging
 import os
 from typing import Optional
-from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
+from urllib.parse import urlencode, urlparse, urlunparse
 
 import requests
-from fastapi import APIRouter, Depends
-from pydantic import BaseModel, EmailStr
+from fastapi import APIRouter, Depends, HTTPException
 from starlette.authentication import requires
 from starlette.config import Config
 from starlette.requests import Request
@@ -25,19 +24,18 @@ from khoj.database.adapters import (
 )
 from khoj.routers.email import send_magic_link_email, send_welcome_email
 from khoj.routers.helpers import (
+    EmailAttemptRateLimiter,
     EmailVerificationApiRateLimiter,
+    MagicLinkForm,
     get_next_url,
     update_telemetry_state,
 )
 from khoj.utils import state
+from khoj.utils.helpers import in_debug_mode
 
 logger = logging.getLogger(__name__)
 
 auth_router = APIRouter()
-
-
-class MagicLinkForm(BaseModel):
-    email: EmailStr
 
 
 if not state.anonymous_mode:
@@ -78,24 +76,36 @@ async def login(request: Request):
 
 
 @auth_router.post("/magic")
-async def login_magic_link(request: Request, form: MagicLinkForm):
+async def login_magic_link(
+    request: Request,
+    form: MagicLinkForm,
+    email_limiter=Depends(EmailAttemptRateLimiter(requests=20, window=60 * 60 * 24, slug="magic_link_login_by_email")),
+):
     if request.user.is_authenticated:
         # Clear the session if user is already authenticated
         request.session.pop("user", None)
 
-    user, is_new = await aget_or_create_user_by_email(form.email)
+    # Get/create user if valid email address
+    check_deliverability = state.billing_enabled and not in_debug_mode()
+    user, is_new = await aget_or_create_user_by_email(form.email, check_deliverability=check_deliverability)
+    if not user:
+        raise HTTPException(status_code=404, detail="Invalid email address. Please fix before trying again.")
 
-    if user:
-        unique_id = user.email_verification_code
-        await send_magic_link_email(user.email, unique_id, request.base_url)
-        if is_new:
-            update_telemetry_state(
-                request=request,
-                telemetry_type="api",
-                api="create_user__email",
-                metadata={"server_id": str(user.uuid)},
-            )
-            logger.log(logging.INFO, f"🥳 New User Created: {user.uuid}")
+    # Rate limit email login by user
+    user_limiter = EmailVerificationApiRateLimiter(requests=10, window=60 * 60 * 24, slug="magic_link_login_by_user")
+    await user_limiter(email=user.email)
+
+    # Send email with magic link
+    unique_id = user.email_verification_code
+    await send_magic_link_email(user.email, unique_id, request.base_url)
+    if is_new:
+        update_telemetry_state(
+            request=request,
+            telemetry_type="api",
+            api="create_user__email",
+            metadata={"server_id": str(user.uuid)},
+        )
+        logger.log(logging.INFO, f"🥳 New User Created: {user.uuid}")
 
     return Response(status_code=200)
 

@@ -1,0 +1,29 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Launch Khoj",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "src.khoj.main",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "sudo": true,
+            "args": [
+                "-v",
+                "--anonymous-mode",
+                "--non-interactive",
+                "--port=42110"
+            ],
+            "envFile": "${workspaceFolder}/.env",
+            "env": {
+                "KHOJ_ADMIN_EMAIL": "admin",
+                "KHOJ_ADMIN_PASSWORD": "admin",
+                "USE_EMBEDDED_DB": "true",
+                "KHOJ_DEBUG": "true",
+                "KHOJ_TELEMETRY_DISABLED": "true",
+                "PROMPTRACE_DIR": "${workspaceFolder}/promptrace"
+            }
+        }
+    ]
+}

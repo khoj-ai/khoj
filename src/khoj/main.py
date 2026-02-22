@@ -1,5 +1,5 @@
-""" Main module for Khoj
-   isort:skip_file
+"""Main module for Khoj
+isort:skip_file
 """
 
 from contextlib import redirect_stdout
@@ -20,6 +20,7 @@ from khoj.utils.helpers import in_debug_mode, is_env_var_true
 # Ignore non-actionable warnings
 warnings.filterwarnings("ignore", message=r"snapshot_download.py has been made private", category=FutureWarning)
 warnings.filterwarnings("ignore", message=r"legacy way to download files from the HF hub,", category=FutureWarning)
+warnings.filterwarnings("ignore", message=r"Warning: Empty content on page \d+ of document", category=UserWarning)
 
 
 import uvicorn
@@ -66,7 +67,7 @@ else:
 django_app = get_asgi_application()
 
 # Add CORS middleware
-KHOJ_DOMAIN = os.getenv("KHOJ_DOMAIN", "app.khoj.dev")
+KHOJ_DOMAIN = os.getenv("KHOJ_DOMAIN") or "app.khoj.dev"
 scheme = "https" if not is_env_var_true("KHOJ_NO_HTTPS") else "http"
 custom_origins = [f"{scheme}://{KHOJ_DOMAIN.strip()}", f"{scheme}://{KHOJ_DOMAIN.strip()}:*"]
 default_origins = [
@@ -137,10 +138,10 @@ def run(should_start_server=True):
     initialization(not args.non_interactive)
 
     # Create app directory, if it doesn't exist
-    state.config_file.parent.mkdir(parents=True, exist_ok=True)
+    state.log_file.parent.mkdir(parents=True, exist_ok=True)
 
     # Set Log File
-    fh = logging.FileHandler(state.config_file.parent / "khoj.log", encoding="utf-8")
+    fh = logging.FileHandler(state.log_file, encoding="utf-8")
     fh.setLevel(logging.DEBUG)
     logger.addHandler(fh)
 
@@ -188,12 +189,12 @@ def run(should_start_server=True):
     static_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static")
     if not os.path.exists(static_dir):
         os.mkdir(static_dir)
-    app.mount(f"/static", StaticFiles(directory=static_dir), name=static_dir)
+    app.mount("/static", StaticFiles(directory=static_dir), name=static_dir)
 
     # Configure Middleware
     configure_middleware(app, state.ssl_config)
 
-    initialize_server(args.config)
+    initialize_server()
 
     # If the server is started through gunicorn (external to the script), don't start the server
     if should_start_server:
@@ -203,8 +204,7 @@ def run(should_start_server=True):
 
 
 def set_state(args):
-    state.config_file = args.config_file
-    state.config = args.config
+    state.log_file = args.log_file
     state.verbose = args.verbose
     state.host = args.host
     state.port = args.port
@@ -213,13 +213,21 @@ def set_state(args):
     )
     state.anonymous_mode = args.anonymous_mode
     state.khoj_version = version("khoj")
-    state.chat_on_gpu = args.chat_on_gpu
 
 
 def start_server(app, host=None, port=None, socket=None):
-    logger.info("🌖 Khoj is ready to use")
+    logger.info("🌖 Khoj is ready to engage")
     if socket:
-        uvicorn.run(app, proxy_headers=True, uds=socket, log_level="debug", use_colors=True, log_config=None)
+        uvicorn.run(
+            app,
+            proxy_headers=True,
+            uds=socket,
+            log_level="debug" if state.verbose > 1 else "info",
+            use_colors=True,
+            log_config=None,
+            ws_ping_timeout=300,
+            timeout_keep_alive=60,
+        )
     else:
         uvicorn.run(
             app,
@@ -228,6 +236,7 @@ def start_server(app, host=None, port=None, socket=None):
             log_level="debug" if state.verbose > 1 else "info",
             use_colors=True,
             log_config=None,
+            ws_ping_timeout=300,
             timeout_keep_alive=60,
             **state.ssl_config if state.ssl_config else {},
         )

@@ -5,7 +5,6 @@ from urllib.parse import quote
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from PIL import Image
 
 from khoj.configure import configure_routes, configure_search_types
 from khoj.database.adapters import EntryAdapters
@@ -13,7 +12,6 @@ from khoj.database.models import KhojApiUser, KhojUser
 from khoj.processor.content.org_mode.org_to_entries import OrgToEntries
 from khoj.search_type import text_search
 from khoj.utils import state
-from khoj.utils.rawconfig import ContentConfig, SearchConfig
 
 
 # Test
@@ -102,7 +100,7 @@ def test_update_with_invalid_content_type(client):
     headers = {"Authorization": "Bearer kk-secret"}
 
     # Act
-    response = client.get(f"/api/update?t=invalid_content_type", headers=headers)
+    response = client.get("/api/update?t=invalid_content_type", headers=headers)
 
     # Assert
     assert response.status_code == 422
@@ -115,7 +113,7 @@ def test_regenerate_with_invalid_content_type(client):
     headers = {"Authorization": "Bearer kk-secret"}
 
     # Act
-    response = client.get(f"/api/update?force=true&t=invalid_content_type", headers=headers)
+    response = client.get("/api/update?force=true&t=invalid_content_type", headers=headers)
 
     # Assert
     assert response.status_code == 422
@@ -239,13 +237,13 @@ def test_regenerate_with_valid_content_type(client):
 def test_regenerate_with_github_fails_without_pat(client):
     # Act
     headers = {"Authorization": "Bearer kk-secret"}
-    response = client.get(f"/api/update?force=true&t=github", headers=headers)
+    response = client.get("/api/update?force=true&t=github", headers=headers)
 
     # Arrange
     files = get_sample_files_data()
 
     # Act
-    response = client.patch(f"/api/content?t=github", files=files, headers=headers)
+    response = client.patch("/api/content?t=github", files=files, headers=headers)
 
     # Assert
     assert response.status_code == 200, f"Returned status: {response.status_code} for content type: github"
@@ -271,7 +269,7 @@ def test_get_api_config_types(client, sample_org_data, default_user: KhojUser):
     text_search.setup(OrgToEntries, sample_org_data, regenerate=False, user=default_user)
 
     # Act
-    response = client.get(f"/api/content/types", headers=headers)
+    response = client.get("/api/content/types", headers=headers)
 
     # Assert
     assert response.status_code == 200
@@ -283,15 +281,11 @@ def test_get_api_config_types(client, sample_org_data, default_user: KhojUser):
 def test_get_configured_types_with_no_content_config(fastapi_app: FastAPI):
     # Arrange
     state.anonymous_mode = True
-    if state.config and state.config.content_type:
-        state.config.content_type = None
-    state.search_models = configure_search_types()
-
     configure_routes(fastapi_app)
     client = TestClient(fastapi_app)
 
     # Act
-    response = client.get(f"/api/content/types")
+    response = client.get("/api/content/types")
 
     # Assert
     assert response.status_code == 200
@@ -300,7 +294,7 @@ def test_get_configured_types_with_no_content_config(fastapi_app: FastAPI):
 
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.django_db(transaction=True)
-def test_notes_search(client, search_config: SearchConfig, sample_org_data, default_user: KhojUser):
+def test_notes_search(client, search_config, sample_org_data, default_user: KhojUser):
     # Arrange
     headers = {"Authorization": "Bearer kk-secret"}
     text_search.setup(OrgToEntries, sample_org_data, regenerate=False, user=default_user)
@@ -319,7 +313,7 @@ def test_notes_search(client, search_config: SearchConfig, sample_org_data, defa
 
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.django_db(transaction=True)
-def test_notes_search_no_results(client, search_config: SearchConfig, sample_org_data, default_user: KhojUser):
+def test_notes_search_no_results(client, search_config, sample_org_data, default_user: KhojUser):
     # Arrange
     headers = {"Authorization": "Bearer kk-secret"}
     text_search.setup(OrgToEntries, sample_org_data, regenerate=False, user=default_user)
@@ -335,9 +329,7 @@ def test_notes_search_no_results(client, search_config: SearchConfig, sample_org
 
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.django_db(transaction=True)
-def test_notes_search_with_only_filters(
-    client, content_config: ContentConfig, search_config: SearchConfig, sample_org_data, default_user: KhojUser
-):
+def test_notes_search_with_only_filters(client, sample_org_data, default_user: KhojUser):
     # Arrange
     headers = {"Authorization": "Bearer kk-secret"}
     text_search.setup(
@@ -401,9 +393,7 @@ def test_notes_search_with_exclude_filter(client, sample_org_data, default_user:
 
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.django_db(transaction=True)
-def test_notes_search_requires_parent_context(
-    client, search_config: SearchConfig, sample_org_data, default_user: KhojUser
-):
+def test_notes_search_requires_parent_context(client, search_config, sample_org_data, default_user: KhojUser):
     # Arrange
     headers = {"Authorization": "Bearer kk-secret"}
     text_search.setup(OrgToEntries, sample_org_data, regenerate=False, user=default_user)
@@ -457,14 +447,14 @@ def test_user_no_data_returns_empty(client, sample_org_data, api_user3: KhojApiU
 
 @pytest.mark.skipif(os.getenv("OPENAI_API_KEY") is None, reason="requires OPENAI_API_KEY")
 @pytest.mark.django_db(transaction=True)
-async def test_chat_with_unauthenticated_user(chat_client_with_auth, api_user2: KhojApiUser):
+def test_chat_with_unauthenticated_user(chat_client_with_auth, api_user2: KhojApiUser):
     # Arrange
     query = "Hello!"
     headers = {"Authorization": f"Bearer {api_user2.token}"}
 
     # Act
-    auth_response = chat_client_with_auth.post(f"/api/chat", json={"q": query}, headers=headers)
-    no_auth_response = chat_client_with_auth.post(f"/api/chat", json={"q": query})
+    auth_response = chat_client_with_auth.post("/api/chat", json={"q": query}, headers=headers)
+    no_auth_response = chat_client_with_auth.post("/api/chat", json={"q": query})
 
     # Assert
     assert auth_response.status_code == 200
@@ -511,7 +501,7 @@ def get_big_size_sample_files_data():
 
 
 def get_medium_size_sample_files_data():
-    big_text = "a" * (10 * 1024 * 1024)  # a string of approximately 10 MB
+    big_text = "a" * (50 * 1024 * 1024)  # a string of approximately 50 MB
     return [
         (
             "files",

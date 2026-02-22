@@ -1,0 +1,58 @@
+{
+    "name": "Khoj Development Environment",
+    "build": {
+        "dockerfile": "Dockerfile",
+        "context": "..", // Build context is the project root
+        "args": {
+            "PYTHON_VERSION": "3.12"
+        }
+    },
+    "forwardPorts": [
+        42110
+    ],
+    "containerEnv": {
+        "USE_EMBEDDED_DB": "True"
+    },
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "ms-python.python",
+                "ms-python.vscode-pylance",
+                "ms-python.black-formatter",
+                "ms-python.mypy-type-checker",
+                "ms-python.isort",
+                "esbenp.prettier-vscode",
+                "GitHub.copilot",
+                "GitHub.copilot-chat",
+                "GitHub.vscode-pull-request-github",
+                "github.vscode-github-actions",
+                "unifiedjs.vscode-mdx"
+            ],
+            "settings": {
+                "python.defaultInterpreterPath": "/opt/venv/bin/python",
+                "python.formatting.provider": "black",
+                "python.linting.enabled": true,
+                "python.linting.mypyEnabled": true,
+                "python.linting.mypyArgs": [
+                    "--config-file=pyproject.toml"
+                ],
+                "mypy.configFile": "pyproject.toml",
+                "isort.args": [
+                    "--profile",
+                    "black",
+                    "--filter-files"
+                ],
+                "python.testing.pytestArgs": [
+                    "tests"
+                ],
+                "python.testing.unittestEnabled": false,
+                "python.testing.pytestEnabled": true,
+            }
+        }
+    },
+    "postCreateCommand": "scripts/dev_setup.sh --devcontainer",
+    "features": {
+        "ghcr.io/devcontainers/features/github-cli:1": {},
+    },
+    "remoteUser": "vscode"
+}
