@@ -16,3 +16,45 @@ div.trainOfThought {
     padding: 8px 16px;
     margin: 12px;
 }
+
+/* If there is an inline element holding extremely long content, ensure it wraps */
+div.trainOfThought pre,
+div.trainOfThought code,
+div.trainOfThought p,
+div.trainOfThought span {
+    overflow-wrap: anywhere;
+}
+
+/* Print-specific styles for chat history */
+@media print {
+    div.chatHistory {
+        height: auto !important;
+        max-height: none !important;
+        overflow: visible !important;
+        display: block !important;
+        position: static !important;
+        flex-direction: column !important;
+    }
+
+    div.chatHistory > * {
+        height: auto !important;
+        max-height: none !important;
+        overflow: visible !important;
+        position: static !important;
+        width: 100% !important;
+        max-width: none !important;
+    }
+
+    /* Show agent indicators clearly in print */
+    div.agentIndicator {
+        margin-bottom: 0.5rem !important;
+    }
+
+    /* Train of thought styling for print */
+    div.trainOfThought {
+        border-left: 2px solid #ccc !important;
+        margin: 0.5rem 0 !important;
+        padding: 0.5rem 1rem !important;
+        font-size: 0.9em !important;
+    }
+}

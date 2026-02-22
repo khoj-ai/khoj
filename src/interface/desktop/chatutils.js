@@ -1,4 +1,4 @@
-function copyParentText(event, message=null) { //same
+function copyParentText(event, message=null) {
     const button = event.currentTarget;
     const textContent = message ?? button.parentNode.textContent.trim();
     navigator.clipboard.writeText(textContent).then(() => {
@@ -17,19 +17,19 @@ function copyParentText(event, message=null) { //same
     });
 }
 
-function createCopyParentText(message) { //same
+function createCopyParentText(message) {
     return function(event) {
         copyParentText(event, message);
     }
 }
-function formatDate(date) { //same
+function formatDate(date) {
     // Format date in HH:MM, DD MMM YYYY format
     let time_string = date.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: false });
     let date_string = date.toLocaleString('en-IN', { year: 'numeric', month: 'short', day: '2-digit'}).replaceAll('-', ' ');
     return `${time_string}, ${date_string}`;
 }
 
-function generateReference(referenceJson, index) { //same
+function generateReference(referenceJson, index) {
     let reference = referenceJson.hasOwnProperty("compiled") ? referenceJson.compiled : referenceJson;
     let referenceFile = referenceJson.hasOwnProperty("file") ? referenceJson.file : null;
 
@@ -62,7 +62,7 @@ function generateReference(referenceJson, index) { //same
     return referenceButton;
 }
 
-function generateOnlineReference(reference, index) { //same
+function generateOnlineReference(reference, index) {
 
     // Generate HTML for Chat Reference
     let title = reference.title || reference.link;
@@ -107,7 +107,7 @@ function generateOnlineReference(reference, index) { //same
     return referenceButton;
 }
 
-function renderMessage(message, by, dt=null, annotations=null, raw=false, renderType="append") { //same
+function renderMessage(message, by, dt=null, annotations=null, raw=false, renderType="append") {
     let message_time = formatDate(dt ?? new Date());
     let by_name =  by == "khoj" ? "🏮 Khoj" : "🤔 You";
     let formattedMessage = formatHTMLMessage(message, raw);
@@ -145,7 +145,7 @@ function renderMessage(message, by, dt=null, annotations=null, raw=false, render
     chatBodyWrapperHeight = chatBodyWrapper.clientHeight;
 }
 
-function processOnlineReferences(referenceSection, onlineContext) { //same
+function processOnlineReferences(referenceSection, onlineContext) {
     let numOnlineReferences = 0;
     for (let subquery in onlineContext) {
         let onlineReference = onlineContext[subquery];

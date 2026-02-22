@@ -26,6 +26,7 @@ import { useIsDarkMode, useIsMobileWidth } from "@/app/common/utils";
 import { UserPlusIcon } from "lucide-react";
 import { useAuthenticatedData, UserProfile } from "@/app/common/auth";
 import LoginPrompt from "../loginPrompt/loginPrompt";
+import { usePathname } from "next/navigation";
 
 async function openChat(userData: UserProfile | null | undefined) {
     const unauthenticatedRedirectUrl = `/login?redirect=${encodeURIComponent(window.location.pathname)}`;
@@ -48,13 +49,12 @@ async function openChat(userData: UserProfile | null | undefined) {
     }
 }
 
-
 // Menu items.
 const items = [
     {
         title: "Home",
         url: "/",
-        icon: HouseSimple
+        icon: HouseSimple,
     },
     {
         title: "Agents",
@@ -89,17 +89,21 @@ interface AppSidebarProps {
 export function AppSidebar(props: AppSidebarProps) {
     const isMobileWidth = useIsMobileWidth();
     const { data, isLoading, error } = useAuthenticatedData();
+    const pathname = usePathname();
 
     const { state, open, setOpen, openMobile, setOpenMobile, isMobile, toggleSidebar } =
         useSidebar();
 
     const [showLoginPrompt, setShowLoginPrompt] = useState(false);
 
+    // Check if we're on a shared chat page
+    const isSharedChatPage = pathname?.startsWith("/share/chat");
+
     useEffect(() => {
-        if (!isLoading && !data) {
+        if (!isLoading && !data && !isSharedChatPage) {
             setShowLoginPrompt(true);
         }
-    }, [isLoading, data]);
+    }, [isLoading, data, isSharedChatPage]);
 
     return (
         <Sidebar collapsible={"icon"} variant="sidebar" className="md:py-2">

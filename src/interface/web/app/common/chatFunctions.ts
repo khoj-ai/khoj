@@ -97,6 +97,17 @@ export function processMessageChunk(
         console.log(`status: ${chunk.data}`);
         const statusMessage = chunk.data as string;
         currentMessage.trainOfThought.push(statusMessage);
+    } else if (chunk.type === "thought") {
+        const thoughtChunk = chunk.data as string;
+        const lastThoughtIndex = currentMessage.trainOfThought.length - 1;
+        const previousThought =
+            lastThoughtIndex >= 0 ? currentMessage.trainOfThought[lastThoughtIndex] : "";
+        // If the last train of thought started with "Thinking: " append the new thought chunk to it
+        if (previousThought.startsWith("**Thinking:** ")) {
+            currentMessage.trainOfThought[lastThoughtIndex] += thoughtChunk;
+        } else {
+            currentMessage.trainOfThought.push(`**Thinking:** ${thoughtChunk}`);
+        }
     } else if (chunk.type === "references") {
         const references = chunk.data as RawReferenceData;
 
@@ -194,7 +205,7 @@ export function renderCodeGenImageInline(message: string, codeContext: CodeConte
     if (!codeContext) return message;
 
     Object.values(codeContext).forEach((contextData) => {
-        contextData.results.output_files?.forEach((file) => {
+        contextData.results?.output_files?.forEach((file) => {
             const regex = new RegExp(`!?\\[.*?\\]\\(.*${file.filename}\\)`, "g");
             if (file.filename.match(/\.(png|jpg|jpeg)$/i)) {
                 const replacement = `![${file.filename}](data:image/${file.filename.split(".").pop()};base64,${file.b64_data})`;
@@ -288,7 +299,11 @@ export async function packageFilesForUpload(files: FileList): Promise<FormData> 
                         fileType = "text/org";
                     } else if (fileExtension === "md") {
                         fileType = "text/markdown";
-                    } else if (fileExtension === "txt") {
+                    } else if (
+                        fileExtension === "txt" ||
+                        fileExtension === "tsx" ||
+                        fileExtension === "ipynb"
+                    ) {
                         fileType = "text/plain";
                     } else if (fileExtension === "html") {
                         fileType = "text/html";
@@ -299,12 +314,16 @@ export async function packageFilesForUpload(files: FileList): Promise<FormData> 
                             "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
                     } else {
                         // Skip this file if its type is not supported
+                        console.warn(
+                            `File type ${fileType} not supported. Skipping file: ${fileName}`,
+                        );
                         resolve();
                         return;
                     }
                 }
 
                 if (fileContents === null) {
+                    console.warn(`Could not read file content. Skipping file: ${fileName}`);
                     reject();
                     return;
                 }

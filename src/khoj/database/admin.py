@@ -23,8 +23,10 @@ from khoj.database.models import (
     Entry,
     GithubConfig,
     KhojUser,
+    McpServer,
     NotionConfig,
     ProcessLock,
+    RateLimitRecord,
     ReflectiveQuestion,
     SearchModelConfig,
     ServerChatSettings,
@@ -32,6 +34,7 @@ from khoj.database.models import (
     Subscription,
     TextToImageModelConfig,
     UserConversationConfig,
+    UserMemory,
     UserRequests,
     UserVoiceModelConfig,
     VoiceModelOption,
@@ -152,13 +155,17 @@ class KhojUserAdmin(UserAdmin, unfold_admin.ModelAdmin):
     actions = ["get_email_login_url"]
 
     def get_email_login_url(self, request, queryset):
+        any_valid_otps = False
         for user in queryset:
-            if user.email:
+            if user.email and user.email_verification_code:
+                any_valid_otps = True
                 host = request.get_host()
                 otp = quote(user.email_verification_code)
                 encoded_email = quote(user.email)
                 login_url = f"{host}/auth/magic?code={otp}&email={encoded_email}"
                 messages.info(request, f"Email login URL for {user.email}: {login_url}")
+        if not any_valid_otps:
+            messages.error(request, "No valid OTPs found for the selected users.")
 
     get_email_login_url.short_description = "Get email login URL"  # type: ignore
 
@@ -175,6 +182,18 @@ admin.site.register(NotionConfig, unfold_admin.ModelAdmin)
 admin.site.register(UserVoiceModelConfig, unfold_admin.ModelAdmin)
 admin.site.register(VoiceModelOption, unfold_admin.ModelAdmin)
 admin.site.register(UserRequests, unfold_admin.ModelAdmin)
+admin.site.register(RateLimitRecord, unfold_admin.ModelAdmin)
+admin.site.register(UserMemory, unfold_admin.ModelAdmin)
+
+
+@admin.register(McpServer)
+class McpServerAdmin(unfold_admin.ModelAdmin):
+    list_display = (
+        "id",
+        "name",
+        "path",
+    )
+    search_fields = ("id", "name", "path")
 
 
 @admin.register(Agent)
@@ -226,6 +245,7 @@ class KhojUserSubscription(unfold_admin.ModelAdmin):
 class ChatModelAdmin(unfold_admin.ModelAdmin):
     list_display = (
         "id",
+        "friendly_name",
         "name",
         "ai_model_api",
         "max_prompt_size",
@@ -237,6 +257,7 @@ class ChatModelAdmin(unfold_admin.ModelAdmin):
 class TextToImageModelOptionsAdmin(unfold_admin.ModelAdmin):
     list_display = (
         "id",
+        "friendly_name",
         "model_name",
         "model_type",
     )
@@ -248,10 +269,10 @@ class AiModelApiAdmin(unfold_admin.ModelAdmin):
     list_display = (
         "id",
         "name",
-        "api_key",
         "api_base_url",
+        "api_key",
     )
-    search_fields = ("id", "name", "api_key", "api_base_url")
+    search_fields = ("id", "name", "api_base_url", "api_key")
 
 
 @admin.register(SearchModelConfig)
@@ -268,10 +289,17 @@ class SearchModelConfigAdmin(unfold_admin.ModelAdmin):
 @admin.register(ServerChatSettings)
 class ServerChatSettingsAdmin(unfold_admin.ModelAdmin):
     list_display = (
+        "priority",
         "chat_default",
         "chat_advanced",
+        "think_free_fast",
+        "think_free_deep",
+        "think_paid_fast",
+        "think_paid_deep",
         "web_scraper",
+        "memory_mode",
     )
+    ordering = ("priority",)
 
 
 @admin.register(WebScraper)

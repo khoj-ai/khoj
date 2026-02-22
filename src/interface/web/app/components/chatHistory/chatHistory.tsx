@@ -8,7 +8,9 @@ import ChatMessage, {
     ChatHistoryData,
     StreamMessage,
     TrainOfThought,
+    TrainOfThoughtObject,
 } from "../chatMessage/chatMessage";
+import TrainOfThoughtVideoPlayer from "../../../components/trainOfThoughtVideoPlayer/trainOfThoughtVideoPlayer";
 
 import { ScrollArea } from "@/components/ui/scroll-area";
 
@@ -22,14 +24,11 @@ import { AgentData } from "@/app/components/agentCard/agentCard";
 import React from "react";
 import { useIsMobileWidth } from "@/app/common/utils";
 import { Button } from "@/components/ui/button";
+import { KhojLogo } from "../logo/khojLogo";
 
 interface ChatResponse {
     status: string;
     response: ChatHistoryData;
-}
-
-interface ChatHistory {
-    [key: string]: string;
 }
 
 interface ChatHistoryProps {
@@ -42,38 +41,156 @@ interface ChatHistoryProps {
     setAgent: (agent: AgentData) => void;
     customClassName?: string;
     setIsChatSideBarOpen?: (isOpen: boolean) => void;
+    setIsOwner?: (isOwner: boolean) => void;
+    onRetryMessage?: (query: string, turnId?: string) => void;
+}
+
+interface TrainOfThoughtFrame {
+    text: string;
+    image?: string;
+    timestamp: number;
+}
+
+interface TrainOfThoughtGroup {
+    type: "video" | "text";
+    frames?: TrainOfThoughtFrame[];
+    textEntries?: TrainOfThoughtObject[];
 }
 
 interface TrainOfThoughtComponentProps {
-    trainOfThought: string[];
+    trainOfThought: string[] | TrainOfThoughtObject[];
     lastMessage: boolean;
     agentColor: string;
     keyId: string;
     completed?: boolean;
 }
 
+function extractTrainOfThoughtGroups(
+    trainOfThought?: TrainOfThoughtObject[],
+): TrainOfThoughtGroup[] {
+    if (!trainOfThought) return [];
+
+    const groups: TrainOfThoughtGroup[] = [];
+    let currentVideoFrames: TrainOfThoughtFrame[] = [];
+    let currentTextEntries: TrainOfThoughtObject[] = [];
+
+    trainOfThought.forEach((thought, index) => {
+        let text = thought.data;
+        let hasImage = false;
+
+        // Extract screenshot image from the thought data
+        try {
+            const jsonMatch = text.match(
+                /\{.*(\"action\": \"screenshot\"|\"type\": \"screenshot\"|\"image\": \"data:image\/.*\").*\}/,
+            );
+            if (jsonMatch) {
+                const jsonMessage = JSON.parse(jsonMatch[0]);
+                if (jsonMessage.image) {
+                    hasImage = true;
+                    // Clean up the text to remove the JSON action
+                    text = text.replace(`:\n**Action**: ${jsonMatch[0]}`, "");
+                    if (jsonMessage.text) {
+                        text += `\n\n${jsonMessage.text}`;
+                    }
+
+                    // If we have accumulated text entries, add them as a text group
+                    if (currentTextEntries.length > 0) {
+                        groups.push({
+                            type: "text",
+                            textEntries: [...currentTextEntries],
+                        });
+                        currentTextEntries = [];
+                    }
+
+                    // Add to current video frames
+                    currentVideoFrames.push({
+                        text: text,
+                        image: jsonMessage.image,
+                        timestamp: index,
+                    });
+                }
+            }
+        } catch (e) {
+            console.error("Failed to parse screenshot data", e);
+        }
+
+        if (!hasImage) {
+            // If we have accumulated video frames, add them as a video group
+            if (currentVideoFrames.length > 0) {
+                groups.push({
+                    type: "video",
+                    frames: [...currentVideoFrames],
+                });
+                currentVideoFrames = [];
+            }
+
+            // Add to current text entries
+            currentTextEntries.push(thought);
+        }
+    });
+
+    // Add any remaining frames/entries
+    if (currentVideoFrames.length > 0) {
+        groups.push({
+            type: "video",
+            frames: currentVideoFrames,
+        });
+    }
+    if (currentTextEntries.length > 0) {
+        groups.push({
+            type: "text",
+            textEntries: currentTextEntries,
+        });
+    }
+
+    return groups;
+}
+
 function TrainOfThoughtComponent(props: TrainOfThoughtComponentProps) {
-    const lastIndex = props.trainOfThought.length - 1;
     const [collapsed, setCollapsed] = useState(props.completed);
+    const [trainOfThoughtGroups, setTrainOfThoughtGroups] = useState<TrainOfThoughtGroup[]>([]);
 
     const variants = {
         open: {
             height: "auto",
             opacity: 1,
-            transition: { duration: 0.3, ease: "easeOut" }
+            transition: { duration: 0.3, ease: "easeOut" },
         },
         closed: {
             height: 0,
             opacity: 0,
-            transition: { duration: 0.3, ease: "easeIn" }
-        }
-    };
+            transition: { duration: 0.3, ease: "easeIn" },
+        },
+    } as const;
 
     useEffect(() => {
         if (props.completed) {
             setCollapsed(true);
         }
     }, [props.completed]);
+
+    useEffect(() => {
+        // Handle empty array case
+        if (!props.trainOfThought || props.trainOfThought.length === 0) {
+            setTrainOfThoughtGroups([]);
+            return;
+        }
+
+        // Convert string array to TrainOfThoughtObject array if needed
+        let trainOfThoughtObjects: TrainOfThoughtObject[];
+
+        if (typeof props.trainOfThought[0] === "string") {
+            trainOfThoughtObjects = (props.trainOfThought as string[]).map((data, index) => ({
+                type: "text",
+                data: data,
+            }));
+        } else {
+            trainOfThoughtObjects = props.trainOfThought as TrainOfThoughtObject[];
+        }
+
+        const groups = extractTrainOfThoughtGroups(trainOfThoughtObjects);
+        setTrainOfThoughtGroups(groups);
+    }, [props.trainOfThought]);
 
     return (
         <div
@@ -103,19 +220,41 @@ function TrainOfThoughtComponent(props: TrainOfThoughtComponentProps) {
                 ))}
             <AnimatePresence initial={false}>
                 {!collapsed && (
-                    <motion.div
-                        initial="closed"
-                        animate="open"
-                        exit="closed"
-                        variants={variants}
-                    >
-                        {props.trainOfThought.map((train, index) => (
-                            <TrainOfThought
-                                key={`train-${index}`}
-                                message={train}
-                                primary={index === lastIndex && props.lastMessage && !props.completed}
-                                agentColor={props.agentColor}
-                            />
+                    <motion.div initial="closed" animate="open" exit="closed" variants={variants}>
+                        {trainOfThoughtGroups.map((group, groupIndex) => (
+                            <div key={`train-group-${groupIndex}`}>
+                                {group.type === "video" &&
+                                    group.frames &&
+                                    group.frames.length > 0 && (
+                                        <TrainOfThoughtVideoPlayer
+                                            frames={group.frames}
+                                            autoPlay={false}
+                                            playbackSpeed={1500}
+                                        />
+                                    )}
+                                {group.type === "text" &&
+                                    group.textEntries &&
+                                    group.textEntries.map((entry, entryIndex) => {
+                                        const lastIndex = trainOfThoughtGroups.length - 1;
+                                        const isLastGroup = groupIndex === lastIndex;
+                                        const isLastEntry =
+                                            entryIndex === group.textEntries!.length - 1;
+                                        const isPrimaryEntry =
+                                            isLastGroup &&
+                                            isLastEntry &&
+                                            props.lastMessage &&
+                                            !props.completed;
+
+                                        return (
+                                            <TrainOfThought
+                                                key={`train-text-${groupIndex}-${entryIndex}-${entry.data.length}`}
+                                                message={entry.data}
+                                                primary={isPrimaryEntry}
+                                                agentColor={props.agentColor}
+                                            />
+                                        );
+                                    })}
+                            </div>
                         ))}
                     </motion.div>
                 )}
@@ -131,6 +270,7 @@ export default function ChatHistory(props: ChatHistoryProps) {
     const [currentTurnId, setCurrentTurnId] = useState<string | null>(null);
     const sentinelRef = useRef<HTMLDivElement | null>(null);
     const scrollAreaRef = useRef<HTMLDivElement | null>(null);
+    const scrollableContentWrapperRef = useRef<HTMLDivElement | null>(null);
     const latestUserMessageRef = useRef<HTMLDivElement | null>(null);
     const latestFetchedMessageRef = useRef<HTMLDivElement | null>(null);
 
@@ -157,15 +297,50 @@ export default function ChatHistory(props: ChatHistoryProps) {
         };
 
         scrollAreaEl.addEventListener("scroll", detectIsNearBottom);
+        detectIsNearBottom(); // Initial check
         return () => scrollAreaEl.removeEventListener("scroll", detectIsNearBottom);
-    }, []);
+    }, [scrollAreaRef]);
 
     // Auto scroll while incoming message is streamed
     useEffect(() => {
         if (props.incomingMessages && props.incomingMessages.length > 0 && isNearBottom) {
-            scrollToBottom();
+            scrollToBottom(true);
         }
     }, [props.incomingMessages, isNearBottom]);
+
+    // ResizeObserver to handle content height changes (e.g., images loading)
+    useEffect(() => {
+        const contentWrapper = scrollableContentWrapperRef.current;
+        const scrollViewport =
+            scrollAreaRef.current?.querySelector<HTMLElement>(scrollAreaSelector);
+
+        if (!contentWrapper || !scrollViewport) return;
+
+        const observer = new ResizeObserver(() => {
+            // Check current scroll position to decide if auto-scroll is warranted
+            const { scrollTop, scrollHeight, clientHeight } = scrollViewport;
+            const bottomThreshold = 50;
+            const currentlyNearBottom =
+                scrollHeight - (scrollTop + clientHeight) <= bottomThreshold;
+
+            if (currentlyNearBottom) {
+                // Only auto-scroll if there are incoming messages being processed
+                if (props.incomingMessages && props.incomingMessages.length > 0) {
+                    const lastMessage = props.incomingMessages[props.incomingMessages.length - 1];
+                    // If the last message is not completed, or it just completed (indicated by incompleteIncomingMessageIndex still being set)
+                    if (
+                        !lastMessage.completed ||
+                        (lastMessage.completed && incompleteIncomingMessageIndex !== null)
+                    ) {
+                        scrollToBottom(true); // Use instant scroll
+                    }
+                }
+            }
+        });
+
+        observer.observe(contentWrapper);
+        return () => observer.disconnect();
+    }, [props.incomingMessages, incompleteIncomingMessageIndex, scrollAreaRef]); // Dependencies
 
     // Scroll to most recent user message after the first page of chat messages is loaded.
     useEffect(() => {
@@ -174,7 +349,6 @@ export default function ChatHistory(props: ChatHistoryProps) {
                 latestUserMessageRef.current?.scrollIntoView({ behavior: "auto", block: "start" });
             });
         }
-
     }, [data, currentPage]);
 
     useEffect(() => {
@@ -247,6 +421,7 @@ export default function ChatHistory(props: ChatHistoryProps) {
             .then((response) => response.json())
             .then((chatData: ChatResponse) => {
                 props.setTitle(chatData.response.slug);
+                props.setIsOwner && props.setIsOwner(chatData?.response?.is_owner);
                 if (
                     chatData &&
                     chatData.response &&
@@ -274,6 +449,7 @@ export default function ChatHistory(props: ChatHistoryProps) {
                             agent: chatData.response.agent,
                             conversation_id: chatData.response.conversation_id,
                             slug: chatData.response.slug,
+                            is_owner: chatData.response.is_owner,
                         };
                         props.setAgent(chatData.response.agent);
                         setData(chatMetadata);
@@ -302,7 +478,15 @@ export default function ChatHistory(props: ChatHistoryProps) {
                 behavior: instant ? "auto" : "smooth",
             });
         });
-        setIsNearBottom(true);
+        // Optimistically set, the scroll listener will verify
+        if (
+            instant ||
+            (scrollAreaEl &&
+                scrollAreaEl.scrollHeight - (scrollAreaEl.scrollTop + scrollAreaEl.clientHeight) <
+                    5)
+        ) {
+            setIsNearBottom(true);
+        }
     };
 
     function constructAgentLink() {
@@ -312,7 +496,7 @@ export default function ChatHistory(props: ChatHistoryProps) {
 
     function constructAgentName() {
         if (!data || !data.agent || !data.agent?.name) return `Agent`;
-        if (data.agent.is_hidden) return 'Khoj';
+        if (data.agent.is_hidden) return "Khoj";
         return data.agent?.name;
     }
 
@@ -347,6 +531,18 @@ export default function ChatHistory(props: ChatHistoryProps) {
         }
     };
 
+    const handleRetryMessage = (query: string, turnId?: string) => {
+        if (!query) return;
+
+        // Delete the message from local state first
+        if (turnId) {
+            handleDeleteMessage(turnId);
+        }
+
+        // Then trigger the retry
+        props.onRetryMessage?.(query, turnId);
+    };
+
     if (!props.conversationId && !props.publicConversationSlug) {
         return null;
     }
@@ -357,11 +553,29 @@ export default function ChatHistory(props: ChatHistoryProps) {
             h-[calc(100svh-theme(spacing.44))]
             sm:h-[calc(100svh-theme(spacing.44))]
             md:h-[calc(100svh-theme(spacing.44))]
-            lg:h-[calc(100svh-theme(spacing.72))]
+            lg:h-[calc(100svh-theme(spacing.44))]
         `}
-            ref={scrollAreaRef}>
+            ref={scrollAreaRef}
+        >
+            <div ref={scrollableContentWrapperRef}>
+                {/* Print-only header with conversation info */}
+                <div className="print-only-header">
+                    <div className="print-header-content">
+                        <div className="print-header-left">
+                            <KhojLogo className="print-logo" />
+                        </div>
+                        <div className="print-header-right">
+                            <h1>{data?.slug || "Conversation with Khoj"}</h1>
+                            <div className="conversation-meta">
+                                <p>
+                                    <strong>Agent:</strong> {constructAgentName()}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    <hr />
+                </div>
 
-            <div>
                 <div className={`${styles.chatHistory} ${props.customClassName}`}>
                     <div ref={sentinelRef} style={{ height: "1px" }}>
                         {fetchingData && <InlineLoading className="opacity-50" />}
@@ -369,12 +583,10 @@ export default function ChatHistory(props: ChatHistoryProps) {
                     {data &&
                         data.chat &&
                         data.chat.map((chatMessage, index) => (
-                            <>
+                            <React.Fragment key={`chatMessage-${index}`}>
                                 {chatMessage.trainOfThought && chatMessage.by === "khoj" && (
                                     <TrainOfThoughtComponent
-                                        trainOfThought={chatMessage.trainOfThought?.map(
-                                            (train) => train.data,
-                                        )}
+                                        trainOfThought={chatMessage.trainOfThought}
                                         lastMessage={false}
                                         agentColor={data?.agent?.color || "orange"}
                                         key={`${index}trainOfThought`}
@@ -389,12 +601,12 @@ export default function ChatHistory(props: ChatHistoryProps) {
                                         index === data.chat.length - 2
                                             ? latestUserMessageRef
                                             : // attach ref to the newest fetched message to handle scroll on fetch
-                                            // note: stabilize index selection against last page having less messages than fetchMessageCount
-                                            index ===
+                                              // note: stabilize index selection against last page having less messages than fetchMessageCount
+                                              index ===
                                                 data.chat.length -
-                                                (currentPage - 1) * fetchMessageCount
-                                                ? latestFetchedMessageRef
-                                                : null
+                                                    (currentPage - 1) * fetchMessageCount
+                                              ? latestFetchedMessageRef
+                                              : null
                                     }
                                     isMobileWidth={isMobileWidth}
                                     chatMessage={chatMessage}
@@ -402,9 +614,10 @@ export default function ChatHistory(props: ChatHistoryProps) {
                                     borderLeftColor={`${data?.agent?.color}-500`}
                                     isLastMessage={index === data.chat.length - 1}
                                     onDeleteMessage={handleDeleteMessage}
+                                    onRetryMessage={handleRetryMessage}
                                     conversationId={props.conversationId}
                                 />
-                            </>
+                            </React.Fragment>
                         ))}
                     {props.incomingMessages &&
                         props.incomingMessages.map((message, index) => {
@@ -430,19 +643,23 @@ export default function ChatHistory(props: ChatHistoryProps) {
                                         customClassName="fullHistory"
                                         borderLeftColor={`${data?.agent?.color}-500`}
                                         onDeleteMessage={handleDeleteMessage}
+                                        onRetryMessage={handleRetryMessage}
                                         conversationId={props.conversationId}
                                         turnId={messageTurnId}
                                     />
-                                    {message.trainOfThought && (
-                                        <TrainOfThoughtComponent
-                                            trainOfThought={message.trainOfThought}
-                                            lastMessage={index === incompleteIncomingMessageIndex}
-                                            agentColor={data?.agent?.color || "orange"}
-                                            key={`${index}trainOfThought`}
-                                            keyId={`${index}trainOfThought`}
-                                            completed={message.completed}
-                                        />
-                                    )}
+                                    {message.trainOfThought &&
+                                        message.trainOfThought.length > 0 && (
+                                            <TrainOfThoughtComponent
+                                                trainOfThought={message.trainOfThought}
+                                                lastMessage={
+                                                    index === incompleteIncomingMessageIndex
+                                                }
+                                                agentColor={data?.agent?.color || "orange"}
+                                                key={`${index}trainOfThought-${message.trainOfThought.length}-${message.trainOfThought.map((t) => t.length).join("-")}`}
+                                                keyId={`${index}trainOfThought`}
+                                                completed={message.completed}
+                                            />
+                                        )}
                                     <ChatMessage
                                         key={`${index}incoming`}
                                         isMobileWidth={isMobileWidth}
@@ -470,9 +687,10 @@ export default function ChatHistory(props: ChatHistoryProps) {
                                         conversationId={props.conversationId}
                                         turnId={messageTurnId}
                                         onDeleteMessage={handleDeleteMessage}
+                                        onRetryMessage={handleRetryMessage}
                                         customClassName="fullHistory"
                                         borderLeftColor={`${data?.agent?.color}-500`}
-                                        isLastMessage={index === (props.incomingMessages!.length - 1)}
+                                        isLastMessage={index === props.incomingMessages!.length - 1}
                                     />
                                 </React.Fragment>
                             );
@@ -494,6 +712,7 @@ export default function ChatHistory(props: ChatHistoryProps) {
                             }}
                             conversationId={props.conversationId}
                             onDeleteMessage={handleDeleteMessage}
+                            onRetryMessage={handleRetryMessage}
                             customClassName="fullHistory"
                             borderLeftColor={`${data?.agent?.color}-500`}
                             isLastMessage={true}
@@ -524,7 +743,6 @@ export default function ChatHistory(props: ChatHistoryProps) {
                             className="absolute bottom-0 right-0 bg-white dark:bg-[hsl(var(--background))] text-neutral-500 dark:text-white p-2 rounded-full shadow-xl"
                             onClick={() => {
                                 scrollToBottom();
-                                setIsNearBottom(true);
                             }}
                         >
                             <ArrowDown size={24} />

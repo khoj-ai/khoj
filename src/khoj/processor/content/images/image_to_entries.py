@@ -1,7 +1,6 @@
-import base64
 import logging
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, List, Tuple
 
 from khoj.database.models import Entry as DbEntry
@@ -55,10 +54,11 @@ class ImageToEntries(TextToEntries):
         entries: List[str] = []
         entry_to_location_map: List[Tuple[str, str]] = []
         for image_file in image_files:
+            tmp_file = None
             try:
                 bytes = image_files[image_file]
                 # write the image to a temporary file
-                timestamp_now = datetime.utcnow().timestamp()
+                timestamp_now = datetime.now(timezone.utc).timestamp()
                 # use either png or jpg
                 if image_file.endswith(".png"):
                     tmp_file = f"tmp_image_file_{timestamp_now}.png"
@@ -66,6 +66,8 @@ class ImageToEntries(TextToEntries):
                     tmp_file = f"tmp_image_file_{timestamp_now}.jpg"
                 elif image_file.endswith(".webp"):
                     tmp_file = f"tmp_image_file_{timestamp_now}.webp"
+                else:
+                    continue
                 with open(tmp_file, "wb") as f:
                     bytes = image_files[image_file]
                     f.write(bytes)
@@ -90,7 +92,7 @@ class ImageToEntries(TextToEntries):
                 logger.warning(f"Unable to process file: {image_file}. This file will not be indexed.")
                 logger.warning(e, exc_info=True)
             finally:
-                if os.path.exists(tmp_file):
+                if tmp_file and os.path.exists(tmp_file):
                     os.remove(tmp_file)
         return file_to_text_map, ImageToEntries.convert_image_entries_to_maps(entries, dict(entry_to_location_map))
 

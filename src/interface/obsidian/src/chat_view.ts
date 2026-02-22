@@ -1,9 +1,10 @@
-import { ItemView, MarkdownRenderer, Scope, WorkspaceLeaf, request, requestUrl, setIcon, Platform } from 'obsidian';
-import * as DOMPurify from 'dompurify';
-import { KhojSetting } from 'src/settings';
+import { ItemView, MarkdownRenderer, Scope, WorkspaceLeaf, request, requestUrl, setIcon, Platform, TFile } from 'obsidian';
+import * as DOMPurify from 'isomorphic-dompurify';
 import { KhojPaneView } from 'src/pane_view';
 import { KhojView, createCopyParentText, getLinkToEntry, pasteTextAtCursor } from 'src/utils';
-import { KhojSearchModal } from './search_modal';
+import { KhojSearchModal } from 'src/search_modal';
+import Khoj from 'src/main';
+import { FileInteractions, EditBlock } from 'src/interact_with_files';
 
 export interface ChatJsonResult {
     image?: string;
@@ -12,26 +13,24 @@ export interface ChatJsonResult {
     inferredQueries?: string[];
 }
 
-interface ChunkResult {
-    objects: string[];
-    remainder: string;
-}
-
 interface MessageChunk {
     type: string;
     data: any;
 }
 
 interface ChatMessageState {
-    newResponseTextEl: HTMLElement | null;
-    newResponseEl: HTMLElement | null;
-    loadingEllipsis: HTMLElement | null;
-    references: any;
-    generatedAssets: string;
+    newResponseTextEl: HTMLDivElement | null;
+    newResponseEl: HTMLDivElement | null;
+    loadingEllipsis: HTMLDivElement | null;
+    references: { [key: string]: any };
     rawResponse: string;
     rawQuery: string;
     isVoice: boolean;
+    generatedAssets: string;
     turnId: string;
+    editBlocks: EditBlock[];
+    editRetryCount: number;
+    parentRetryCount?: number;
 }
 
 interface Location {
@@ -53,27 +52,61 @@ interface RenderMessageOptions {
     isSystemMessage?: boolean;
 }
 
+interface ChatMode {
+    value: string;
+    label: string;
+    iconName: string;
+    command: string;
+}
+
+interface Agent {
+    name: string;
+    slug: string;
+    description: string;
+}
+
 export class KhojChatView extends KhojPaneView {
     result: string;
-    setting: KhojSetting;
     waitingForLocation: boolean;
     location: Location = { timezone: Intl.DateTimeFormat().resolvedOptions().timeZone };
     keyPressTimeout: NodeJS.Timeout | null = null;
     userMessages: string[] = [];  // Store user sent messages for input history cycling
     currentMessageIndex: number = -1;  // Track current message index in userMessages array
+    voiceChatActive: boolean = false; // Flag to track if voice chat is active
     private currentUserInput: string = ""; // Stores the current user input that is being typed in chat
-    private startingMessage: string = "Message";
+    private startingMessage: string = this.getLearningMoment();
     chatMessageState: ChatMessageState;
+    private agents: Agent[] = [];
+    private currentAgent: string | null = null;
+    private fileAccessMode: 'none' | 'read' | 'write' = 'read'; // Track the current file access mode
+    // TODO: Only show modes available on server and to current agent
+    private chatModes: ChatMode[] = [
+        { value: "default", label: "Default", iconName: "target", command: "/default" },
+        { value: "general", label: "General", iconName: "message-circle", command: "/general" },
+        { value: "notes", label: "Notes", iconName: "file-text", command: "/notes" },
+        { value: "online", label: "Online", iconName: "globe", command: "/online" },
+        { value: "code", label: "Code", iconName: "code", command: "/code" },
+        { value: "image", label: "Image", iconName: "image", command: "/image" },
+        { value: "research", label: "Research", iconName: "microscope", command: "/research" },
+        { value: "operator", label: "Operator", iconName: "laptop", command: "/operator" }
+    ];
+    private editRetryCount: number = 0;  // Track number of retries for edit blocks
+    private fileInteractions: FileInteractions;
+    private modeDropdown: HTMLElement | null = null;
+    private selectedOptionIndex: number = -1;
+    private isStreaming: boolean = false; // Flag to track streaming state
 
-    constructor(leaf: WorkspaceLeaf, setting: KhojSetting) {
-        super(leaf, setting);
+    // Disabled retry logic for now. Can re-enable once:
+    // 1. Handle chat history clutter
+    // 2. Higher invalid edit blocks than tolerable
+    private maxEditRetries: number = 1; // Maximum retries for edit blocks
 
-        // Register chat view keybindings
-        this.scope = new Scope(this.app.scope);
-        this.scope.register(["Ctrl"], 'n', (_) => this.createNewConversation());
-        this.scope.register(["Ctrl"], 'o', async (_) => await this.toggleChatSessions());
-        this.scope.register(["Ctrl"], 'f', (_) => new KhojSearchModal(this.app, this.setting).open());
-        this.scope.register(["Ctrl"], 'r', (_) => new KhojSearchModal(this.app, this.setting, true).open());
+    constructor(leaf: WorkspaceLeaf, plugin: Khoj) {
+        super(leaf, plugin);
+        this.fileInteractions = new FileInteractions(this.app);
+
+        // Initialize file access mode from persisted settings
+        this.fileAccessMode = this.setting.fileAccessMode ?? 'read';
 
         this.waitingForLocation = true;
 
@@ -95,6 +128,13 @@ export class KhojChatView extends KhojPaneView {
                 this.waitingForLocation = false;
             });
 
+        // Register chat view keybindings
+        this.scope = new Scope(this.app.scope);
+        this.scope.register(["Ctrl", "Alt"], 'n', (_) => this.createNewConversation(this.currentAgent));
+        this.scope.register(["Ctrl", "Alt"], 'o', async (_) => await this.toggleChatSessions());
+        this.scope.register(["Ctrl", "Alt"], 'v', (_) => this.speechToText(this.voiceChatActive ? new KeyboardEvent('keyup') : new KeyboardEvent('keydown')));
+        this.scope.register(["Ctrl"], 'f', (_) => new KhojSearchModal(this.app, this.setting).open());
+        this.scope.register(["Ctrl"], 'r', (_) => { this.activateView(KhojView.SIMILAR); });
     }
 
     getViewType(): string {
@@ -110,31 +150,54 @@ export class KhojChatView extends KhojPaneView {
     }
 
     async chat(isVoice: boolean = false) {
+        // Cancel any pending edits before sending a new message
+        await this.cancelPendingEdits();
+
         // Get text in chat input element
         let input_el = <HTMLTextAreaElement>this.contentEl.getElementsByClassName("khoj-chat-input")[0];
 
         // Clear text after extracting message to send
         let user_message = input_el.value.trim();
+
         // Store the message in the array if it's not empty
         if (user_message) {
+            // Get the selected mode
+            const selectedMode = this.chatModes.find(mode =>
+                this.contentEl.querySelector(`#khoj-mode-${mode.value}:checked`)
+            );
+
+            // Check if message starts with a mode command
+            const modeMatch = this.chatModes.find(mode => user_message.startsWith(mode.command));
+
+            let displayMessage = user_message;
+            let apiMessage = user_message;
+
+            if (modeMatch) {
+                // If message starts with a mode command, replace it with the icon in display
+                // We'll use a generic marker since we can't display SVG icons in messages
+                displayMessage = user_message.replace(modeMatch.command, `[${modeMatch.label}]`);
+            } else if (selectedMode) {
+                // If no mode in message but mode selected, add the mode command for API
+                displayMessage = `[${selectedMode.label}] ${user_message}`;
+                apiMessage = `${selectedMode.command} ${user_message}`;
+            }
+
             this.userMessages.push(user_message);
             // Update starting message after sending a new message
-            const modifierKey = Platform.isMacOS ? '⌘' : '^';
-            this.startingMessage = `(${modifierKey}+↑/↓) for prev messages`;
+            this.startingMessage = this.getLearningMoment();
             input_el.placeholder = this.startingMessage;
-        }
-        input_el.value = "";
-        this.autoResize();
 
-        // Get and render chat response to user message
-        await this.getChatResponse(user_message, isVoice);
+            // Clear input and resize
+            input_el.value = "";
+            this.autoResize();
+
+            // Get and render chat response to user message
+            await this.getChatResponse(apiMessage, displayMessage, isVoice);
+        }
     }
 
     async onOpen() {
         let { contentEl } = this;
-        contentEl.addClass("khoj-chat");
-
-        super.onOpen();
 
         // Construct Content Security Policy
         let defaultDomains = `'self' ${this.setting.khojUrl} https://*.obsidian.md https://app.khoj.dev https://assets.khoj.dev`;
@@ -151,20 +214,110 @@ export class KhojChatView extends KhojPaneView {
         // CSP meta tag for the Khoj Chat modal
         // document.head.createEl("meta", { attr: { "http-equiv": "Content-Security-Policy", "content": `${csp}` } });
 
-        // Create area for chat logs
-        let chatBodyEl = contentEl.createDiv({ attr: { id: "khoj-chat-body", class: "khoj-chat-body" } });
+        // The parent class handles creating the header and attaching the click on the "New Chat" button
+        // We handle the rest of the interface here
+        // Call the parent class's onOpen method first
+        await super.onOpen();
 
+        // Fetch available agents
+        await this.fetchAgents();
+
+        // Populate the agent selector in the header
+        const headerAgentSelect = this.contentEl.querySelector('.khoj-header-agent-select') as HTMLSelectElement;
+        if (headerAgentSelect && this.agents.length > 0) {
+            // Clear existing options
+            headerAgentSelect.innerHTML = '';
+
+            // Add default option
+            headerAgentSelect.createEl("option", {
+                text: "Default Agent",
+                value: "khoj"
+            });
+
+            // Add options for all other agents
+            this.agents.forEach(agent => {
+                if (agent.slug === 'khoj') return; // Skip the default agent
+                const option = headerAgentSelect.createEl("option", {
+                    text: agent.name,
+                    value: agent.slug
+                });
+                if (agent.description) {
+                    option.title = agent.description;
+                }
+            });
+
+            // Add change event listener
+            headerAgentSelect.addEventListener('change', (event) => {
+                const select = event.target as HTMLSelectElement;
+                this.currentAgent = select.value || null;
+            });
+        }
+
+        contentEl.addClass("khoj-chat");
+
+        // Create the chat body
+        let chatBodyEl = contentEl.createDiv({ attr: { id: "khoj-chat-body", class: "khoj-chat-body" } });
         // Add chat input field
         let inputRow = contentEl.createDiv("khoj-input-row");
+
         let chatSessions = inputRow.createEl("button", {
             text: "Chat Sessions",
             attr: {
                 class: "khoj-input-row-button clickable-icon",
-                title: "Show Conversations (^O)",
+                title: "Show Conversations (Ctrl+Alt+O)",
             },
         })
         chatSessions.addEventListener('click', async (_) => { await this.toggleChatSessions() });
         setIcon(chatSessions, "history");
+
+        // Add file access mode button
+        let fileAccessButton = inputRow.createEl("button", {
+            text: "File Access",
+            attr: {
+                class: "khoj-input-row-button clickable-icon",
+                title: "Toggle open file access",
+            },
+        });
+        // Set initial icon based on persisted setting
+        switch (this.fileAccessMode) {
+            case 'none':
+                setIcon(fileAccessButton, "file-x");
+                fileAccessButton.title = "Toggle open file access (No Access)";
+                break;
+            case 'write':
+                setIcon(fileAccessButton, "file-edit");
+                fileAccessButton.title = "Toggle open file access (Read & Write)";
+                break;
+            case 'read':
+            default:
+                setIcon(fileAccessButton, "file-search");
+                fileAccessButton.title = "Toggle open file access (Read Only)";
+                break;
+        }
+        fileAccessButton.addEventListener('click', async () => {
+            // Cycle through modes: none -> read -> write -> none
+            switch (this.fileAccessMode) {
+                case 'none':
+                    this.fileAccessMode = 'read';
+                    setIcon(fileAccessButton, "file-search");
+                    fileAccessButton.title = "Toggle open file access (Read Only)";
+                    break;
+                case 'read':
+                    this.fileAccessMode = 'write';
+                    setIcon(fileAccessButton, "file-edit");
+                    fileAccessButton.title = "Toggle open file access (Read & Write)";
+                    break;
+                case 'write':
+                    this.fileAccessMode = 'none';
+                    setIcon(fileAccessButton, "file-x");
+                    fileAccessButton.title = "Toggle open file access (No Access)";
+                    break;
+            }
+
+            // Persist the updated mode to settings
+            this.setting.fileAccessMode = this.fileAccessMode;
+            await this.plugin.saveSettings();
+        });
 
         let chatInput = inputRow.createEl("textarea", {
             attr: {
@@ -188,7 +341,7 @@ export class KhojChatView extends KhojPaneView {
             attr: {
                 id: "khoj-transcribe",
                 class: "khoj-transcribe khoj-input-row-button clickable-icon ",
-                title: "Start Voice Chat (^S)",
+                title: "Hold to Voice Chat (Ctrl+Alt+V)",
             },
         })
         transcribe.addEventListener('mousedown', (event) => { this.startSpeechToText(event) });
@@ -215,6 +368,7 @@ export class KhojChatView extends KhojPaneView {
         let placeholderText: string = getChatHistorySucessfully ? this.startingMessage : "Configure Khoj to enable chat";
         chatInput.placeholder = placeholderText;
         chatInput.disabled = !getChatHistorySucessfully;
+        this.autoResize();
 
         // Scroll to bottom of chat messages and focus on chat input field, once messages rendered
         requestAnimationFrame(() => {
@@ -333,7 +487,7 @@ export class KhojChatView extends KhojPaneView {
         referenceButton.tabIndex = 0;
 
         // Add event listener to toggle full reference on click
-        referenceButton.addEventListener('click', function () {
+        referenceButton.addEventListener('click', function() {
             if (this.classList.contains("collapsed")) {
                 this.classList.remove("collapsed");
                 this.classList.add("expanded");
@@ -388,7 +542,7 @@ export class KhojChatView extends KhojPaneView {
         referenceButton.tabIndex = 0;
 
         // Add event listener to toggle full reference on click
-        referenceButton.addEventListener('click', function () {
+        referenceButton.addEventListener('click', function() {
             if (this.classList.contains("collapsed")) {
                 this.classList.remove("collapsed");
                 this.classList.add("expanded");
@@ -440,7 +594,7 @@ export class KhojChatView extends KhojPaneView {
                 source.buffer = audioBuffer;
                 source.connect(context.destination);
                 source.start(0);
-                source.onended = function () {
+                source.onended = function() {
                     speechButton.removeChild(loader);
                     speechButton.disabled = false;
                 };
@@ -456,6 +610,15 @@ export class KhojChatView extends KhojPaneView {
         // Remove any text between <s>[INST] and </s> tags. These are spurious instructions for some AI chat model.
         message = message.replace(/<s>\[INST\].+(<\/s>)?/g, '');
 
+        // Render train of thought messages
+        const { content, header } = this.processTrainOfThought(message);
+        message = content;
+
+        if (!raw) {
+            // Render text edit blocks
+            message = this.transformEditBlocks(message);
+        }
+
         // Sanitize the markdown message
         message = DOMPurify.sanitize(message);
 
@@ -463,7 +626,7 @@ export class KhojChatView extends KhojPaneView {
         let chatMessageBodyTextEl = this.contentEl.createDiv();
         chatMessageBodyTextEl.innerHTML = this.markdownTextToSanitizedHtml(message, this);
 
-        // Add a copy button to each chat message, if it doesn't already exist
+        // Add action buttons to each chat message, if they don't already exist
         if (willReplace === true) {
             this.renderActionButtons(message, chatMessageBodyTextEl);
         }
@@ -487,6 +650,34 @@ export class KhojChatView extends KhojPaneView {
         // Sanitize the markdown text rendered as HTML
         return DOMPurify.sanitize(virtualChatMessageBodyTextEl.innerHTML);
     }
+
+    private processTrainOfThought(message: string): { content: string, header: string } {
+        // The train of thought comes in as a markdown-formatted string. It starts with a heading delimited by two asterisks at the start and end and a colon, followed by the message. Example: **header**: status. This function will parse the message and render it as a div.
+        let extractedHeader = message.match(/\*\*(.*)\*\*/);
+        let header = extractedHeader ? extractedHeader[1] : "";
+        let content = message;
+
+        // Render screenshot image in screenshot action message
+        let jsonMessage = null;
+        try {
+            const jsonMatch = message.match(
+                /\{.*("action": "screenshot"|"type": "screenshot"|"image": "data:image\/.*").*\}/,
+            );
+            if (jsonMatch) {
+                jsonMessage = JSON.parse(jsonMatch[0]);
+                const screenshotHtmlString = `<img src="${jsonMessage.image}" alt="State of environment" class="max-w-full" />`;
+                content = content.replace(
+                    `:\n**Action**: ${jsonMatch[0]}`,
+                    `\n\n- ${jsonMessage.text}\n${screenshotHtmlString}`,
+                );
+            }
+        } catch (e) {
+            console.error("Failed to parse screenshot data", e);
+        }
+
+        return { content, header };
+    }
+
 
     renderMessageWithReferences(
         chatEl: Element,
@@ -581,12 +772,17 @@ export class KhojChatView extends KhojPaneView {
             attr: {
                 "data-meta": message_time,
                 class: `khoj-chat-message ${sender}`,
-                ...(turnId && { "data-turnId": turnId })
+                ...(turnId && { "data-turnid": turnId })
             },
         })
         let chatMessageBodyEl = chatMessageEl.createDiv();
         chatMessageBodyEl.addClasses(["khoj-chat-message-text", sender]);
         let chatMessageBodyTextEl = chatMessageBodyEl.createDiv();
+
+        // Remove Obsidian specific instructions sent alongside user query in between <SYSTEM></SYSTEM> tags
+        if (sender === "you") {
+            message = message.replace(/<SYSTEM>.*?<\/SYSTEM>/s, '');
+        }
 
         // Sanitize the markdown to render
         message = DOMPurify.sanitize(message);
@@ -633,13 +829,23 @@ export class KhojChatView extends KhojPaneView {
 
     async renderIncrementalMessage(htmlElement: HTMLDivElement, additionalMessage: string) {
         this.chatMessageState.rawResponse += additionalMessage;
-        htmlElement.innerHTML = "";
+
         // Sanitize the markdown to render
-        this.chatMessageState.rawResponse = DOMPurify.sanitize(this.chatMessageState.rawResponse);
-        // @ts-ignore
-        htmlElement.innerHTML = this.markdownTextToSanitizedHtml(this.chatMessageState.rawResponse, this);
+        let sanitizedResponse = DOMPurify.sanitize(this.chatMessageState.rawResponse);
+
+        // Apply transformations including partial edit block detection
+        const transformedResponse = this.transformEditBlocks(sanitizedResponse);
+
+        // Create a temporary element to get the rendered HTML
+        const tempElement = document.createElement('div');
+        tempElement.innerHTML = this.markdownTextToSanitizedHtml(transformedResponse, this);
+
+        // Update the content in separate step for a smoother transition
+        htmlElement.innerHTML = tempElement.innerHTML;
+
         // Render action buttons for the message
         this.renderActionButtons(this.chatMessageState.rawResponse, htmlElement);
+
         // Scroll to bottom of modal, till the send message input box
         this.scrollChatToBottom();
     }
@@ -658,6 +864,49 @@ export class KhojChatView extends KhojPaneView {
         setIcon(pasteToFile, "clipboard-paste");
         pasteToFile.addEventListener('click', (event) => { pasteTextAtCursor(createCopyParentText(message, 'clipboard-paste')(event)); });
 
+        // Add edit button only for user messages
+        let editButton = null;
+        if (!isSystemMessage && chatMessageBodyTextEl.closest('.khoj-chat-message.you')) {
+            editButton = this.contentEl.createEl('button');
+            editButton.classList.add("chat-action-button");
+            editButton.title = "Edit Message";
+            setIcon(editButton, "edit-3");
+            editButton.addEventListener('click', async () => {
+                const messageEl = chatMessageBodyTextEl.closest('.khoj-chat-message');
+                if (messageEl) {
+                    // Get all messages up to this one
+                    const allMessages = Array.from(this.contentEl.getElementsByClassName('khoj-chat-message'));
+                    const currentIndex = allMessages.indexOf(messageEl as HTMLElement);
+
+                    // Store reference to messages that need to be deleted from backend
+                    const messagesToDelete = allMessages.slice(currentIndex);
+
+                    // Get the message content without the emoji if it exists
+                    let messageContent = message;
+                    const emojiRegex = /^[^\p{L}\p{N}]+\s*/u;
+                    messageContent = messageContent.replace(emojiRegex, '');
+
+                    // Set the message in the input field
+                    const chatInput = this.contentEl.querySelector('.khoj-chat-input') as HTMLTextAreaElement;
+                    if (chatInput) {
+                        chatInput.value = messageContent;
+                        chatInput.focus();
+                    }
+
+                    // Remove all messages from UI immediately for better UX
+                    for (let i = messagesToDelete.length - 1; i >= 0; i--) {
+                        messagesToDelete[i].remove();
+                    }
+
+                    // Then delete messages from backend in background
+                    (async () => {
+                        for (const msgToDelete of messagesToDelete) {
+                            await this.deleteMessage(msgToDelete as HTMLElement, true, false);
+                        }
+                    })();
+                }
+            });
+        }
 
         // Add delete button
         let deleteButton = null;
@@ -677,24 +926,21 @@ export class KhojChatView extends KhojPaneView {
             });
         }
 
-        // Only enable the speech feature if the user is subscribed
-        let speechButton = null;
-
+        // Append buttons to parent element
+        chatMessageBodyTextEl.append(copyButton, pasteToFile);
+        if (editButton) {
+            chatMessageBodyTextEl.append(editButton);
+        }
+        if (deleteButton) {
+            chatMessageBodyTextEl.append(deleteButton);
+        }
         if (this.setting.userInfo?.is_active) {
             // Create a speech button icon to play the message out loud
-            speechButton = this.contentEl.createEl('button');
+            let speechButton = this.contentEl.createEl('button');
             speechButton.classList.add("chat-action-button", "speech-button");
             speechButton.title = "Listen to Message";
             setIcon(speechButton, "speech")
             speechButton.addEventListener('click', (event) => this.textToSpeech(message, event));
-        }
-
-        // Append buttons to parent element
-        chatMessageBodyTextEl.append(copyButton, pasteToFile);
-        if (deleteButton) {
-            chatMessageBodyTextEl.append(deleteButton);
-        }
-        if (speechButton) {
             chatMessageBodyTextEl.append(speechButton);
         }
     }
@@ -706,20 +952,68 @@ export class KhojChatView extends KhojPaneView {
         return `${time_string}, ${date_string}`;
     }
 
-    createNewConversation() {
+    getLearningMoment(): string {
+        const modifierKey = Platform.isMacOS ? '⌘' : '^';
+        const learningMoments = [
+            "Type '/' to select response mode.",
+        ];
+        if (this.userMessages.length > 0) {
+            learningMoments.push(`Load previous messages with ${modifierKey}+↑/↓`);
+        }
+
+        // Return a random learning moment
+        return learningMoments[Math.floor(Math.random() * learningMoments.length)];
+    }
+
+    async createNewConversation(agentSlug?: string | null) {
         let chatBodyEl = this.contentEl.getElementsByClassName("khoj-chat-body")[0] as HTMLElement;
         chatBodyEl.innerHTML = "";
         chatBodyEl.dataset.conversationId = "";
         chatBodyEl.dataset.conversationTitle = "";
         this.userMessages = [];
-        this.startingMessage = "Message";
+        this.startingMessage = this.getLearningMoment();
 
         // Update the placeholder of the chat input
         const chatInput = this.contentEl.querySelector('.khoj-chat-input') as HTMLTextAreaElement;
         if (chatInput) {
             chatInput.placeholder = this.startingMessage;
         }
-        this.renderMessage({chatBodyEl, message: "Hey 👋🏾, what's up?", sender: "khoj", isSystemMessage: true});
+
+        try {
+            // Create a new conversation with or without an agent
+            let endpoint = `${this.setting.khojUrl}/api/chat/sessions`;
+			agentSlug = agentSlug || this.currentAgent;
+            if (agentSlug) {
+                endpoint += `?agent_slug=${encodeURIComponent(agentSlug)}`;
+            }
+
+            const response = await fetch(endpoint, {
+                method: "POST",
+                headers: {
+                    "Authorization": `Bearer ${this.setting.khojApiKey}`,
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({}) // Empty body as agent_slug is in the URL
+            });
+
+            if (response.ok) {
+                const sessionInfo = await response.json();
+                chatBodyEl.dataset.conversationId = sessionInfo.conversation_id;
+                this.currentAgent = agentSlug || null;
+
+                // Update agent selector to reflect current agent
+                const agentSelect = this.contentEl.querySelector('.khoj-header-agent-select') as HTMLSelectElement;
+                if (agentSelect) {
+                    agentSelect.value = this.currentAgent || '';
+                }
+            } else {
+                console.error("Failed to create session:", response.statusText);
+            }
+        } catch (error) {
+            console.error("Error creating session:", error);
+        }
+
+        this.renderMessage({ chatBodyEl, message: "Hey, what's up?", sender: "khoj", isSystemMessage: true });
     }
 
     async toggleChatSessions(forceShow: boolean = false): Promise<boolean> {
@@ -738,10 +1032,10 @@ export class KhojChatView extends KhojPaneView {
         const newConversationButtonEl = newConversationEl.createEl("button");
         newConversationButtonEl.classList.add("new-conversation-button");
         newConversationButtonEl.classList.add("side-panel-button");
-        newConversationButtonEl.addEventListener('click', (_) => this.createNewConversation());
+        newConversationButtonEl.addEventListener('click', (_) => this.createNewConversation(this.currentAgent));
         setIcon(newConversationButtonEl, "plus");
         newConversationButtonEl.innerHTML += "New";
-        newConversationButtonEl.title = "New Conversation (^N)";
+        newConversationButtonEl.title = "New Conversation (Ctrl+Alt+N)";
 
         const existingConversationsEl = sidePanelEl.createDiv("existing-conversations");
         const conversationListEl = existingConversationsEl.createDiv("conversation-list");
@@ -765,7 +1059,7 @@ export class KhojChatView extends KhojPaneView {
                     if (incomingConversationId == conversationId) {
                         conversationSessionEl.classList.add("selected-conversation");
                     }
-                    const conversationTitle = conversation["slug"] || `New conversation 🌱`;
+                    const conversationTitle = conversation["slug"].split("<SYSTEM>")[0].trim() || `New conversation 🌱`;
                     const conversationSessionTitleEl = conversationSessionEl.createDiv("conversation-session-title");
                     conversationSessionTitleEl.textContent = conversationTitle;
                     conversationSessionTitleEl.addEventListener('click', () => {
@@ -828,10 +1122,10 @@ export class KhojChatView extends KhojPaneView {
             let editConversationTitleInputEl = this.contentEl.createEl('input');
             editConversationTitleInputEl.classList.add("conversation-title-input");
             editConversationTitleInputEl.value = conversationTitle;
-            editConversationTitleInputEl.addEventListener('click', function (event) {
+            editConversationTitleInputEl.addEventListener('click', function(event) {
                 event.stopPropagation();
             });
-            editConversationTitleInputEl.addEventListener('keydown', function (event) {
+            editConversationTitleInputEl.addEventListener('keydown', function(event) {
                 if (event.key === "Enter") {
                     event.preventDefault();
                     editConversationTitleSaveButtonEl.click();
@@ -918,6 +1212,8 @@ export class KhojChatView extends KhojPaneView {
             chatUrl += `&conversation_id=${chatBodyEl.dataset.conversationId}`;
         }
 
+        console.debug("Fetching chat history from:", chatUrl);
+
         try {
             let response = await fetch(chatUrl, {
                 method: "GET",
@@ -925,6 +1221,8 @@ export class KhojChatView extends KhojPaneView {
             });
 
             let responseJson: any = await response.json();
+            console.debug("Chat history response:", responseJson);
+
             chatBodyEl.dataset.conversationId = responseJson.conversation_id;
 
             if (responseJson.detail) {
@@ -943,8 +1241,30 @@ export class KhojChatView extends KhojPaneView {
                 chatBodyEl.dataset.conversationId = responseJson.response.conversation_id;
                 chatBodyEl.dataset.conversationTitle = responseJson.response.slug || `New conversation 🌱`;
 
+                // Update current agent from conversation history
+                if (responseJson.response.agent?.slug) {
+                    console.debug("Found agent in conversation history:", responseJson.response.agent);
+                    this.currentAgent = responseJson.response.agent.slug;
+                    // Update the agent selector if it exists
+                    const agentSelect = this.contentEl.querySelector('.khoj-header-agent-select') as HTMLSelectElement;
+                    if (agentSelect && this.currentAgent) {
+                        agentSelect.value = this.currentAgent;
+                        console.log("Updated agent selector to:", this.currentAgent);
+                    }
+                }
+
                 let chatLogs = responseJson.response?.conversation_id ? responseJson.response.chat ?? [] : responseJson.response;
                 chatLogs.forEach((chatLog: any) => {
+                    // Convert commands to emojis for user messages
+                    if (chatLog.by === "you") {
+                        chatLog.message = this.convertCommandsToEmojis(chatLog.message);
+                    }
+
+                    // Transform khoj-edit blocks into accordions
+                    if (chatLog.by === "khoj") {
+                        chatLog.message = this.transformEditBlocks(chatLog.message);
+                    }
+
                     this.renderMessageWithReferences(
                         chatBodyEl,
                         chatLog.message,
@@ -967,10 +1287,7 @@ export class KhojChatView extends KhojPaneView {
                 });
 
                 // Update starting message after loading history
-                const modifierKey: string = Platform.isMacOS ? '⌘' : '^';
-                this.startingMessage = this.userMessages.length > 0
-                    ? `(${modifierKey}+↑/↓) for prev messages`
-                    : "Message";
+                this.startingMessage = this.getLearningMoment();
 
                 // Update the placeholder of the chat input
                 const chatInput = this.contentEl.querySelector('.khoj-chat-input') as HTMLTextAreaElement;
@@ -1007,33 +1324,87 @@ export class KhojChatView extends KhojPaneView {
         return { type: '', data: '' };
     }
 
-    processMessageChunk(rawChunk: string): void {
+    async processMessageChunk(rawChunk: string): Promise<void> {
         const chunk = this.convertMessageChunkToJson(rawChunk);
-        console.debug("Chunk:", chunk);
         if (!chunk || !chunk.type) return;
-        if (chunk.type === 'status') {
-            console.log(`status: ${chunk.data}`);
+
+        if (chunk.type === 'start_llm_response') {
+            // Start of streaming - set flag and ensure UI is stable
+            this.isStreaming = true;
+
+            // Disable input resizing during streaming
+            const chatInput = <HTMLTextAreaElement>this.contentEl.getElementsByClassName("khoj-chat-input")[0];
+            if (chatInput) {
+                chatInput.style.overflowY = 'hidden';
+            }
+        }
+        else if (chunk.type === 'status') {
             const statusMessage = chunk.data;
             this.handleStreamResponse(this.chatMessageState.newResponseTextEl, statusMessage, this.chatMessageState.loadingEllipsis, false);
-        } else if (chunk.type === 'generated_assets') {
+        }
+        else if (chunk.type === 'generated_assets') {
             const generatedAssets = chunk.data;
             const imageData = this.handleImageResponse(generatedAssets, this.chatMessageState.rawResponse);
             this.chatMessageState.generatedAssets = imageData;
             this.handleStreamResponse(this.chatMessageState.newResponseTextEl, imageData, this.chatMessageState.loadingEllipsis, false);
-        } else if (chunk.type === 'start_llm_response') {
-            console.log("Started streaming", new Date());
-        } else if (chunk.type === 'end_llm_response') {
-            console.log("Stopped streaming", new Date());
-        } else if (chunk.type === 'end_response') {
+        }
+        else if (chunk.type === 'end_llm_response') {
+            // End of streaming - reset flag and restore normal UI behavior
+            this.isStreaming = false;
+
+            // Re-enable input resizing after streaming
+            const chatInput = <HTMLTextAreaElement>this.contentEl.getElementsByClassName("khoj-chat-input")[0];
+            if (chatInput) {
+                // Call autoResize to restore proper sizing
+                this.autoResize();
+            }
+        }
+        else if (chunk.type === 'end_response') {
+            // Ensure streaming flag is reset at the end of the response
+            this.isStreaming = false;
+
+            // Re-enable input resizing after streaming
+            const chatInput = <HTMLTextAreaElement>this.contentEl.getElementsByClassName("khoj-chat-input")[0];
+            if (chatInput) {
+                // Call autoResize to restore proper sizing
+                this.autoResize();
+            }
+
+            // Check for edit blocks if in write mode
+            if (this.fileAccessMode === 'write') {
+                const editBlocks = this.parseEditBlocks(this.chatMessageState.rawResponse);
+
+                if (editBlocks.length > 0) {
+                    const firstBlock = editBlocks[0];
+                    if (firstBlock.hasError) {
+                        // Only retry if we have remaining attempts; do NOT reset counter on failure
+                        if (this.editRetryCount < this.maxEditRetries) {
+                            await this.handleEditRetry(firstBlock);
+                            return; // Wait for retry response
+                        } else {
+                            // Exhausted retries; surface error and do not attempt further automatic retries
+                            console.warn('[Khoj] Max edit retries reached. Aborting further retries.');
+                        }
+                    } else {
+                        // Successful parse => reset counter and apply edits
+                        this.editRetryCount = 0;
+                        await this.applyEditBlocks(editBlocks);
+                    }
+                } else {
+                    // No edit blocks => reset counter just in case
+                    this.editRetryCount = 0;
+                }
+            }
+
             // Automatically respond with voice if the subscribed user has sent voice message
-            if (this.chatMessageState.isVoice && this.setting.userInfo?.is_active)
+            if (this.chatMessageState.isVoice && this.setting.userInfo?.is_active && this.setting.autoVoiceResponse)
                 this.textToSpeech(this.chatMessageState.rawResponse);
 
             // Append any references after all the data has been streamed
             this.finalizeChatBodyResponse(this.chatMessageState.references, this.chatMessageState.newResponseTextEl, this.chatMessageState.turnId);
 
+            // Reset state including retry counts
             const liveQuery = this.chatMessageState.rawQuery;
-            // Reset variables
             this.chatMessageState = {
                 newResponseTextEl: null,
                 newResponseEl: null,
@@ -1044,16 +1415,19 @@ export class KhojChatView extends KhojPaneView {
                 isVoice: false,
                 generatedAssets: "",
                 turnId: "",
+                editBlocks: [],
+                editRetryCount: 0,
+                parentRetryCount: 0 // Reset parent retry count
             };
-        } else if (chunk.type === "references") {
+        }
+        else if (chunk.type === "references") {
             this.chatMessageState.references = { "notes": chunk.data.context, "online": chunk.data.onlineContext };
-        } else if (chunk.type === 'message') {
+        }
+        else if (chunk.type === 'message') {
             const chunkData = chunk.data;
             if (typeof chunkData === 'object' && chunkData !== null) {
-                // If chunkData is already a JSON object
                 this.handleJsonResponse(chunkData);
             } else if (typeof chunkData === 'string' && chunkData.trim()?.startsWith("{") && chunkData.trim()?.endsWith("}")) {
-                // Try process chunk data as if it is a JSON object
                 try {
                     const jsonData = JSON.parse(chunkData.trim());
                     this.handleJsonResponse(jsonData);
@@ -1065,10 +1439,10 @@ export class KhojChatView extends KhojPaneView {
                 this.chatMessageState.rawResponse += chunkData;
                 this.handleStreamResponse(this.chatMessageState.newResponseTextEl, this.chatMessageState.rawResponse + this.chatMessageState.generatedAssets, this.chatMessageState.loadingEllipsis);
             }
-        } else if (chunk.type === "metadata") {
+        }
+        else if (chunk.type === "metadata") {
             const { turnId } = chunk.data;
             if (turnId) {
-                // Append turnId to chatMessageState
                 this.chatMessageState.turnId = turnId;
             }
         }
@@ -1124,33 +1498,67 @@ export class KhojChatView extends KhojPaneView {
         }
     }
 
-    async getChatResponse(query: string | undefined | null, isVoice: boolean = false): Promise<void> {
+    async getChatResponse(query: string | undefined | null, displayQuery: string | undefined | null, isVoice: boolean = false, displayUserMessage: boolean = true): Promise<void> {
         // Exit if query is empty
         if (!query || query === "") return;
 
-        // Render user query as chat message
+        // Get chat body element
         let chatBodyEl = this.contentEl.getElementsByClassName("khoj-chat-body")[0] as HTMLElement;
-        this.renderMessage({chatBodyEl, message: query, sender: "you"});
+
+        // Render user query as chat message with display version only if displayUserMessage is true
+        if (displayUserMessage) {
+            this.renderMessage({ chatBodyEl, message: displayQuery || query, sender: "you" });
+        }
 
         let conversationId = chatBodyEl.dataset.conversationId;
+
         if (!conversationId) {
-            let chatUrl = `${this.setting.khojUrl}/api/chat/sessions?client=obsidian`;
-            let response = await fetch(chatUrl, {
-                method: "POST",
-                headers: { "Authorization": `Bearer ${this.setting.khojApiKey}` },
-            });
-            let data = await response.json();
-            conversationId = data.conversation_id;
-            chatBodyEl.dataset.conversationId = conversationId;
+            try {
+                const requestBody = {
+                    ...(this.currentAgent && { agent_slug: this.currentAgent })
+                };
+
+                const response = await fetch(`${this.setting.khojUrl}/api/chat/sessions`, {
+                    method: "POST",
+                    headers: {
+                        "Authorization": `Bearer ${this.setting.khojApiKey}`,
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify(requestBody)
+                });
+                if (response.ok) {
+                    const data = await response.json();
+                    conversationId = data.conversation_id;
+                    chatBodyEl.dataset.conversationId = conversationId;
+                } else {
+                    console.error("Failed to create session:", response.statusText);
+                    return;
+                }
+            } catch (error) {
+                console.error("Error creating session:", error);
+                return;
+            }
         }
+
+        // Get open files content if we have access
+        const openFilesContent = await this.getOpenFilesContent();
+
+        // Extract mode command if present
+        const modeMatch = this.chatModes.find(mode => query.startsWith(mode.command));
+        const modeCommand = modeMatch ? query.substring(0, modeMatch.command.length) : '';
+        const queryWithoutMode = modeMatch ? query.substring(modeMatch.command.length).trim() : query;
+
+        // Combine mode, query and files content
+        const finalQuery = modeCommand + (modeCommand ? ' ' : '') + queryWithoutMode + openFilesContent;
 
         // Get chat response from Khoj backend
         const chatUrl = `${this.setting.khojUrl}/api/chat?client=obsidian`;
         const body = {
-            q: query,
+            q: finalQuery,
             n: this.setting.resultsCount,
             stream: true,
-            ...(!!conversationId && { conversation_id: conversationId }),
+            conversation_id: conversationId,
+            ...(this.currentAgent && { agent_slug: this.currentAgent }),
             ...(!!this.location && this.location.city && { city: this.location.city }),
             ...(!!this.location && this.location.region && { region: this.location.region }),
             ...(!!this.location && this.location.countryName && { country: this.location.countryName }),
@@ -1177,6 +1585,8 @@ export class KhojChatView extends KhojPaneView {
             isVoice: isVoice,
             generatedAssets: "",
             turnId: "",
+            editBlocks: [],
+            editRetryCount: 0
         };
 
         let response = await fetch(chatUrl, {
@@ -1323,11 +1733,11 @@ export class KhojChatView extends KhojPaneView {
             const recordingConfig = { mimeType: 'audio/webm' };
             this.mediaRecorder = new MediaRecorder(stream, recordingConfig);
 
-            this.mediaRecorder.addEventListener("dataavailable", function (event) {
+            this.mediaRecorder.addEventListener("dataavailable", function(event) {
                 if (event.data.size > 0) audioChunks.push(event.data);
             });
 
-            this.mediaRecorder.addEventListener("stop", async function () {
+            this.mediaRecorder.addEventListener("stop", async function() {
                 const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
                 await sendToServer(audioBlob);
             });
@@ -1339,6 +1749,7 @@ export class KhojChatView extends KhojPaneView {
 
         // Toggle recording
         if (!this.mediaRecorder || this.mediaRecorder.state === 'inactive' || event.type === 'touchstart' || event.type === 'mousedown' || event.type === 'keydown') {
+            this.voiceChatActive = true;
             navigator.mediaDevices
                 .getUserMedia({ audio: true })
                 ?.then(handleRecording)
@@ -1346,6 +1757,7 @@ export class KhojChatView extends KhojPaneView {
                     this.flashStatusInChatInput("⛔️ Failed to access microphone");
                 });
         } else if (this.mediaRecorder?.state === 'recording' || event.type === 'touchend' || event.type === 'touchcancel' || event.type === 'mouseup' || event.type === 'keyup') {
+            this.voiceChatActive = false;
             this.mediaRecorder.stop();
             this.mediaRecorder.stream.getTracks().forEach(track => track.stop());
             this.mediaRecorder = undefined;
@@ -1366,7 +1778,56 @@ export class KhojChatView extends KhojPaneView {
     };
 
     incrementalChat(event: KeyboardEvent) {
-        if (!event.shiftKey && event.key === 'Enter') {
+        // If dropdown is visible and Enter is pressed, select the current option
+        if (this.modeDropdown && this.modeDropdown.style.display !== "none" && event.key === "Enter") {
+            event.preventDefault();
+
+            const options = this.modeDropdown.querySelectorAll<HTMLElement>(".khoj-mode-dropdown-option");
+            const visibleOptions = Array.from(options).filter(option =>
+                option.style.display !== "none"
+            );
+
+            // If any option is selected, use that one
+            if (this.selectedOptionIndex >= 0 && this.selectedOptionIndex < visibleOptions.length) {
+                const selectedOption = visibleOptions[this.selectedOptionIndex];
+                const index = parseInt(selectedOption.getAttribute("data-index") || "0");
+                const chatInput = <HTMLTextAreaElement>this.contentEl.getElementsByClassName("khoj-chat-input")[0];
+
+                chatInput.value = this.chatModes[index].command + " ";
+                chatInput.focus();
+                this.currentUserInput = chatInput.value;
+                this.hideModeDropdown();
+            }
+            // If no option is selected but there's exactly one visible option, use that
+            else if (visibleOptions.length === 1) {
+                const onlyOption = visibleOptions[0];
+                const index = parseInt(onlyOption.getAttribute("data-index") || "0");
+                const chatInput = <HTMLTextAreaElement>this.contentEl.getElementsByClassName("khoj-chat-input")[0];
+
+                chatInput.value = this.chatModes[index].command + " ";
+                chatInput.focus();
+                this.currentUserInput = chatInput.value;
+                this.hideModeDropdown();
+            }
+            return;
+        }
+
+        const chatInput = <HTMLTextAreaElement>this.contentEl.getElementsByClassName("khoj-chat-input")[0];
+        const trimmedValue = chatInput.value.trim();
+
+        // Check if value is empty or just a mode command
+        const isOnlyModeCommand = this.chatModes.some(mode =>
+            trimmedValue === mode.command || trimmedValue === mode.command + " "
+        );
+
+        if (event.key === 'Enter' && !event.shiftKey) {
+            // If message is empty or just a mode command, don't send
+            if (!trimmedValue || isOnlyModeCommand) {
+                event.preventDefault();
+                return;
+            }
+
+            // Otherwise, send message as normal
             event.preventDefault();
             this.chat();
         }
@@ -1376,19 +1837,53 @@ export class KhojChatView extends KhojPaneView {
         const chatInput = <HTMLTextAreaElement>this.contentEl.getElementsByClassName("khoj-chat-input")[0];
         chatInput.value = chatInput.value.trimStart();
         this.currentMessageIndex = -1;
-        // store the current input
+
+        // Store the current input
         this.currentUserInput = chatInput.value;
+
+        // Check if input starts with "/" and show dropdown
+        if (chatInput.value.startsWith("/")) {
+            this.showModeDropdown(chatInput);
+            this.selectedOptionIndex = -1; // Reset selected index
+        } else if (this.modeDropdown) {
+            // Hide dropdown if input doesn't start with "/"
+            this.hideModeDropdown();
+        }
+
         this.autoResize();
     }
 
     autoResize() {
         const chatInput = <HTMLTextAreaElement>this.contentEl.getElementsByClassName("khoj-chat-input")[0];
-        const scrollTop = chatInput.scrollTop;
-        chatInput.style.height = '0';
-        const scrollHeight = chatInput.scrollHeight + 8;  // +8 accounts for padding
-        chatInput.style.height = Math.min(scrollHeight, 200) + 'px';
-        chatInput.scrollTop = scrollTop;
-        this.scrollChatToBottom();
+
+        // Skip resizing completely during active streaming to avoid UI jumps
+        if (this.isStreaming) {
+            return;
+        }
+
+        // Reset height to auto to get the correct scrollHeight
+        chatInput.style.height = 'auto';
+
+        // Calculate new height based on content with a larger maximum height
+        const maxHeight = 400;
+        const newHeight = Math.min(chatInput.scrollHeight, maxHeight);
+        chatInput.style.height = newHeight + 'px';
+        // Add overflow-y: auto only if content exceeds max height
+        if (chatInput.scrollHeight > maxHeight) {
+            chatInput.style.overflowY = 'auto';
+        } else {
+            chatInput.style.overflowY = 'hidden';
+        }
+
+        // Update dropdown position if it exists and is visible
+        if (this.modeDropdown && this.modeDropdown.style.display !== "none") {
+            const inputRect = chatInput.getBoundingClientRect();
+            const containerRect = this.contentEl.getBoundingClientRect();
+
+            this.modeDropdown.style.left = `${inputRect.left - containerRect.left}px`;
+            this.modeDropdown.style.top = `${inputRect.top - containerRect.top - 4}px`; // Position above with small gap
+            this.modeDropdown.style.width = `${inputRect.width}px`;
+        }
     }
 
     scrollChatToBottom() {
@@ -1423,19 +1918,21 @@ export class KhojChatView extends KhojPaneView {
 
     handleStreamResponse(newResponseElement: HTMLElement | null, rawResponse: string, loadingEllipsis: HTMLElement | null, replace = true) {
         if (!newResponseElement) return;
+
         // Remove loading ellipsis if it exists
         if (newResponseElement.getElementsByClassName("lds-ellipsis").length > 0 && loadingEllipsis)
             newResponseElement.removeChild(loadingEllipsis);
-        // Clear the response element if replace is true
-        if (replace) newResponseElement.innerHTML = "";
 
-        // Append response to the response element
-        newResponseElement.appendChild(this.formatHTMLMessage(rawResponse, false, replace));
+        // Always replace the content completely
+        newResponseElement.innerHTML = "";
+        const messageEl = this.formatHTMLMessage(rawResponse, false, true);
+        messageEl.classList.add('khoj-message-new-content');
+        newResponseElement.appendChild(messageEl);
 
-        // Append loading ellipsis if it exists
-        if (!replace && loadingEllipsis) newResponseElement.appendChild(loadingEllipsis);
-        // Scroll to bottom of chat view
-        this.scrollChatToBottom();
+        // Remove the animation class after the animation completes
+        setTimeout(() => {
+            newResponseElement.classList.remove('khoj-message-new-content');
+        }, 300);
     }
 
     handleImageResponse(imageJson: any, rawResponse: string) {
@@ -1482,8 +1979,8 @@ export class KhojChatView extends KhojPaneView {
         }
         if (!!newResponseElement && turnId) {
             // Set the turnId for the new response and the previous user message
-            newResponseElement.parentElement?.setAttribute("data-turnId", turnId);
-            newResponseElement.parentElement?.previousElementSibling?.setAttribute("data-turnId", turnId);
+            newResponseElement.parentElement?.setAttribute("data-turnid", turnId);
+            newResponseElement.parentElement?.previousElementSibling?.setAttribute("data-turnid", turnId);
         }
         this.scrollChatToBottom();
         let chatInput = this.contentEl.getElementsByClassName("khoj-chat-input")[0];
@@ -1513,7 +2010,7 @@ export class KhojChatView extends KhojPaneView {
         referenceExpandButton.classList.add("reference-expand-button");
         referenceExpandButton.innerHTML = numReferences == 1 ? "1 reference" : `${numReferences} references`;
 
-        referenceExpandButton.addEventListener('click', function () {
+        referenceExpandButton.addEventListener('click', function() {
             if (referenceSection.classList.contains("collapsed")) {
                 referenceSection.classList.remove("collapsed");
                 referenceSection.classList.add("expanded");
@@ -1533,69 +2030,543 @@ export class KhojChatView extends KhojPaneView {
 
     // function to loop through the user's past messages
     handleArrowKeys(event: KeyboardEvent) {
-        const chatInput = event.target as HTMLTextAreaElement;
-        const isModKey = Platform.isMacOS ? event.metaKey : event.ctrlKey;
+        const chatInput = <HTMLTextAreaElement>this.contentEl.getElementsByClassName("khoj-chat-input")[0];
 
-        if (isModKey && event.key === 'ArrowUp') {
-            event.preventDefault();
-            if (this.currentMessageIndex < this.userMessages.length - 1) {
-                this.currentMessageIndex++;
-                chatInput.value = this.userMessages[this.userMessages.length - 1 - this.currentMessageIndex];
+        // Handle dropdown navigation with arrow keys
+        if (this.modeDropdown && this.modeDropdown.style.display !== "none") {
+            const options = this.modeDropdown.querySelectorAll<HTMLElement>(".khoj-mode-dropdown-option");
+            // Only consider visible options
+            const visibleOptions = Array.from(options).filter(option =>
+                option.style.display !== "none"
+            );
+
+            if (visibleOptions.length === 0) {
+                this.hideModeDropdown();
+                return;
             }
-        } else if (isModKey && event.key === 'ArrowDown') {
-            event.preventDefault();
-            if (this.currentMessageIndex > 0) {
-                this.currentMessageIndex--;
-                chatInput.value = this.userMessages[this.userMessages.length - 1 - this.currentMessageIndex];
-            } else if (this.currentMessageIndex === 0) {
-                this.currentMessageIndex = -1;
-                chatInput.value = this.currentUserInput;
+
+            switch (event.key) {
+                case "ArrowDown":
+                    event.preventDefault();
+                    if (this.selectedOptionIndex < 0) {
+                        this.selectedOptionIndex = 0;
+                    } else {
+                        this.selectedOptionIndex = Math.min(this.selectedOptionIndex + 1, visibleOptions.length - 1);
+                    }
+                    this.highlightVisibleOption(visibleOptions);
+                    break;
+
+                case "ArrowUp":
+                    event.preventDefault();
+                    if (this.selectedOptionIndex < 0) {
+                        this.selectedOptionIndex = visibleOptions.length - 1;
+                    } else {
+                        this.selectedOptionIndex = Math.max(this.selectedOptionIndex - 1, 0);
+                    }
+                    this.highlightVisibleOption(visibleOptions);
+                    break;
+
+                case "Enter":
+                    // We handle Enter in incrementalChat now
+                    break;
+
+                case "Escape":
+                    event.preventDefault();
+                    this.hideModeDropdown();
+                    break;
+            }
+
+            // Don't process arrow keys for history navigation if dropdown is open
+            if (event.key === "ArrowUp" || event.key === "ArrowDown") {
+                return;
+            }
+        }
+
+        // Original arrow key handling for message history
+        // (Le code existant pour gérer les touches fléchées)
+    }
+
+    /**
+     * Highlights the selected option among visible options
+     * @param {HTMLElement[]} visibleOptions - Array of visible dropdown options
+     */
+    private highlightVisibleOption(visibleOptions: HTMLElement[]) {
+        const allOptions = this.modeDropdown?.querySelectorAll<HTMLElement>(".khoj-mode-dropdown-option");
+        if (!allOptions) return;
+
+        // Clear highlighting on all options first
+        allOptions.forEach(option => {
+            option.classList.remove("khoj-mode-dropdown-option-selected");
+        });
+
+        // Add highlighting to the selected visible option
+        if (this.selectedOptionIndex >= 0 && this.selectedOptionIndex < visibleOptions.length) {
+            const selectedOption = visibleOptions[this.selectedOptionIndex];
+            selectedOption.classList.add("khoj-mode-dropdown-option-selected");
+
+            // Scroll to selected option if needed
+            if (this.modeDropdown) {
+                const container = this.modeDropdown;
+                if (selectedOption.offsetTop < container.scrollTop) {
+                    container.scrollTop = selectedOption.offsetTop;
+                } else if (selectedOption.offsetTop + selectedOption.offsetHeight > container.scrollTop + container.offsetHeight) {
+                    container.scrollTop = selectedOption.offsetTop + selectedOption.offsetHeight - container.offsetHeight;
+                }
             }
         }
     }
 
     // Add this new method to handle message deletion
-    async deleteMessage(messageEl: HTMLElement) {
-        const chatBodyEl = this.contentEl.getElementsByClassName("khoj-chat-body")[0] as HTMLElement;
-        const conversationId = chatBodyEl.dataset.conversationId;
+    async deleteMessage(messageEl: HTMLElement, skipPaired: boolean = false, skipBackend: boolean = false) {
+        // Find parent message container
+        const messageContainer = messageEl.closest('.khoj-chat-message');
+        if (!messageContainer) return;
 
-        // Get the turnId from the message's data-turn attribute
-        const turnId = messageEl.getAttribute("data-turnId");
-        if (!turnId || !conversationId) return;
+        // Get paired message to delete if needed
+        let pairedMessageContainer: Element | null = null;
+        if (!skipPaired) {
+            const messages = Array.from(document.getElementsByClassName('khoj-chat-message'));
+            const currentIndex = messages.indexOf(messageContainer as HTMLElement);
 
+            // If we're deleting a user message, also delete the subsequent khoj message (if any)
+            if (messageContainer.classList.contains('you') && currentIndex < messages.length - 1) {
+                pairedMessageContainer = messages[currentIndex + 1];
+            }
+            // If we're deleting a khoj message, also delete the preceding user message (if any)
+            else if (messageContainer.classList.contains('khoj') && currentIndex > 0) {
+                pairedMessageContainer = messages[currentIndex - 1];
+            }
+        }
+
+        // Add animation class
+        messageContainer.classList.add('deleting');
+        if (pairedMessageContainer) {
+            pairedMessageContainer.classList.add('deleting');
+        }
+
+        // Wait for animation to complete
+        setTimeout(async () => {
+            // Get turn ID for message
+            const turnId = messageContainer.getAttribute('data-turnid');
+
+            // Remove message(s) from DOM
+            messageContainer.remove();
+            if (pairedMessageContainer) {
+                pairedMessageContainer.remove();
+            }
+
+            // Only delete in backend if not skipped
+            if (!skipBackend && turnId) {
+                const chatBodyEl = this.contentEl.getElementsByClassName("khoj-chat-body")[0] as HTMLElement;
+                const conversationId = chatBodyEl.dataset.conversationId;
+
+                if (!conversationId) return;
+
+                try {
+                    // Delete from backend
+                    const response = await fetch(`${this.setting.khojUrl}/api/chat/conversation/message`, {
+                        method: 'DELETE',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${this.setting.khojApiKey}`
+                        },
+                        body: JSON.stringify({
+                            conversation_id: conversationId,
+                            turn_id: turnId
+                        }),
+                    });
+
+                    if (!response.ok) {
+                        console.error('Failed to delete message from backend:', await response.text());
+                        this.flashStatusInChatInput("Failed to delete message");
+                    }
+                } catch (error) {
+                    console.error('Error deleting message:', error);
+                    this.flashStatusInChatInput("Error deleting message");
+                }
+            }
+        }, 300); // Matches the animation duration
+    }
+
+    async fetchAgents() {
         try {
-            const response = await fetch(`${this.setting.khojUrl}/api/chat/conversation/message`, {
-                method: "DELETE",
+            const response = await fetch(`${this.setting.khojUrl}/api/agents`, {
                 headers: {
-                    "Content-Type": "application/json",
                     "Authorization": `Bearer ${this.setting.khojApiKey}`
-                },
-                body: JSON.stringify({
-                    conversation_id: conversationId,
-                    turn_id: turnId
-                })
+                }
             });
 
             if (response.ok) {
-                // Remove both the user message and Khoj response (the conversation turn)
-                const isKhojMessage = messageEl.classList.contains("khoj");
-                const messages = Array.from(chatBodyEl.getElementsByClassName("khoj-chat-message"));
-                const messageIndex = messages.indexOf(messageEl);
-
-                if (isKhojMessage && messageIndex > 0) {
-                    // If it is a Khoj message, remove the previous user message too
-                    messages[messageIndex - 1].remove();
-                } else if (!isKhojMessage && messageIndex < messages.length - 1) {
-                    // If it is a user message, remove the next Khoj message too
-                    messages[messageIndex + 1].remove();
-                }
-                messageEl.remove();
+                this.agents = await response.json();
             } else {
-                this.flashStatusInChatInput("Failed to delete message");
+                console.error("Failed to fetch agents:", response.statusText);
             }
         } catch (error) {
-            console.error("Error deleting message:", error);
-            this.flashStatusInChatInput("Error deleting message");
+            console.error("Error fetching agents:", error);
+        }
+    }
+
+    // Add this new method after the class declaration
+    private async getOpenFilesContent(): Promise<string> {
+        return this.fileInteractions.getOpenFilesContent(this.fileAccessMode);
+    }
+
+    private parseEditBlocks(message: string): EditBlock[] {
+        return this.fileInteractions.parseEditBlocks(message);
+    }
+
+    private async applyEditBlocks(editBlocks: EditBlock[]) {
+        // Check for parsing errors first
+        if (editBlocks.length === 0) return;
+
+        // Apply edits using the FileInteractions class
+        const { editResults, fileBackups } = await this.fileInteractions.applyEditBlocks(
+            editBlocks,
+            (blockToRetry) => {
+                if (this.editRetryCount < this.maxEditRetries) {
+                    this.handleEditRetry(blockToRetry);
+                }
+            }
+        );
+
+        // Add confirmation buttons to the last message
+        const chatBodyEl = this.contentEl.getElementsByClassName("khoj-chat-body")[0];
+        const lastMessage = chatBodyEl.lastElementChild;
+
+        if (lastMessage) {
+            const buttonsContainer = lastMessage.createDiv({ cls: "edit-confirmation-buttons" });
+
+            // Create a dedicated container for status summary to ensure proper separation
+            const statusContainer = buttonsContainer.createDiv({ cls: "edit-status-container" });
+
+            // Add status summary as a separate element with its own styling
+            const statusSummary = statusContainer.createDiv({ cls: "edit-status-summary" });
+            const successCount = editResults.filter(r => r.success).length;
+
+            // Add appropriate status class based on success/failure
+            if (successCount === editResults.length) {
+                statusSummary.innerHTML = `All edits applied successfully`;
+                statusSummary.addClass("success");
+            } else if (successCount === 0) {
+                statusSummary.innerHTML = `No edits were applied`;
+                statusSummary.addClass("error");
+            } else {
+                // This should not happen with atomic approach, but keeping for safety
+                statusSummary.innerHTML = `${successCount}/${editResults.length} edits applied successfully`;
+                statusSummary.addClass(successCount > 0 ? "success" : "error");
+            }
+
+            if (editResults.some(r => !r.success)) {
+                const errorDetails = editResults
+                    .filter(r => !r.success)
+                    .map(r => {
+                        // Check if the error is due to atomic validation failure
+                        if (r.error && r.error.includes('Other edits in the group failed')) {
+                            return `• ${r.block.note}: Not applied due to atomic validation failure`;
+                        }
+                        return `• ${r.block.note}: ${r.error}`;
+                    })
+                    .join('\n');
+                statusSummary.title = `Failed edits:\n${errorDetails}`;
+            }
+
+            // Create Apply button
+            const applyButton = buttonsContainer.createEl("button", {
+                text: "Apply",
+                cls: ["edit-confirm-button", "edit-apply-button"],
+            });
+
+            // Create Cancel button
+            const cancelButton = buttonsContainer.createEl("button", {
+                text: "Cancel",
+                cls: ["edit-confirm-button", "edit-cancel-button"],
+            });
+
+            // Scroll to the buttons
+            buttonsContainer.scrollIntoView({ behavior: "smooth", block: "center" });
+
+            // Handle Apply/Cancel clicks
+            this.setupConfirmationButtons(applyButton, cancelButton, fileBackups, lastMessage, buttonsContainer);
+        }
+    }
+
+    // Helper method to setup confirmation buttons
+    private setupConfirmationButtons(
+        applyButton: HTMLButtonElement,
+        cancelButton: HTMLButtonElement,
+        fileBackups: Map<string, string>,
+        lastMessage: Element,
+        buttonsContainer: HTMLDivElement
+    ) {
+        applyButton.addEventListener("click", async () => {
+            try {
+                for (const [filePath, originalContent] of fileBackups) {
+                    const file = this.app.vault.getAbstractFileByPath(filePath);
+                    if (file && file instanceof TFile) {
+                        const currentContent = await this.app.vault.read(file);
+                        let finalContent = currentContent;
+
+                        // Remove diff markers
+                        finalContent = finalContent.replace(/~~[^~]*~~\n?(?=~~)/g, '');
+                        finalContent = finalContent.replace(/~~[^~]*~~/g, '');
+                        finalContent = finalContent.replace(/==/g, '');
+
+                        await this.app.vault.modify(file, finalContent);
+                    }
+                }
+
+                const successMessage = lastMessage.createDiv({ cls: "edit-status-message success" });
+                successMessage.textContent = "Changes applied successfully";
+                setTimeout(() => successMessage.remove(), 3000);
+            } catch (error) {
+                console.error("Error applying changes:", error);
+                const errorMessage = lastMessage.createDiv({ cls: "edit-status-message error" });
+                errorMessage.textContent = "Error applying changes";
+                setTimeout(() => errorMessage.remove(), 3000);
+            } finally {
+                buttonsContainer.remove();
+            }
+        });
+
+        cancelButton.addEventListener("click", async () => {
+            try {
+                for (const [filePath, originalContent] of fileBackups) {
+                    const file = this.app.vault.getAbstractFileByPath(filePath);
+                    if (file && file instanceof TFile) {
+                        await this.app.vault.modify(file, originalContent);
+                    }
+                }
+                const successMessage = lastMessage.createDiv({ cls: "edit-status-message success" });
+                successMessage.textContent = "Changes cancelled successfully";
+                setTimeout(() => successMessage.remove(), 3000);
+            } catch (error) {
+                console.error("Error cancelling changes:", error);
+                const errorMessage = lastMessage.createDiv({ cls: "edit-status-message error" });
+                errorMessage.textContent = "Error cancelling changes";
+                setTimeout(() => errorMessage.remove(), 3000);
+            } finally {
+                buttonsContainer.remove();
+            }
+        });
+    }
+
+    private convertCommandsToEmojis(message: string): string {
+        const modeMatch = this.chatModes.find(mode => message.startsWith(mode.command));
+        if (modeMatch) {
+            return message.replace(modeMatch.command, `[${modeMatch.label}]`);
+        }
+        return message;
+    }
+
+    // Make the method public and async
+    public async applyPendingEdits() {
+        const chatBodyEl = this.contentEl.getElementsByClassName("khoj-chat-body")[0];
+        const lastMessage = chatBodyEl.lastElementChild;
+        if (!lastMessage) return;
+
+        // Check for edit confirmation buttons
+        const buttonsContainer = lastMessage.querySelector(".edit-confirmation-buttons");
+        if (!buttonsContainer) return;
+
+        // Find and click the apply button if it exists
+        const applyButton = buttonsContainer.querySelector(".edit-apply-button");
+        if (applyButton instanceof HTMLElement) {
+            applyButton.click();
+        }
+    }
+
+    // Make the method public
+    public async cancelPendingEdits() {
+        const chatBodyEl = this.contentEl.getElementsByClassName("khoj-chat-body")[0];
+        const lastMessage = chatBodyEl.lastElementChild;
+        if (!lastMessage) return;
+
+        // Check for edit confirmation buttons
+        const buttonsContainer = lastMessage.querySelector(".edit-confirmation-buttons");
+        if (!buttonsContainer) return;
+
+        // Find and click the cancel button if it exists
+        const cancelButton = buttonsContainer.querySelector(".edit-cancel-button");
+        if (cancelButton instanceof HTMLElement) {
+            cancelButton.click();
+        }
+    }
+
+    // Add this new method to handle khoj-edit block transformation
+    private transformEditBlocks(message: string): string {
+        return this.fileInteractions.transformEditBlocks(message);
+    }
+
+    private async handleEditRetry(errorBlock: EditBlock) {
+        this.editRetryCount++;
+
+        // Format error message based on the error type
+        let errorDetails = '';
+        if (errorBlock.error?.type === 'missing_field') {
+            errorDetails = `Missing required fields: ${errorBlock.error.message}\n`;
+            errorDetails += `Please include all required fields:\n${errorBlock.error.details}\n`;
+        } else if (errorBlock.error?.type === 'invalid_format') {
+            errorDetails = `The JSON format is invalid: ${errorBlock.error.message}\n`;
+            errorDetails += "Please check the syntax and provide a valid JSON edit block.\n";
+        } else {
+            errorDetails = `Error: ${errorBlock.error?.message || 'Unknown error'}\n`;
+            if (errorBlock.error?.details) {
+                errorDetails += `Details: ${errorBlock.error.details}\n`;
+            }
+        }
+
+        // Create retry badge - keep it simple and focused only on retry functionality
+        const chatBodyEl = this.contentEl.getElementsByClassName("khoj-chat-body")[0];
+
+        // Create a container for the retry badge to ensure proper separation
+        const retryContainer = chatBodyEl.createDiv({ cls: "khoj-retry-container" });
+
+        // Create the retry badge inside the container
+        const retryBadge = retryContainer.createDiv({ cls: "khoj-retry-badge" });
+
+        // Add retry icon
+        const retryIcon = retryBadge.createSpan({ cls: "retry-icon" });
+        setIcon(retryIcon, "refresh-cw");
+
+        // Add main text - keep it focused only on retry action
+        retryBadge.createSpan({ text: "Try again to apply changes" });
+
+        // Add retry count
+        retryBadge.createSpan({
+            cls: "retry-count",
+            text: `Attempt ${this.editRetryCount}/${this.maxEditRetries}`
+        });
+
+        // Add error details as a tooltip
+        retryBadge.setAttribute('aria-label', errorDetails);
+        // @ts-ignore - Obsidian's custom tooltip API
+        const hoverEditor = this.app.plugins.plugins["obsidian-hover-editor"];
+        if (hoverEditor) {
+            new hoverEditor.HoverPopover(this.app, retryBadge, errorDetails);
+        }
+
+        // Scroll to the badge
+        retryBadge.scrollIntoView({ behavior: "smooth", block: "center" });
+
+        // Create a retry prompt for the LLM
+        const retryPrompt = `/general I noticed some issues with the edit block. Please fix the following and provide a corrected version (retry ${this.editRetryCount}/${this.maxEditRetries}):\n\n${errorDetails}\n\nPlease provide a new edit block that fixes these issues. Make sure to follow the exact format required.`;
+
+        // Send retry request without displaying the user message
+        await this.getChatResponse(retryPrompt, "", false, false);
+    }
+
+    private showModeDropdown(inputEl: HTMLTextAreaElement) {
+        // Create dropdown if it doesn't exist
+        if (!this.modeDropdown) {
+            this.modeDropdown = this.contentEl.createDiv({
+                cls: "khoj-mode-dropdown"
+            });
+
+            // Position the dropdown ABOVE the input (instead of below)
+            const inputRect = inputEl.getBoundingClientRect();
+            const containerRect = this.contentEl.getBoundingClientRect();
+
+            this.modeDropdown.style.position = "absolute";
+            this.modeDropdown.style.left = `${inputRect.left - containerRect.left}px`;
+            this.modeDropdown.style.top = `${inputRect.top - containerRect.top - 4}px`; // Position above with small gap
+            this.modeDropdown.style.width = `${inputRect.width}px`;
+            this.modeDropdown.style.zIndex = "1000";
+            this.modeDropdown.style.transform = "translateY(-100%)"; // Move up by 100% of its height
+
+            // Add mode options to dropdown - we'll create all initially then show/hide based on filter
+            this.chatModes.forEach((mode, index) => {
+                const option = this.modeDropdown!.createDiv({
+                    cls: "khoj-mode-dropdown-option",
+                    attr: {
+                        "data-index": index.toString(),
+                        "data-command": mode.command,
+                    }
+                });
+
+                // Create emoji span and label span for better styling control
+                const emojiSpan = option.createSpan({
+                    cls: "khoj-mode-dropdown-emoji"
+                });
+                setIcon(emojiSpan, mode.iconName);
+
+                option.createSpan({
+                    cls: "khoj-mode-dropdown-label",
+                    text: ` ${mode.label} `
+                });
+
+                option.createSpan({
+                    cls: "khoj-mode-dropdown-command",
+                    text: `(${mode.command})`
+                });
+
+                // Select mode on click
+                option.addEventListener("click", () => {
+                    inputEl.value = mode.command + " ";
+                    inputEl.focus();
+                    this.currentUserInput = inputEl.value;
+                    this.hideModeDropdown();
+                });
+            });
+
+            // Close dropdown when clicking outside
+            document.addEventListener("click", (e) => {
+                if (this.modeDropdown && !this.modeDropdown.contains(e.target as Node) &&
+                    e.target !== inputEl) {
+                    this.hideModeDropdown();
+                }
+            });
+        } else {
+            // Show the dropdown if it already exists
+            this.modeDropdown.style.display = "block";
+        }
+
+        // Filter options based on current input
+        this.filterDropdownOptions(inputEl.value);
+    }
+
+    /**
+     * Filters dropdown options based on user input
+     * @param {string} inputValue - Current input value from textarea
+     */
+    private filterDropdownOptions(inputValue: string) {
+        if (!this.modeDropdown) return;
+
+        // Get all options
+        const options = this.modeDropdown.querySelectorAll<HTMLElement>(".khoj-mode-dropdown-option");
+        let visibleOptionsCount = 0;
+
+        options.forEach((option) => {
+            const command = option.getAttribute("data-command") || "";
+
+            // If input starts with "/" and has additional characters, filter based on that
+            if (inputValue.startsWith("/") && inputValue.length > 1) {
+                // Check if command starts with the input value
+                if (command.toLowerCase().startsWith(inputValue.toLowerCase())) {
+                    option.style.display = "flex";
+                    visibleOptionsCount++;
+                } else {
+                    option.style.display = "none";
+                }
+            } else {
+                // Show all options if just "/" is typed
+                option.style.display = "flex";
+                visibleOptionsCount++;
+            }
+        });
+
+        // Hide dropdown if no matches
+        if (visibleOptionsCount === 0) {
+            this.hideModeDropdown();
+        }
+
+        // Reset selection since we filtered the options
+        this.selectedOptionIndex = -1;
+    }
+
+    private hideModeDropdown() {
+        if (this.modeDropdown) {
+            this.modeDropdown.style.display = "none";
+            this.selectedOptionIndex = -1;
         }
     }
 }

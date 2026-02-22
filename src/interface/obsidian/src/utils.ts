@@ -1,5 +1,7 @@
-import { FileSystemAdapter, Notice, Vault, Modal, TFile, request, setIcon, Editor } from 'obsidian';
-import { KhojSetting, UserInfo } from 'src/settings'
+import { FileSystemAdapter, Notice, Vault, Modal, TFile, request, setIcon, Editor, WorkspaceLeaf } from 'obsidian';
+import { KhojSetting, ModelOption, ServerUserConfig, UserInfo } from 'src/settings'
+import { deleteContentByType, uploadContentBatch } from './api';
+import { KhojSearchModal } from './search_modal';
 
 export function getVaultAbsolutePath(vault: Vault): string {
     let adaptor = vault.adapter;
@@ -59,9 +61,7 @@ export const supportedImageFilesTypes = fileTypeToExtension.image;
 export const supportedBinaryFileTypes = fileTypeToExtension.pdf.concat(supportedImageFilesTypes);
 export const supportedFileTypes = fileTypeToExtension.markdown.concat(supportedBinaryFileTypes);
 
-export async function updateContentIndex(vault: Vault, setting: KhojSetting, lastSync: Map<TFile, number>, regenerate: boolean = false, userTriggered: boolean = false): Promise<Map<TFile, number>> {
-    // Get all markdown, pdf files in the vault
-    console.log(`Khoj: Updating Khoj content index...`)
+export function getFilesToSync(vault: Vault, setting: KhojSetting): TFile[] {
     const files = vault.getFiles()
         // Filter supported file types for syncing
         .filter(file => supportedFileTypes.includes(file.extension))
@@ -72,7 +72,7 @@ export async function updateContentIndex(vault: Vault, setting: KhojSetting, las
             if (fileTypeToExtension.image.includes(file.extension)) return setting.syncFileType.images;
             return false;
         })
-        // Filter files based on specified folders
+        // Filter in included folders
         .filter(file => {
             // If no folders are specified, sync all files
             if (setting.syncFolders.length === 0) return true;
@@ -80,14 +80,62 @@ export async function updateContentIndex(vault: Vault, setting: KhojSetting, las
             return setting.syncFolders.some(folder =>
                 file.path.startsWith(folder + '/') || file.path === folder
             );
+        })
+        // Filter out excluded folders
+        .filter(file => {
+            // If no folders are excluded, include all files
+            if (setting.excludeFolders.length === 0) return true;
+            // Exclude files in any of the excluded folders
+            return !setting.excludeFolders.some(folder =>
+                file.path.startsWith(folder + '/') || file.path === folder
+            );
+        })
+        // Sort files by type: markdown > pdf > image
+        .sort((a, b) => {
+            const typeOrder: (keyof typeof fileTypeToExtension)[] = ['markdown', 'pdf', 'image'];
+            const aType = typeOrder.findIndex(type => fileTypeToExtension[type].includes(a.extension));
+            const bType = typeOrder.findIndex(type => fileTypeToExtension[type].includes(b.extension));
+            return aType - bType;
         });
+
+    return files;
+}
+
+export async function updateContentIndex(
+    vault: Vault,
+    setting: KhojSetting,
+    lastSync: Map<TFile, number>,
+    regenerate: boolean = false,
+    userTriggered: boolean = false,
+    onProgress?: (progress: { processed: number, total: number }) => void
+): Promise<Map<TFile, number>> {
+    // Get all markdown, pdf files in the vault
+    console.log(`Khoj: Updating Khoj content index...`);
+    const files = getFilesToSync(vault, setting);
+    console.log(`Khoj: Found ${files.length} eligible files in vault`);
 
     let countOfFilesToIndex = 0;
     let countOfFilesToDelete = 0;
     lastSync = lastSync.size > 0 ? lastSync : new Map<TFile, number>();
 
-    // Add all files to index as multipart form data
-    const fileData = [];
+    // Count files that need indexing (modified since last sync or regenerating)
+    const filesToSync = regenerate
+        ? files
+        : files.filter(file => file.stat.mtime >= (lastSync.get(file) ?? 0));
+
+    // Show notice with file counts when user triggers sync
+    if (userTriggered) {
+        new Notice(`🔄 Syncing ${filesToSync.length} of ${files.length} files to Khoj...`);
+    }
+    console.log(`Khoj: ${filesToSync.length} files to sync (${files.length} total eligible)`);
+
+    // Add all files to index as multipart form data, batched by size, item count
+    const MAX_BATCH_SIZE = 10 * 1024 * 1024; // 10MB max batch size
+    const MAX_BATCH_ITEMS = 50; // Max 50 items per batch
+    let fileData: { blob: Blob, path: string }[][] = [];
+    let currentBatch: { blob: Blob, path: string }[] = [];
+    let currentBatchSize = 0;
+
     for (const file of files) {
         // Only push files that have been modified since last sync if not regenerating
         if (!regenerate && file.stat.mtime < (lastSync.get(file) ?? 0)) {
@@ -98,79 +146,81 @@ export async function updateContentIndex(vault: Vault, setting: KhojSetting, las
         const encoding = supportedBinaryFileTypes.includes(file.extension) ? "binary" : "utf8";
         const mimeType = fileExtensionToMimeType(file.extension) + (encoding === "utf8" ? "; charset=UTF-8" : "");
         const fileContent = encoding == 'binary' ? await vault.readBinary(file) : await vault.read(file);
-        fileData.push({ blob: new Blob([fileContent], { type: mimeType }), path: file.path });
+        const fileItem = { blob: new Blob([fileContent], { type: mimeType }), path: file.path };
+
+        const fileSize = (typeof fileContent === 'string') ? new Blob([fileContent]).size : fileContent.byteLength;
+        if ((currentBatchSize + fileSize > MAX_BATCH_SIZE || currentBatch.length >= MAX_BATCH_ITEMS) && currentBatch.length > 0) {
+            fileData.push(currentBatch);
+            currentBatch = [];
+            currentBatchSize = 0;
+        }
+
+        currentBatch.push(fileItem);
+        currentBatchSize += fileSize;
     }
 
-    // Add any previously synced files to be deleted to multipart form data
+    // Add files to delete (previously synced but no longer in vault) to final batch
     let filesToDelete: TFile[] = [];
     for (const lastSyncedFile of lastSync.keys()) {
         if (!files.includes(lastSyncedFile)) {
             countOfFilesToDelete++;
-            let fileObj = new Blob([""], { type: filenameToMimeType(lastSyncedFile) });
-            fileData.push({ blob: fileObj, path: lastSyncedFile.path });
+            const fileObj = new Blob([""], { type: filenameToMimeType(lastSyncedFile) });
+            currentBatch.push({ blob: fileObj, path: lastSyncedFile.path });
             filesToDelete.push(lastSyncedFile);
         }
     }
 
-    // Iterate through all indexable files in vault, 1000 at a time
-    let responses: string[] = [];
-    let error_message = null;
-    for (let i = 0; i < fileData.length; i += 1000) {
-        const filesGroup = fileData.slice(i, i + 1000);
-        const formData = new FormData();
-        const method = regenerate ? "PUT" : "PATCH";
-        filesGroup.forEach(fileItem => { formData.append('files', fileItem.blob, fileItem.path) });
-        // Call Khoj backend to update index with all markdown, pdf files
-        const response = await fetch(`${setting.khojUrl}/api/content?client=obsidian`, {
-            method: method,
-            headers: {
-                'Authorization': `Bearer ${setting.khojApiKey}`,
-            },
-            body: formData,
-        });
+    // Add final batch if not empty
+    if (currentBatch.length > 0) {
+        fileData.push(currentBatch);
+    }
 
-        if (!response.ok) {
-            if (response.status === 429) {
-                let response_text = await response.text();
-                if (response_text.includes("Too much data")) {
-                    const errorFragment = document.createDocumentFragment();
-                    errorFragment.appendChild(document.createTextNode("❗️Exceeded data sync limits. To resolve this either:"));
-                    const bulletList = document.createElement('ul');
+    // Delete all files of enabled content types first if regenerating
+    let error_message: string | null = null;
+    if (regenerate) {
+        // Mark content types to delete based on user sync file type settings
+        const contentTypesToDelete: string[] = [];
+        if (setting.syncFileType.markdown) contentTypesToDelete.push('markdown');
+        if (setting.syncFileType.pdf) contentTypesToDelete.push('pdf');
+        if (setting.syncFileType.images) contentTypesToDelete.push('image');
 
-                    const limitFilesItem = document.createElement('li');
-                    const settingsPrefixText = document.createTextNode("Limit files to sync from ");
-                    const settingsLink = document.createElement('a');
-                    settingsLink.textContent = "Khoj settings";
-                    settingsLink.href = "#";
-                    settingsLink.addEventListener('click', (e) => {
-                        e.preventDefault();
-                        openKhojPluginSettings();
-                    });
-                    limitFilesItem.appendChild(settingsPrefixText);
-                    limitFilesItem.appendChild(settingsLink);
-                    bulletList.appendChild(limitFilesItem);
-
-                    const upgradeItem = document.createElement('li');
-                    const upgradeLink = document.createElement('a');
-                    upgradeLink.href = `${setting.khojUrl}/settings#subscription`;
-                    upgradeLink.textContent = 'Upgrade your subscription';
-                    upgradeLink.target = '_blank';
-                    upgradeItem.appendChild(upgradeLink);
-                    bulletList.appendChild(upgradeItem);
-                    errorFragment.appendChild(bulletList);
-                    error_message = errorFragment;
-                } else {
-                    error_message = `❗️Failed to sync your content with Khoj server. Requests were throttled. Upgrade your subscription or try again later.`;
-                }
-                break;
-            } else if (response.status === 404) {
-                error_message = `❗️Could not connect to Khoj server. Ensure you can connect to it.`;
-                break;
-            } else {
-                error_message = `❗️Failed to sync your content with Khoj server. Raise issue on Khoj Discord or Github\nError: ${response.statusText}`;
+        try {
+            for (const contentType of contentTypesToDelete) {
+                await deleteContentByType(setting.khojUrl, setting.khojApiKey, contentType);
             }
-        } else {
-            responses.push(await response.text());
+        } catch (err) {
+            console.error('Khoj: Error deleting content types:', err);
+            error_message = "❗️Failed to clear existing content index";
+            fileData = [];
+        }
+    }
+
+    // Upload files in batches
+    let responses: string[] = [];
+    let processedFiles = 0;
+    const totalFiles = fileData.reduce((sum, batch) => sum + batch.length, 0);
+
+    // Report initial progress with total count before uploading
+    if (onProgress) {
+        onProgress({ processed: 0, total: totalFiles });
+    }
+
+    for (const batch of fileData) {
+        try {
+            const resultText = await uploadContentBatch(setting.khojUrl, setting.khojApiKey, batch);
+            responses.push(resultText);
+            processedFiles += batch.length;
+            if (onProgress) {
+                onProgress({ processed: processedFiles, total: totalFiles });
+            }
+        } catch (err: any) {
+            console.error('Khoj: Failed to upload batch:', err);
+            if (err.message?.includes('429')) {
+                error_message = `❗️Requests were throttled. Upgrade your subscription or try again later.`;
+            } else {
+                error_message = `❗️Failed to sync content with Khoj server. Error: ${err.message ?? String(err)}`;
+            }
+            break;
         }
     }
 
@@ -190,8 +240,9 @@ export async function updateContentIndex(vault: Vault, setting: KhojSetting, las
     if (error_message) {
         new Notice(error_message);
     } else {
-        if (userTriggered) new Notice('✅ Updated Khoj index.');
-        console.log(`✅ Refreshed Khoj content index. Updated: ${countOfFilesToIndex} files, Deleted: ${countOfFilesToDelete} files.`);
+        const summary = `Updated ${countOfFilesToIndex}, deleted ${countOfFilesToDelete} files`;
+        if (userTriggered) new Notice(`✅ ${summary}`);
+        console.log(`✅ Refreshed Khoj content index. ${summary}.`);
     }
 
     return lastSync;
@@ -276,12 +327,12 @@ export function getBackendStatusMessage(
         return `✅ Connected to Khoj. ❗️Get a valid API key from ${khojUrl}/settings#clients to log in`;
     else if (userEmail === 'default@example.com')
         // Logged in as default user in anonymous mode
-        return `✅ Signed in to Khoj`;
+        return `✅ Welcome back to Khoj`;
     else
-        return `✅ Signed in to Khoj as ${userEmail}`;
+        return `✅ Welcome back to Khoj, ${userEmail}`;
 }
 
-export async function populateHeaderPane(headerEl: Element, setting: KhojSetting): Promise<void> {
+export async function populateHeaderPane(headerEl: Element, setting: KhojSetting, viewType: string): Promise<void> {
     let userInfo: UserInfo | null = null;
     try {
         const { userInfo: extractedUserInfo } = await canConnectToBackend(setting.khojUrl, setting.khojApiKey, false);
@@ -291,19 +342,26 @@ export async function populateHeaderPane(headerEl: Element, setting: KhojSetting
     }
 
     // Add Khoj title to header element
-    const titleEl = headerEl.createDiv();
+    const titlePaneEl = headerEl.createDiv();
+    titlePaneEl.className = 'khoj-header-title-pane';
+    const titleEl = titlePaneEl.createDiv();
     titleEl.className = 'khoj-logo';
-    titleEl.textContent = "KHOJ"
+    titleEl.textContent = "Khoj";
 
     // Populate the header element with the navigation pane
     // Create the nav element
-    const nav = headerEl.createEl('nav');
+    const nav = titlePaneEl.createEl('nav');
     nav.className = 'khoj-nav';
+
+    // Create the title pane element
+    titlePaneEl.appendChild(titleEl);
+    titlePaneEl.appendChild(nav);
 
     // Create the chat link
     const chatLink = nav.createEl('a');
     chatLink.id = 'chat-nav';
     chatLink.className = 'khoj-nav chat-nav';
+    chatLink.dataset.view = KhojView.CHAT;
 
     // Create the chat icon
     const chatIcon = chatLink.createEl('span');
@@ -327,6 +385,7 @@ export async function populateHeaderPane(headerEl: Element, setting: KhojSetting
     // Create the search icon
     const searchIcon = searchLink.createEl('span');
     searchIcon.className = 'khoj-nav-icon khoj-nav-icon-search';
+    setIcon(searchIcon, 'khoj-search');
 
     // Create the search text
     const searchText = searchLink.createEl('span');
@@ -337,38 +396,142 @@ export async function populateHeaderPane(headerEl: Element, setting: KhojSetting
     searchLink.appendChild(searchIcon);
     searchLink.appendChild(searchText);
 
-    // Create the search link
+    // Create the similar link
     const similarLink = nav.createEl('a');
     similarLink.id = 'similar-nav';
     similarLink.className = 'khoj-nav similar-nav';
+    similarLink.dataset.view = KhojView.SIMILAR;
 
-    // Create the search icon
-    const similarIcon = searchLink.createEl('span');
+    // Create the similar icon
+    const similarIcon = similarLink.createEl('span');
     similarIcon.id = 'similar-nav-icon';
     similarIcon.className = 'khoj-nav-icon khoj-nav-icon-similar';
     setIcon(similarIcon, 'webhook');
 
-    // Create the search text
-    const similarText = searchLink.createEl('span');
+    // Create the similar text
+    const similarText = similarLink.createEl('span');
     similarText.className = 'khoj-nav-item-text';
     similarText.textContent = 'Similar';
 
-    // Append the search icon and text to the search link
+    // Append the similar icon and text to the similar link
     similarLink.appendChild(similarIcon);
     similarLink.appendChild(similarText);
+
+    // Helper to get the current Khoj leaf if active
+    const getCurrentKhojLeaf = (): WorkspaceLeaf | undefined => {
+        const activeLeaf = this.app.workspace.activeLeaf;
+        if (activeLeaf && activeLeaf.view &&
+            (activeLeaf.view.getViewType() === KhojView.CHAT || activeLeaf.view.getViewType() === KhojView.SIMILAR)) {
+            return activeLeaf;
+        }
+        return undefined;
+    };
+
+    // Add event listeners to the navigation links
+    // Chat link event listener
+    chatLink.addEventListener('click', () => {
+        // Get the activateView method from the plugin instance
+        const khojPlugin = this.app.plugins.plugins.khoj;
+        khojPlugin?.activateView(KhojView.CHAT, getCurrentKhojLeaf());
+    });
+
+    // Search link event listener
+    searchLink.addEventListener('click', () => {
+        // Open the search modal
+        new KhojSearchModal(this.app, setting).open();
+    });
+
+    // Similar link event listener
+    similarLink.addEventListener('click', () => {
+        // Get the activateView method from the plugin instance
+        const khojPlugin = this.app.plugins.plugins.khoj;
+        khojPlugin?.activateView(KhojView.SIMILAR, getCurrentKhojLeaf());
+    });
 
     // Append the nav items to the nav element
     nav.appendChild(chatLink);
     nav.appendChild(searchLink);
     nav.appendChild(similarLink);
 
-    // Append the title, nav items to the header element
-    headerEl.appendChild(titleEl);
-    headerEl.appendChild(nav);
+    // Append the title and new chat container to the header element
+    headerEl.appendChild(titlePaneEl);
+
+    if (viewType === KhojView.CHAT) {
+        // Create subtitle pane for New Chat button and agent selector
+        const newChatEl = headerEl.createDiv("khoj-header-right-container");
+
+        // Add agent selector container
+        const agentContainer = newChatEl.createDiv("khoj-header-agent-container");
+
+        // Add agent selector
+        agentContainer.createEl("select", {
+            attr: {
+                class: "khoj-header-agent-select",
+                id: "khoj-header-agent-select"
+            }
+        });
+
+        // Add New Chat button
+        const newChatButton = newChatEl.createEl('button');
+        newChatButton.className = 'khoj-header-new-chat-button';
+        newChatButton.title = 'Start New Chat (Ctrl+Alt+N)';
+        setIcon(newChatButton, 'plus-circle');
+        newChatButton.textContent = 'New Chat';
+
+        // Add event listener to the New Chat button
+        newChatButton.addEventListener('click', () => {
+            const khojPlugin = this.app.plugins.plugins.khoj;
+            if (khojPlugin) {
+                // First activate the chat view
+                khojPlugin.activateView(KhojView.CHAT).then(() => {
+                    // Then create a new conversation
+                    setTimeout(() => {
+                        // Access the chat view directly from the leaf after activation
+                        const leaves = this.app.workspace.getLeavesOfType(KhojView.CHAT);
+                        if (leaves.length > 0) {
+                            const chatView = leaves[0].view;
+                            if (chatView && typeof chatView.createNewConversation === 'function') {
+                                chatView.createNewConversation();
+                            }
+                        }
+                    }, 100);
+                });
+            }
+        });
+
+        // Append the new chat container to the header element
+        headerEl.appendChild(newChatEl);
+    }
+
+    // Update active state based on current view
+    const updateActiveState = () => {
+        const activeLeaf = this.app.workspace.activeLeaf;
+        if (!activeLeaf) return;
+
+        const viewType = activeLeaf.view?.getViewType();
+
+        // Remove active class from all links
+        chatLink.classList.remove('khoj-nav-selected');
+        similarLink.classList.remove('khoj-nav-selected');
+
+        // Add active class to the current view link
+        if (viewType === KhojView.CHAT) {
+            chatLink.classList.add('khoj-nav-selected');
+        } else if (viewType === KhojView.SIMILAR) {
+            similarLink.classList.add('khoj-nav-selected');
+        }
+    };
+
+    // Initial update
+    updateActiveState();
+
+    // Register event for workspace changes
+    this.app.workspace.on('active-leaf-change', updateActiveState);
 }
 
 export enum KhojView {
     CHAT = "khoj-chat-view",
+    SIMILAR = "khoj-similar-view",
 }
 
 function copyParentText(event: MouseEvent, message: string, originalButton: string) {
@@ -384,7 +547,7 @@ function copyParentText(event: MouseEvent, message: string, originalButton: stri
     }).catch((error) => {
         console.error("Error copying text to clipboard:", error);
         const originalButtonText = button.innerHTML;
-        button.innerHTML = "⛔️";
+        setIcon((button as HTMLElement), 'x-circle');
         setTimeout(() => {
             button.innerHTML = originalButtonText;
             setIcon((button as HTMLElement), originalButton);
@@ -396,7 +559,13 @@ function copyParentText(event: MouseEvent, message: string, originalButton: stri
 
 export function createCopyParentText(message: string, originalButton: string = 'copy-plus') {
     return function (event: MouseEvent) {
-        return copyParentText(event, message, originalButton);
+        let markdownMessage = copyParentText(event, message, originalButton);
+        // Convert edit blocks back to markdown format before pasting
+        const editRegex = /<details class="khoj-edit-accordion">[\s\S]*?<pre><code class="language-khoj-edit">([\s\S]*?)<\/code><\/pre>[\s\S]*?<\/details>/g;
+        markdownMessage = markdownMessage?.replace(editRegex, (_, content) => {
+            return `<khoj-edit>\n${content}\n</khoj-edit>`;
+        });
+        return markdownMessage;
     }
 }
 
@@ -442,5 +611,116 @@ export function getLinkToEntry(sourceFiles: TFile[], chosenFile: string, chosenE
         let linkToEntry = resultHeading.startsWith('#') ? `${fileMatch.path}${resultHeading}` : fileMatch.path;
         console.log(`Link: ${linkToEntry}, File: ${fileMatch.path}, Heading: ${resultHeading}`);
         return linkToEntry;
+    }
+}
+
+/**
+ * Calculate estimated vault sync metrics (used and total bytes).
+ * This is a client-side estimation based on the configured sync file types and folders.
+ * The storage limit is determined from the backend-provided `setting.userInfo?.is_active` flag:
+ * - if true => premium limit (500 MB)
+ * - otherwise => free limit (10 MB)
+ * This avoids client-side heuristics and relies on server-provided user info.
+ */
+export async function calculateVaultSyncMetrics(vault: Vault, setting: KhojSetting): Promise<{ usedBytes: number, totalBytes: number }> {
+    try {
+        const files = getFilesToSync(vault, setting);
+        const usedBytes = files.reduce((acc, file) => acc + (file.stat?.size ?? 0), 0);
+
+        // Default to free plan limit
+        const FREE_LIMIT = 10 * 1024 * 1024; // 10 MB
+        const PAID_LIMIT = 500 * 1024 * 1024; // 500 MB
+        let totalBytes = FREE_LIMIT;
+
+        // Determine plan from backend-provided user info. Use FREE_LIMIT as default when info missing.
+        try {
+            if (setting.userInfo && setting.userInfo.is_active === true) {
+                totalBytes = PAID_LIMIT;
+            } else {
+                totalBytes = FREE_LIMIT;
+            }
+        } catch (err) {
+            // Defensive: on any unexpected error, fall back to free limit
+            console.warn('Khoj: Error reading userInfo.is_active, defaulting to free limit', err);
+            totalBytes = FREE_LIMIT;
+        }
+
+        return { usedBytes, totalBytes };
+    } catch (err) {
+        console.error('Khoj: Error calculating vault sync metrics:', err);
+        return { usedBytes: 0, totalBytes: 10 * 1024 * 1024 };
+    }
+}
+
+export async function fetchChatModels(settings: KhojSetting): Promise<ModelOption[]> {
+    if (!settings.connectedToBackend || !settings.khojUrl) {
+        return [];
+    }
+    try {
+        const response = await fetch(`${settings.khojUrl}/api/model/chat/options`, {
+            method: 'GET',
+            headers: settings.khojApiKey ? { 'Authorization': `Bearer ${settings.khojApiKey}` } : {},
+        });
+        if (response.ok) {
+            const modelsData = await response.json();
+            if (Array.isArray(modelsData)) {
+                return modelsData.map((model: any) => ({
+                    id: model.id.toString(),
+                    name: model.name,
+                }));
+            }
+        } else {
+            console.warn("Khoj: Failed to fetch chat models:", response.statusText);
+        }
+    } catch (error) {
+        console.error("Khoj: Error fetching chat models:", error);
+    }
+    return [];
+}
+
+export async function fetchUserServerSettings(settings: KhojSetting): Promise<ServerUserConfig | null> {
+    if (!settings.connectedToBackend || !settings.khojUrl) {
+        return null;
+    }
+    try {
+        const response = await fetch(`${settings.khojUrl}/api/settings?detailed=true`, {
+            method: 'GET',
+            headers: settings.khojApiKey ? { 'Authorization': `Bearer ${settings.khojApiKey}` } : {},
+        });
+        if (response.ok) {
+            return await response.json() as ServerUserConfig;
+        } else {
+            console.warn("Khoj: Failed to fetch user server settings:", response.statusText);
+        }
+    } catch (error) {
+        console.error("Khoj: Error fetching user server settings:", error);
+    }
+    return null;
+}
+
+export async function updateServerChatModel(modelId: string, settings: KhojSetting): Promise<boolean> {
+    if (!settings.connectedToBackend || !settings.khojUrl) {
+        new Notice("️⛔️ Connect to Khoj to update chat model.");
+        return false;
+    }
+
+    try {
+        const response = await fetch(`${settings.khojUrl}/api/model/chat?id=${modelId}`, {
+            method: 'POST', // As per web app's updateModel function
+            headers: settings.khojApiKey ? { 'Authorization': `Bearer ${settings.khojApiKey}` } : {},
+        });
+        if (response.ok) {
+            settings.selectedChatModelId = modelId; // Update local mirror
+            return true;
+        } else {
+            const errorData = await response.text();
+            new Notice(`️⛔️ Failed to update chat model on server: ${response.status} ${errorData}`);
+            console.error("Khoj: Failed to update chat model:", response.status, errorData);
+            return false;
+        }
+    } catch (error) {
+        new Notice("️⛔️ Error updating chat model on server. See console.");
+        console.error("Khoj: Error updating chat model:", error);
+        return false;
     }
 }

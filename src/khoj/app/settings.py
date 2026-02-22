@@ -10,43 +10,41 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.2/ref/settings/
 """
 
+import atexit
+import logging
 import os
 from pathlib import Path
 
 from django.templatetags.static import static
 
-from khoj.utils.helpers import in_debug_mode, is_env_var_true
+from khoj.utils.helpers import is_env_var_true
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
-
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.getenv("KHOJ_DJANGO_SECRET_KEY", "!secret")
 
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = in_debug_mode()
+# Set KHOJ_DOMAIN to custom domain for production deployments.
+KHOJ_DOMAIN = os.getenv("KHOJ_DOMAIN") or "khoj.dev"
 
-# All Subdomains of KHOJ_DOMAIN are trusted
-KHOJ_DOMAIN = os.getenv("KHOJ_DOMAIN", "khoj.dev")
+# Set KHOJ_ALLOWED_DOMAIN to the i.p or domain of the Khoj service on the internal network.
+# Useful to set when running the service behind a reverse proxy.
 KHOJ_ALLOWED_DOMAIN = os.getenv("KHOJ_ALLOWED_DOMAIN", KHOJ_DOMAIN)
 ALLOWED_HOSTS = [f".{KHOJ_ALLOWED_DOMAIN}", "localhost", "127.0.0.1", "[::1]", f"{KHOJ_ALLOWED_DOMAIN}"]
 
+# All Subdomains of KHOJ_DOMAIN are trusted for CSRF
 CSRF_TRUSTED_ORIGINS = [
     f"https://*.{KHOJ_DOMAIN}",
     f"https://{KHOJ_DOMAIN}",
     f"http://*.{KHOJ_DOMAIN}",
     f"http://{KHOJ_DOMAIN}",
-    f"https://app.{KHOJ_DOMAIN}",
 ]
 
 DISABLE_HTTPS = is_env_var_true("KHOJ_NO_HTTPS")
 
-COOKIE_SAMESITE = "None"
-if DEBUG and os.getenv("KHOJ_DOMAIN") == None:
+# WARNING: Change this check only if you know what you are doing.
+if not os.getenv("KHOJ_DOMAIN"):
     SESSION_COOKIE_DOMAIN = "localhost"
     CSRF_COOKIE_DOMAIN = "localhost"
 else:
@@ -119,13 +117,71 @@ CLOSE_CONNECTIONS_AFTER_REQUEST = True
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 DATA_UPLOAD_MAX_NUMBER_FIELDS = 20000
+
+# Default PostgreSQL configuration
+DB_NAME = os.getenv("POSTGRES_DB", "khoj")
+DB_HOST = os.getenv("POSTGRES_HOST", "localhost")
+DB_PORT = os.getenv("POSTGRES_PORT", "5432")
+
+# Use pgserver if env var explicitly set to true
+USE_EMBEDDED_DB = is_env_var_true("USE_EMBEDDED_DB")
+
+if USE_EMBEDDED_DB:
+    # Set up logging for pgserver
+    logger = logging.getLogger("pgserver_django")
+    logger.setLevel(logging.INFO)
+    if not logger.handlers:
+        handler = logging.StreamHandler()
+        handler.setFormatter(logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s"))
+        logger.addHandler(handler)
+
+    try:
+        import pgserver
+
+        # Set up data directory
+        PGSERVER_DATA_DIR = os.getenv("PGSERVER_DATA_DIR") or os.path.join(BASE_DIR, "pgserver_data")
+        os.makedirs(PGSERVER_DATA_DIR, exist_ok=True)
+
+        logger.info(f"Initializing embedded Postgres DB with data directory: {PGSERVER_DATA_DIR}")
+
+        # Start server
+        PGSERVER_INSTANCE = pgserver.get_server(PGSERVER_DATA_DIR)
+
+        # Create pgvector extension, if not already exists
+        PGSERVER_INSTANCE.psql("CREATE EXTENSION IF NOT EXISTS vector;")
+
+        # Create database, if not already exists
+        db_exists_result = PGSERVER_INSTANCE.psql(f"SELECT 1 FROM pg_database WHERE datname = '{DB_NAME}';")
+        db_exists = "(1 row)" in db_exists_result  # Check for actual row in result
+        if not db_exists:
+            logger.info(f"Creating database: {DB_NAME}")
+            PGSERVER_INSTANCE.psql(f"CREATE DATABASE {DB_NAME};")
+
+        # Register cleanup
+        def cleanup_pgserver():
+            if PGSERVER_INSTANCE:
+                logger.debug("Shutting down embedded Postgres DB")
+                PGSERVER_INSTANCE.cleanup()
+
+        atexit.register(cleanup_pgserver)
+
+        # Update database configuration for pgserver
+        DB_HOST = PGSERVER_DATA_DIR
+        DB_PORT = ""  # pgserver uses Unix socket, so port is empty
+
+        logger.info("Embedded Postgres DB started successfully")
+
+    except Exception as e:
+        logger.error(f"Error initializing embedded Postgres DB: {str(e)}. Use standard PostgreSQL server.")
+
+# Set the database configuration
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
-        "HOST": os.getenv("POSTGRES_HOST", "localhost"),
-        "PORT": os.getenv("POSTGRES_PORT", "5432"),
+        "HOST": DB_HOST,
+        "PORT": DB_PORT,
         "USER": os.getenv("POSTGRES_USER", "postgres"),
-        "NAME": os.getenv("POSTGRES_DB", "khoj"),
+        "NAME": DB_NAME,
         "PASSWORD": os.getenv("POSTGRES_PASSWORD", "postgres"),
         "CONN_MAX_AGE": 0,
         "CONN_HEALTH_CHECKS": True,

@@ -1,27 +1,20 @@
-import os
 from pathlib import Path
+from textwrap import dedent
 
-from khoj.database.models import KhojUser, LocalPlaintextConfig
 from khoj.processor.content.plaintext.plaintext_to_entries import PlaintextToEntries
-from khoj.utils.fs_syncer import get_plaintext_files
-from khoj.utils.rawconfig import TextContentConfig
 
 
-def test_plaintext_file(tmp_path):
+def test_plaintext_file():
     "Convert files with no heading to jsonl."
     # Arrange
-    raw_entry = f"""
+    raw_entry = """
     Hi, I am a plaintext file and I have some plaintext words.
     """
-    plaintextfile = create_file(tmp_path, raw_entry)
+    plaintextfile = "test.txt"
+    data = {plaintextfile: raw_entry}
 
     # Act
     # Extract Entries from specified plaintext files
-
-    data = {
-        f"{plaintextfile}": raw_entry,
-    }
-
     entries = PlaintextToEntries.extract_plaintext_entries(data)
 
     # Convert each entry.file to absolute path to make them JSON serializable
@@ -37,59 +30,20 @@ def test_plaintext_file(tmp_path):
     assert entries[1][0].compiled == f"{plaintextfile}\n{raw_entry}"
 
 
-def test_get_plaintext_files(tmp_path):
-    "Ensure Plaintext files specified via input-filter, input-files extracted"
-    # Arrange
-    # Include via input-filter globs
-    group1_file1 = create_file(tmp_path, filename="group1-file1.md")
-    group1_file2 = create_file(tmp_path, filename="group1-file2.md")
-
-    group2_file1 = create_file(tmp_path, filename="group2-file1.markdown")
-    group2_file2 = create_file(tmp_path, filename="group2-file2.markdown")
-    group2_file4 = create_file(tmp_path, filename="group2-file4.html")
-    # Include via input-file field
-    file1 = create_file(tmp_path, filename="notes.txt")
-    # Include unsupported file types
-    create_file(tmp_path, filename="group2-unincluded.py")
-    create_file(tmp_path, filename="group2-unincluded.csv")
-    create_file(tmp_path, filename="group2-unincluded.csv")
-    create_file(tmp_path, filename="group2-file3.mbox")
-    # Not included by any filter
-    create_file(tmp_path, filename="not-included-markdown.md")
-    create_file(tmp_path, filename="not-included-text.txt")
-
-    expected_files = set(
-        [
-            os.path.join(tmp_path, file.name)
-            for file in [group1_file1, group1_file2, group2_file1, group2_file2, group2_file4, file1]
-        ]
-    )
-
-    # Setup input-files, input-filters
-    input_files = [tmp_path / "notes.txt"]
-    input_filter = [tmp_path / "group1*.md", tmp_path / "group2*.*"]
-
-    plaintext_config = TextContentConfig(
-        input_files=input_files,
-        input_filter=[str(filter) for filter in input_filter],
-        compressed_jsonl=tmp_path / "test.jsonl",
-        embeddings_file=tmp_path / "test_embeddings.jsonl",
-    )
-
-    # Act
-    extracted_plaintext_files = get_plaintext_files(plaintext_config)
-
-    # Assert
-    assert len(extracted_plaintext_files) == len(expected_files)
-    assert set(extracted_plaintext_files.keys()) == set(expected_files)
-
-
-def test_parse_html_plaintext_file(content_config, default_user: KhojUser):
+def test_parse_html_plaintext_file(tmp_path):
     "Ensure HTML files are parsed correctly"
     # Arrange
-    # Setup input-files, input-filters
-    config = LocalPlaintextConfig.objects.filter(user=default_user).first()
-    extracted_plaintext_files = get_plaintext_files(config=config)
+    raw_entry = dedent(
+        f"""
+        <html>
+        <head><title>Test HTML</title></head>
+        <body>
+        <div>Test content</div>
+        </body>
+        </html>
+        """
+    )
+    extracted_plaintext_files = {"test.html": raw_entry}
 
     # Act
     entries = PlaintextToEntries.extract_plaintext_entries(extracted_plaintext_files)

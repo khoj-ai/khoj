@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Khoj AI</title>
+    <meta name="description" content="Your AI Research Copilot - Ask anything, understand documents, create new content">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@100;300;400;500&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://khoj.dev/css/design-tokens.css">
+    <link rel="stylesheet" href="/home/css/styles.css">
+    <link rel="icon" href="/home/favicon.png" type="image/png">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="https://khoj.dev" class="logo">
+                <img src="/home/favicon.png" alt="Khoj" class="logo-img">
+            </a>
+            <div class="nav-links">
+                <a href="https://docs.khoj.dev/" class="nav-link">Docs</a>
+                <a href="#pricing" class="nav-link">Pricing</a>
+                <a href="#downloads" class="nav-link">Download</a>
+                <a href="https://github.com/khoj-ai/khoj" class="nav-link">GitHub</a>
+            </div>
+            <a href="/?v=app" class="nav-cta">Launch App</a>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <h1 class="hero-title">Your AI Research Copilot</h1>
+        <a href="/?v=app" class="hero-cta">Start Thinking</a>
+        <p class="hero-subtitle">Ask anything, understand documents, create new content</p>
+
+        <!-- Hero Image -->
+        <img src="/home/khoj_app_hero_image.avif" alt="Khoj AI in action - Research assistant interface" class="hero-image">
+    </section>
+
+    <!-- Feature Cards Section -->
+    <section class="features">
+        <!-- Research Card -->
+        <div class="feature-card research">
+            <div class="feature-content">
+                <h3 class="feature-title">Research Deeply</h3>
+                <p class="feature-description">Research deeply across your documents and the internet. Generate charts, images and reports.</p>
+                <div class="feature-tags">
+                    <span class="tag">Understand any document</span>
+                    <span class="tag">Generate images, diagrams, charts</span>
+                    <span class="tag highlight">Voice chat</span>
+                </div>
+                <a href="/?v=app" class="feature-link">Start Research</a>
+            </div>
+            <div class="feature-visual research-visual">
+                <div class="capability-icons">
+                    <div class="cap-icon voice">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/>
+                        </svg>
+                        <span>Voice</span>
+                    </div>
+                    <div class="cap-icon globe">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+                        </svg>
+                        <span>Web</span>
+                    </div>
+                    <div class="cap-icon document">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
+                        </svg>
+                        <span>Docs</span>
+                    </div>
+                    <div class="cap-icon image">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
+                        </svg>
+                        <span>Images</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Personal Card -->
+        <div class="feature-card personal">
+            <div class="feature-content">
+                <h3 class="feature-title">Personalize</h3>
+                <p class="feature-description">Sync your documents, chat with any AI model and create agents that understand your needs.</p>
+                <div class="feature-tags">
+                    <span class="tag">Tune for your needs</span>
+                    <span class="tag">Documents stay synced</span>
+                    <span class="tag">Chat with GPT, Gemini, Claude, Deepseek</span>
+                </div>
+                <a href="/agents" class="feature-link">Create Agent</a>
+            </div>
+            <div class="feature-visual personal-visual">
+                <div class="personalize-stack">
+                    <!-- Agents Layer -->
+                    <div class="agents-grid">
+                        <div class="agent-item active">
+                            <span class="agent-icon code">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                    <polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/>
+                                </svg>
+                            </span>
+                            Technical Lead
+                        </div>
+                        <div class="agent-item">
+                            <span class="agent-icon health">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                    <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+                                </svg>
+                            </span>
+                            Health
+                        </div>
+                        <div class="agent-item">
+                            <span class="agent-icon teacher">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                    <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+                                </svg>
+                            </span>
+                            Teacher
+                        </div>
+                        <div class="agent-item">
+                            <span class="agent-icon finance">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                    <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                                </svg>
+                            </span>
+                            Finance
+                        </div>
+                    </div>
+                    <!-- Powered By Label -->
+                    <div class="powered-by-label">Powered by</div>
+                    <!-- Models Layer -->
+                    <div class="models-strip">
+                        <div class="model-icon" title="OpenAI">
+                            <svg viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M22.2819 9.8211a5.9847 5.9847 0 0 0-.5157-4.9108 6.0462 6.0462 0 0 0-6.5098-2.9A6.0651 6.0651 0 0 0 4.9807 4.1818a5.9847 5.9847 0 0 0-3.9977 2.9 6.0462 6.0462 0 0 0 .7427 7.0966 5.98 5.98 0 0 0 .511 4.9107 6.051 6.051 0 0 0 6.5146 2.9001A5.9847 5.9847 0 0 0 13.2599 24a6.0557 6.0557 0 0 0 5.7718-4.2058 5.9894 5.9894 0 0 0 3.9977-2.9001 6.0557 6.0557 0 0 0-.7475-7.0729zm-9.022 12.6081a4.4755 4.4755 0 0 1-2.8764-1.0408l.1419-.0804 4.7783-2.7582a.7948.7948 0 0 0 .3927-.6813v-6.7369l2.02 1.1686a.071.071 0 0 1 .038.052v5.5826a4.504 4.504 0 0 1-4.4945 4.4944zm-9.6607-4.1254a4.4708 4.4708 0 0 1-.5346-3.0137l.142.0852 4.783 2.7582a.7712.7712 0 0 0 .7806 0l5.8428-3.3685v2.3324a.0804.0804 0 0 1-.0332.0615L9.74 19.9502a4.4992 4.4992 0 0 1-6.1408-1.6464zM2.3408 7.8956a4.485 4.485 0 0 1 2.3655-1.9728V11.6a.7664.7664 0 0 0 .3879.6765l5.8144 3.3543-2.0201 1.1685a.0757.0757 0 0 1-.071 0l-4.8303-2.7865A4.504 4.504 0 0 1 2.3408 7.8956zm16.0993 3.8558L12.6 8.3829l2.02-1.1638a.0757.0757 0 0 1 .071 0l4.8303 2.7913a4.4944 4.4944 0 0 1-.6765 8.1042v-5.6772a.79.79 0 0 0-.407-.667zm2.0107-3.0231l-.142-.0852-4.7735-2.7818a.7759.7759 0 0 0-.7854 0L9.409 9.2297V6.8974a.0662.0662 0 0 1 .0284-.0615l4.8303-2.7866a4.4992 4.4992 0 0 1 6.6802 4.66zM8.3065 12.863l-2.02-1.1638a.0804.0804 0 0 1-.038-.0567V6.0742a4.4992 4.4992 0 0 1 7.3757-3.4537l-.142.0805L8.704 5.459a.7948.7948 0 0 0-.3927.6813zm1.0976-2.3654l2.602-1.4998 2.6069 1.4998v2.9994l-2.5974 1.4997-2.6067-1.4997Z"/>
+                            </svg>
+                        </div>
+                        <div class="model-icon anthropic" title="Anthropic">
+                            <svg viewBox="0 0 49 28" fill="currentColor">
+                                <path d="M28.1538 0.571411L41.2941 31.39H48.5L35.3598 0.571411H28.1538Z"/>
+                                <path d="M12.9093 19.1946L17.4055 8.36409L21.9016 19.1946H12.9093ZM13.6382 0.571411L0.5 31.39H7.8461L10.5331 24.9181H24.2783L26.9648 31.39H34.3109L21.1727 0.571411H13.6382Z"/>
+                            </svg>
+                        </div>
+                        <div class="model-icon" title="Google">
+                            <svg viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+                                <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+                                <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+                                <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+                            </svg>
+                        </div>
+                        <div class="model-icon deepseek" title="Deepseek">
+                            <svg class="model-logo" viewBox="0 0 512 509.64" fill="currentColor">
+                                <path fill="transparent" d="M115.612 0h280.775C459.974 0 512 52.026 512 115.612v278.415c0 63.587-52.026 115.613-115.613 115.613H115.612C52.026 509.64 0 457.614 0 394.027V115.612C0 52.026 52.026 0 115.612 0z"/>
+                                <path fill="#4D6BFE" fill-rule="nonzero" d="M440.898 139.167c-4.001-1.961-5.723 1.776-8.062 3.673-.801.612-1.479 1.407-2.154 2.141-5.848 6.246-12.681 10.349-21.607 9.859-13.048-.734-24.192 3.368-34.04 13.348-2.093-12.307-9.048-19.658-19.635-24.37-5.54-2.449-11.141-4.9-15.02-10.227-2.708-3.795-3.447-8.021-4.801-12.185-.861-2.509-1.725-5.082-4.618-5.512-3.139-.49-4.372 2.142-5.601 4.349-4.925 9.002-6.833 18.921-6.647 28.962.432 22.597 9.972 40.597 28.932 53.397 2.154 1.47 2.707 2.939 2.032 5.082-1.293 4.41-2.832 8.695-4.186 13.105-.862 2.817-2.157 3.429-5.172 2.205-10.402-4.346-19.391-10.778-27.332-18.553-13.481-13.044-25.668-27.434-40.873-38.702a177.614 177.614 0 00-10.834-7.409c-15.512-15.063 2.032-27.434 6.094-28.902 4.247-1.532 1.478-6.797-12.251-6.736-13.727.061-26.285 4.653-42.288 10.777-2.34.92-4.801 1.593-7.326 2.142-14.527-2.756-29.608-3.368-45.367-1.593-29.671 3.305-53.368 17.329-70.788 41.272-20.928 28.785-25.854 61.482-19.821 95.59 6.34 35.943 24.683 65.704 52.876 88.974 29.239 24.123 62.911 35.943 101.32 33.677 23.329-1.346 49.307-4.468 78.607-29.27 7.387 3.673 15.142 5.144 28.008 6.246 9.911.92 19.452-.49 26.839-2.019 11.573-2.449 10.773-13.166 6.586-15.124-33.915-15.797-26.47-9.368-33.24-14.573 17.235-20.39 43.213-41.577 53.369-110.222.8-5.448.121-8.877 0-13.287-.061-2.692.553-3.734 3.632-4.041 8.494-.981 16.742-3.305 24.314-7.471 21.975-12.002 30.84-31.719 32.933-55.355.307-3.612-.061-7.348-3.879-9.245v-.003zM249.4 351.89c-32.872-25.838-48.814-34.352-55.4-33.984-6.155.368-5.048 7.41-3.694 12.002 1.415 4.532 3.264 7.654 5.848 11.634 1.785 2.634 3.017 6.551-1.784 9.493-10.587 6.55-28.993-2.205-29.856-2.635-21.421-12.614-39.334-29.269-51.954-52.047-12.187-21.924-19.267-45.435-20.435-70.542-.308-6.061 1.478-8.207 7.509-9.307 7.94-1.471 16.127-1.778 24.068-.615 33.547 4.9 62.108 19.902 86.054 43.66 13.666 13.531 24.007 29.699 34.658 45.496 11.326 16.778 23.514 32.761 39.026 45.865 5.479 4.592 9.848 8.083 14.035 10.656-12.62 1.407-33.673 1.714-48.075-9.676zm15.899-102.519c.521-2.111 2.421-3.658 4.722-3.658a4.74 4.74 0 011.661.305c.678.246 1.293.614 1.786 1.163.861.859 1.354 2.083 1.354 3.368 0 2.695-2.154 4.837-4.862 4.837a4.748 4.748 0 01-4.738-4.034 5.01 5.01 0 01.077-1.981zm47.208 26.915c-2.606.996-5.2 1.778-7.707 1.88-4.679.244-9.787-1.654-12.556-3.981-4.308-3.612-7.386-5.631-8.679-11.941-.554-2.695-.247-6.858.246-9.246 1.108-5.144-.124-8.451-3.754-11.451-2.954-2.449-6.711-3.122-10.834-3.122-1.539 0-2.954-.673-4.001-1.224-1.724-.856-3.139-3-1.785-5.634.432-.856 2.525-2.939 3.018-3.305 5.6-3.185 12.065-2.144 18.034.244 5.54 2.266 9.727 6.429 15.759 12.307 6.155 7.102 7.263 9.063 10.773 14.39 2.771 4.163 5.294 8.451 7.018 13.348.877 2.561.071 4.74-2.341 6.277-.981.625-2.109 1.044-3.191 1.458z"/>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Autonomous Card -->
+        <div class="feature-card autonomous">
+            <div class="feature-content">
+                <h3 class="feature-title">Stay Informed</h3>
+                <p class="feature-description">Create automations to get tailored research and event based notifications directly in your inbox.</p>
+                <div class="feature-tags">
+                    <span class="tag">Custom newsletters</span>
+                    <span class="tag">Fresh timely research</span>
+                    <span class="tag">Dynamic event based notifications</span>
+                </div>
+                <a href="/automations" class="feature-link">Create Automation</a>
+            </div>
+            <div class="feature-visual autonomous-visual">
+                <div class="automation-demo">
+                    <h4 class="demo-title">Daily summary of AI tech startups</h4>
+                    <p class="demo-desc">Create a summary of yesterday's news in AI tech startups. Do a roundup of movement on incumbent players as well.</p>
+                    <div class="demo-pills">
+                        <span class="demo-pill time">
+                            <svg class="pill-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                            </svg>
+                            9 AM
+                        </span>
+                        <span class="demo-pill frequency">
+                            <svg class="pill-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+                            </svg>
+                            Daily
+                        </span>
+                        <span class="demo-pill email">
+                            <svg class="pill-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
+                            </svg>
+                            lina@goodcorp.com
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Transparent Card -->
+        <div class="feature-card transparent">
+            <div class="feature-content">
+                <h3 class="feature-title">Trustworthy Answers</h3>
+                <p class="feature-description">Know how your AI thinks. Easily trace its reasoning and the sources it read to generate its response.</p>
+                <div class="feature-tags">
+                    <span class="tag">Trace Reasoning</span>
+                    <span class="tag">Verify References</span>
+                    <span class="tag">Open Source</span>
+                </div>
+                <a href="/?v=app" class="feature-link">Ask Anything</a>
+            </div>
+            <div class="feature-visual transparent-visual">
+                <div class="thinking-steps">
+                    <div class="step">
+                        <svg class="step-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <path d="M12 2a7 7 0 0 1 7 7c0 2.38-1.19 4.47-3 5.74V17a2 2 0 0 1-2 2H10a2 2 0 0 1-2-2v-2.26C6.19 13.47 5 11.38 5 9a7 7 0 0 1 7-7z"/><path d="M10 21v1a1 1 0 0 0 1 1h2a1 1 0 0 0 1-1v-1"/><path d="M9 14h6"/>
+                        </svg>
+                        <div class="step-content">
+                            <span class="step-title">Understanding Query</span>
+                            <p class="step-desc">Read my essay about immigration law and suggest three argument improvements</p>
+                        </div>
+                    </div>
+                    <div class="step">
+                        <svg class="step-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/>
+                        </svg>
+                        <div class="step-content">
+                            <span class="step-title">Reading Documents</span>
+                            <p class="step-desc">Immigration_Law.docx</p>
+                        </div>
+                    </div>
+                    <div class="step">
+                        <svg class="step-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                        </svg>
+                        <div class="step-content">
+                            <span class="step-title">Searching the Internet for</span>
+                            <p class="step-desc">Case law for birthright citizenship</p>
+                            <p class="step-desc">United States v. Wong Kim Ark, 169 U.S. 649</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Downloads Section -->
+    <section id="downloads" class="downloads">
+        <div class="downloads-header">
+            <span class="downloads-label">Download</span>
+            <div class="downloads-tabs">
+                <button class="tab-btn active" data-tab="windows">Windows</button>
+                <button class="tab-btn" data-tab="mac">Mac</button>
+                <button class="tab-btn" data-tab="linux">Linux</button>
+                <button class="tab-btn" data-tab="android">Android</button>
+            </div>
+        </div>
+        <div class="downloads-content">
+            <div class="tab-content active" id="windows">
+                <div class="download-info">
+                    <h2 class="download-title">Khoj for Windows</h2>
+                    <p class="download-desc">Keep your documents synced and chat with Khoj from your desktop.</p>
+                    <a href="https://download.khoj.dev/windows/nsis/x64" class="download-btn">Download (x64)</a>
+                </div>
+            </div>
+            <div class="tab-content" id="mac">
+                <div class="download-info">
+                    <h2 class="download-title">Khoj for Mac</h2>
+                    <p class="download-desc">Native Mac app to sync documents and access Khoj from your menu bar.</p>
+                    <div class="download-options">
+                        <a href="https://download.khoj.dev/mac/dmg/arm64" class="download-btn">Apple Silicon</a>
+                        <a href="https://download.khoj.dev/mac/dmg/x64" class="download-btn secondary">Intel</a>
+                    </div>
+                </div>
+            </div>
+            <div class="tab-content" id="linux">
+                <div class="download-info">
+                    <h2 class="download-title">Khoj for Linux</h2>
+                    <p class="download-desc">Run Khoj natively on your Linux desktop.</p>
+                    <div class="download-options">
+                        <a href="https://download.khoj.dev/linux/deb/x64" class="download-btn">.deb</a>
+                        <a href="https://download.khoj.dev/linux/appImage/x64" class="download-btn secondary">AppImage</a>
+                    </div>
+                </div>
+            </div>
+            <div class="tab-content" id="android">
+                <div class="download-info">
+                    <h2 class="download-title">Khoj for Android</h2>
+                    <p class="download-desc">Take Khoj with you on your Android device.</p>
+                    <a href="https://play.google.com/store/apps/details?id=dev.khoj.app" class="download-btn">Google Play</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Access Anywhere -->
+    <section class="access-section">
+        <h2 class="access-title">Access Anywhere</h2>
+        <div class="access-links">
+            <a href="https://docs.khoj.dev/clients/whatsapp" class="access-card whatsapp">
+                <svg class="access-icon" viewBox="0 0 48 49" width="32" height="32">
+                    <defs>
+                        <linearGradient id="whatsapp-grad" x1="24" y1="42.5" x2="24" y2="2.5" gradientUnits="userSpaceOnUse">
+                            <stop stop-color="#1FAF38"/><stop offset="1" stop-color="#60D669"/>
+                        </linearGradient>
+                    </defs>
+                    <path d="M4.85363 22.2606C4.85262 25.6214 5.73749 28.9029 7.42053 31.7954L4.69238 41.6778L14.8854 39.0261C17.7042 40.5488 20.8627 41.3467 24.0726 41.347H24.0807C34.6768 41.347 43.3027 32.7915 43.3067 22.2757C43.3088 17.18 41.3113 12.3884 37.6811 8.78338C34.051 5.17878 29.2236 3.19259 24.0807 3.19019C13.4825 3.19019 4.85766 11.7453 4.85363 22.2606Z" fill="url(#whatsapp-grad)"/>
+                    <path d="M19.1061 13.9958C18.7332 13.1736 18.3412 13.1571 17.9864 13.1426C17.6962 13.1302 17.3636 13.1312 17.032 13.1312C16.7004 13.1312 16.1613 13.255 15.7057 13.7488C15.2492 14.2431 13.9642 15.4375 13.9642 17.8668C13.9642 20.2961 15.747 22.644 15.996 22.9738C16.2449 23.3029 19.4387 28.4478 24.4969 30.427C28.7005 32.0718 29.5561 31.7447 30.4682 31.6622C31.3802 31.58 33.412 30.4681 33.8272 29.315C34.2414 28.1622 34.2414 27.174 34.1175 26.9674C33.9925 26.7617 33.6609 26.6381 33.1631 26.3913C32.6662 26.1445 30.2192 24.9498 29.7627 24.785C29.3072 24.6203 28.9746 24.5381 28.643 25.0326C28.3114 25.5262 27.3581 26.6381 27.0678 26.9674C26.7776 27.2975 26.4873 27.3386 25.9895 27.0916C25.4916 26.8439 23.8892 26.3231 21.9874 24.6411C20.508 23.3322 19.5092 21.716 19.219 21.2216C18.9287 20.7279 19.1877 20.4603 19.4377 20.2143C19.6614 19.993 19.9355 19.6377 20.1845 19.3495C20.4324 19.0611 20.515 18.8554 20.6813 18.526C20.8476 18.1964 20.7639 17.9081 20.64 17.6611C20.515 17.4141 19.5485 14.9721 19.1061 13.9958Z" fill="white"/>
+                </svg>
+                <span class="access-name">WhatsApp</span>
+            </a>
+            <a href="https://docs.khoj.dev/clients/obsidian/#setup" class="access-card obsidian">
+                <svg class="access-icon" viewBox="0 0 28 37" width="28" height="32">
+                    <path d="M22.6359 34.0021C22.4151 35.6285 20.824 36.9039 19.2329 36.4588C16.9785 35.8424 14.3663 34.8666 12.0177 34.6869L8.41009 34.4129C7.83065 34.3719 7.2863 34.1192 6.8789 33.7024L0.667675 27.2996C0.338155 26.9585 0.118184 26.5255 0.0360186 26.0569C-0.0461474 25.5882 0.0146176 25.1055 0.208906 24.6717C0.208906 24.6717 4.03733 16.2315 4.19054 15.795C4.32662 15.3584 4.85385 11.5235 5.16026 9.4691C5.24585 8.92367 5.51632 8.42475 5.92629 8.05679L13.2596 1.44828C13.5018 1.23016 13.7851 1.06405 14.0924 0.960118C14.4005 0.856182 14.7257 0.816658 15.0493 0.843955C15.3728 0.871166 15.6878 0.964683 15.9736 1.11865C16.2604 1.27262 16.512 1.48385 16.714 1.73934L22.891 9.58036C23.2368 10.0281 23.4225 10.5799 23.4191 11.1468C23.4191 12.6277 23.5466 15.6836 24.3717 17.6525C25.1908 19.4231 26.2067 21.0944 27.4007 22.6344C27.5453 22.8231 27.6301 23.0511 27.6455 23.2889C27.6609 23.5268 27.6053 23.7638 27.4854 23.9697C26.9496 24.8856 25.8781 26.649 24.3717 28.9001C23.4182 30.448 22.8225 32.1915 22.6274 34.002L22.6359 34.0021Z" fill="#6C31E3"/>
+                </svg>
+                <span class="access-name">Obsidian</span>
+            </a>
+            <a href="https://docs.khoj.dev/clients/emacs/#setup" class="access-card emacs">
+                <svg class="access-icon" viewBox="0 0 49 49" width="32" height="32">
+                    <path d="M24.481 4.53637C20.9175 4.74043 17.472 5.82639 14.4869 7.68644C13.23 8.47267 12.3495 9.1596 11.2297 10.2205C9.52926 11.8404 8.301 13.4751 7.25885 15.5038C4.35677 21.174 4.56201 27.9959 7.80226 33.4926C8.7519 35.0999 9.81745 36.4334 11.2297 37.7765C12.3495 38.8367 13.23 39.5282 14.4827 40.3061C17.8208 42.3898 21.7257 43.5 25.7188 43.5C29.712 43.5 33.6169 42.3898 36.9549 40.3061C38.2077 39.5282 39.0882 38.8367 40.208 37.7765C41.6202 36.4334 42.6857 35.0999 43.6354 33.4926C46.8746 27.9959 47.0809 21.174 44.1788 15.5038C43.1366 13.4751 41.9094 11.84 40.208 10.2202C39.0882 9.15991 38.2077 8.47267 36.9507 7.68644C33.2606 5.38489 28.8857 4.27992 24.481 4.53637ZM34.4697 12.1539C36.1414 12.5665 37.2293 13.7261 37.3112 15.1777C37.3793 16.3374 36.7391 17.2495 35.6204 17.5937C35.3098 17.6899 35.1588 17.7059 34.743 17.7059C34.1347 17.7115 33.8115 17.6681 32.3067 17.3937C30.8903 17.133 30.3298 17.06 29.2143 17.0027C26.4877 16.8644 25.0255 17.0938 24.6862 17.7059C24.5118 18.0236 24.7181 18.4721 25.2892 19.045C25.5955 19.3449 26.459 19.9966 29.3738 22.1164C31.4124 23.5938 33.0479 24.8062 33.015 24.8104C32.9884 24.8198 31.2975 24.881 29.26 24.9543C25.5221 25.0888 25.152 25.1142 24.3066 25.3061C22.7402 25.6575 21.2492 26.3228 20.6388 26.9451C19.8243 27.7707 20.071 28.5907 21.3779 29.4256C22.6572 30.2376 24.7819 30.9206 28.5752 31.7326C32.1302 32.4933 33.7147 32.9847 34.7707 33.6365C35.1322 33.8618 35.3375 34.0572 35.4332 34.2828C35.6841 34.8434 34.7622 35.3867 33.0213 35.7086C31.8558 35.9218 31.088 35.9694 28.7347 35.9694C24.9563 35.9651 21.1993 35.6788 19.0618 35.2265C18.0505 35.0131 18.0739 34.9957 19.3213 35.0214C21.7618 35.0742 27.8478 34.8177 28.8442 34.6223C29.4195 34.5094 29.5982 34.322 29.3334 34.1089C29.0399 33.8753 28.5656 33.7669 27.5234 33.688C25.4944 33.5361 23.2368 33.0442 21.2546 32.3149C18.2749 31.2252 15.9779 29.6692 14.7517 27.9173C13.4352 26.0367 14.1817 24.4332 16.836 23.4202C18.5864 22.7521 21.1344 22.3775 23.4792 22.4522C25.2477 22.5037 26.4313 22.699 27.7755 23.1596C27.8127 23.1731 27.5883 23.0386 27.2725 22.8606C23.4984 20.7319 21.3556 18.8631 20.2124 16.7031C19.9838 16.2685 19.8243 15.7566 19.8243 15.4604C19.8243 14.9608 20.1167 14.5399 20.6197 14.3132C21.1184 14.0876 21.5236 14.0264 22.4966 14.0264C23.4612 14.0307 23.6813 14.0525 25.4902 14.331C27.1396 14.5833 28.1945 14.7259 29.009 14.8048C30.7531 14.9786 32.5183 15.0002 33.015 14.8563C33.3042 14.7693 33.4871 14.5833 33.4871 14.3703C33.4871 13.7918 31.674 13.1397 28.4146 12.5491C27.1204 12.3145 26.9843 12.2749 27.4097 12.2669C27.5734 12.2627 28.7847 12.2057 30.1054 12.1366C33.0075 11.9846 33.8019 11.9884 34.4697 12.1539Z" fill="#421F5F"/>
+                </svg>
+                <span class="access-name">Emacs</span>
+            </a>
+        </div>
+    </section>
+
+    <!-- Pricing Section -->
+    <section class="pricing" id="pricing">
+        <h2 class="pricing-title">Pricing</h2>
+        <div class="pricing-cards">
+            <div class="pricing-card humanist">
+                <h4 class="plan-name">Humanist</h4>
+                <div class="plan-price">
+                    <span class="price">$0</span>
+                    <span class="period">p/month</span>
+                </div>
+                <ul class="plan-features">
+                    <li>Chat with free AI models</li>
+                    <li>10MB data upload</li>
+                    <li>Unlimited conversations</li>
+                    <li>Shareable conversations</li>
+                </ul>
+                <a href="/?v=app" class="plan-btn outline">Get Started</a>
+            </div>
+            <div class="pricing-card futurist">
+                <h4 class="plan-name">Futurist</h4>
+                <div class="plan-price">
+                    <span class="price">$30</span>
+                    <span class="period">p/month</span>
+                </div>
+                <ul class="plan-features">
+                    <li>Chat with any AI model</li>
+                    <li>500MB data upload</li>
+                    <li>Longer context windows</li>
+                    <li>All of the Humanist plan</li>
+                </ul>
+                <a href="https://buy.stripe.com/28ocQb7kb4iD0cEdQQ" class="plan-btn filled">Get Started</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-container">
+            <div class="footer-left">
+                <div class="social-links">
+                    <a href="https://www.linkedin.com/company/khoj-ai/" class="social-link">
+                        <svg class="social-icon" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+                        </svg>
+                        <span>LinkedIn</span>
+                    </a>
+                    <a href="https://twitter.com/khoj_ai" class="social-link">
+                        <svg class="social-icon" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+                        </svg>
+                        <span>Twitter</span>
+                    </a>
+                    <a href="https://discord.gg/BDgyabRM6e" class="social-link">
+                        <svg class="social-icon" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.9555 2.4189-2.1569 2.4189zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.946 2.4189-2.1568 2.4189Z"/>
+                        </svg>
+                        <span>Discord</span>
+                    </a>
+                    <a href="https://github.com/khoj-ai" class="social-link">
+                        <svg class="social-icon" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/>
+                        </svg>
+                        <span>GitHub</span>
+                        <img src="https://img.shields.io/github/stars/khoj-ai/khoj?style=flat" alt="GitHub stars" class="github-stars">
+                    </a>
+                </div>
+                <p class="footer-made">Made with &#x2764;&#xFE0F; by Khoj</p>
+            </div>
+            <div class="footer-right">
+                <a href="https://khoj.dev/terms-of-service" class="footer-link">Terms of Service</a>
+                <a href="https://khoj.dev/privacy-policy" class="footer-link">Privacy Policy</a>
+                <a href="https://docs.khoj.dev/get-started/setup" class="footer-link">Self-Host</a>
+                <a href="https://khoj.dev" class="footer-link">About</a>
+            </div>
+        </div>
+    </footer>
+
+    <script src="/home/script.js"></script>
+</body>
+</html>

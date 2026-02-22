@@ -1,13 +1,11 @@
 import argparse
 import base64
 import concurrent.futures
-import hashlib
 import json
 import logging
 import os
 import re
 import time
-import uuid
 from datetime import datetime
 from functools import partial
 from io import StringIO
@@ -36,17 +34,20 @@ logger = logging.getLogger(__name__)
 KHOJ_URL = os.getenv("KHOJ_URL", "http://localhost:42110")
 KHOJ_CHAT_API_URL = f"{KHOJ_URL}/api/chat"
 KHOJ_API_KEY = os.getenv("KHOJ_API_KEY")
-KHOJ_MODE = os.getenv("KHOJ_MODE", "default").lower()  # E.g research, general, notes etc.
+KHOJ_MODE = os.getenv("KHOJ_MODE", "default").lower()  # E.g research, general, default etc.
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-GEMINI_EVAL_MODEL = os.getenv("GEMINI_EVAL_MODEL", "gemini-1.5-pro-002")
+GEMINI_EVAL_MODEL = os.getenv("GEMINI_EVAL_MODEL", "gemini-2.5-flash")
 
+LLM_SEED = int(os.getenv("KHOJ_LLM_SEED")) if os.getenv("KHOJ_LLM_SEED") else None
+DATASET_SEED = int(os.getenv("DATASET_SEED")) if os.getenv("DATASET_SEED") else None
 SAMPLE_SIZE = os.getenv("SAMPLE_SIZE")  # Number of examples to evaluate
 RANDOMIZE = os.getenv("RANDOMIZE", "false").lower() == "true"  # Randomize examples
 BATCH_SIZE = int(
     os.getenv("BATCH_SIZE", int(SAMPLE_SIZE) / 10 if SAMPLE_SIZE else 10)
 )  # Examples to evaluate in each batch
 SLEEP_SECONDS = 3 if KHOJ_MODE == "general" else 1  # Sleep between API calls to avoid rate limiting
+KHOJ_API_TIMEOUT_SECONDS = 1200  # Default to 20 minutes
 
 
 class Counter:
@@ -196,7 +197,7 @@ def load_frames_dataset():
     try:
         dataset = load_dataset("google/frames-benchmark")
         # Use test split for evaluation. Sample and shuffle dataset if configured
-        dataset = dataset.shuffle() if RANDOMIZE else dataset
+        dataset = dataset.shuffle(seed=DATASET_SEED) if RANDOMIZE else dataset
         return dataset["test"][: int(SAMPLE_SIZE)] if SAMPLE_SIZE else dataset["test"]
 
     except Exception as e:
@@ -238,7 +239,7 @@ def load_simpleqa_dataset():
 
         # Convert benchmark to HF Dataset
         dataset = Dataset.from_list(formatted_data)
-        dataset = dataset.shuffle() if RANDOMIZE else dataset
+        dataset = dataset.shuffle(seed=DATASET_SEED) if RANDOMIZE else dataset
         dataset = dataset.select(range(int(SAMPLE_SIZE))) if SAMPLE_SIZE else dataset
 
         return dataset
@@ -275,8 +276,11 @@ def load_gpqa_dataset():
             row["Incorrect Answer 3"],
             row["Correct Answer"],
         ]
-        # Shuffle choices
-        random.shuffle(choices)
+        # Shuffle choices with deterministic seed if provided
+        if DATASET_SEED is not None:
+            random.Random(DATASET_SEED).shuffle(choices)
+        else:
+            random.shuffle(choices)
 
         # Get correct answer letter
         correct_index = choices.index(row["Correct Answer"])
@@ -307,7 +311,7 @@ D) {choices[3]}
         dataset = dataset.add_column("Answer", [p[1] for p in prompts_and_answers])
 
         # Sample and shuffle dataset if configured
-        dataset = dataset.shuffle() if RANDOMIZE else dataset
+        dataset = dataset.shuffle(seed=DATASET_SEED) if RANDOMIZE else dataset
         dataset = dataset[: int(SAMPLE_SIZE)] if SAMPLE_SIZE else dataset
 
         return dataset
@@ -331,7 +335,7 @@ def load_math500_dataset():
         # Load the MATH500 dataset from HuggingFace
         dataset = load_dataset("HuggingFaceH4/MATH-500", split="test")
         dataset = dataset.rename_columns({"problem": "Prompt", "answer": "Answer", "subject": "reasoning_types"})
-        dataset = dataset.shuffle() if RANDOMIZE else dataset
+        dataset = dataset.shuffle(seed=DATASET_SEED) if RANDOMIZE else dataset
         dataset = dataset.select(range(int(SAMPLE_SIZE))) if SAMPLE_SIZE else dataset
 
         return dataset
@@ -355,6 +359,7 @@ def get_agent_response(prompt: str) -> Dict[str, Any]:
                 "q": prompt,
                 "create_new": True,
             },
+            timeout=KHOJ_API_TIMEOUT_SECONDS,
         )
         response.raise_for_status()
         response_json = response.json()
@@ -363,9 +368,11 @@ def get_agent_response(prompt: str) -> Dict[str, Any]:
             "usage": response_json.get("usage", {}),
             "references": response_json.get("references", {}),
         }
+    except requests.exceptions.Timeout:
+        logger.error(f"Timeout error getting agent response for prompt: {prompt[:100]}...{prompt[-100:]}")
     except Exception as e:
         logger.error(f"Error getting agent response: {e}")
-        return {"response": "", "usage": {}, "references": {}}
+    return {"response": "", "usage": {}, "references": {}}
 
 
 def calculate_precision_recall(numerator: int, denominator: int) -> float:
@@ -429,14 +436,25 @@ def evaluate_response_with_mcq_match(
 ) -> tuple[bool | None, str, float]:
     """Evaluate Khoj response against benchmark ground truth using string matching"""
     try:
-        # Extract answer from agent response
-        answer_pattern_multichoice = r"(?i)Answer\s*:\s*([A-D])"
-        match = re.search(answer_pattern_multichoice, agent_response)
-        extracted_answer = match.group(1) if match else None
+        # Extract answer from agent response using multiple patterns
+        answer_patterns = [
+            r"(?i)Answer\s*:\s*([A-D])",  # Answer: D
+            r"(?i)(?:final\s+)?answer\s+is\s+([A-D])",  # answer is D / final answer is D
+            r"\$\\boxed\{([A-D])\}\$",  # $\boxed{D}$
+            r"\\boxed\{([A-D])\}",  # \boxed{D}
+            r"\b([A-D])\b(?=\s*$)",  # Just the letter at end of response
+        ]
+
+        extracted_answer = None
+        for pattern in answer_patterns:
+            match = re.search(pattern, agent_response)
+            if match:
+                extracted_answer = match.group(1).upper()
+                break
 
         # Check if extracted answer matches ground truth
         decision = extracted_answer == ground_truth
-        explanation = f"Agent response {'matches' if decision else 'does not match'} ground truth {ground_truth}"
+        explanation = f'Agent response "{extracted_answer}" {"matches" if decision else "does not match"} ground truth {ground_truth}.'
 
         # Return decision, explanation and cost in structured form
         return float(decision), explanation, 0.0
@@ -459,7 +477,7 @@ def evaluate_response_with_gemini(
     Ground Truth: {ground_truth}
 
     Provide your evaluation in the following json format:
-    {"explanation:" "[How you made the decision?)", "decision:" "(TRUE if response contains key information, FALSE otherwise)"}
+    {"explanation:<1 short sentence on how you made the decision>", "decision:<TRUE if response contains key information, FALSE otherwise>"}
     """
     gemini_api_url = (
         f"https://generativelanguage.googleapis.com/v1beta/models/{eval_model}:generateContent?key={GEMINI_API_KEY}"
@@ -471,7 +489,7 @@ def evaluate_response_with_gemini(
             headers={"Content-Type": "application/json"},
             json={
                 "contents": [{"parts": [{"text": evaluation_prompt}]}],
-                "generationConfig": {"response_mime_type": "application/json"},
+                "generationConfig": {"response_mime_type": "application/json", "seed": LLM_SEED},
             },
         )
         response.raise_for_status()
@@ -517,6 +535,7 @@ def process_batch(batch, batch_start, results, dataset_length, response_evaluato
         if is_none_or_empty(agent_response):
             decision = None
             explanation = "Agent response is empty. This maybe due to a service error."
+            eval_cost = 0.0
         else:
             decision, explanation, eval_cost = response_evaluator(prompt, agent_response, answer, agent_references)
 
@@ -540,19 +559,21 @@ def process_batch(batch, batch_start, results, dataset_length, response_evaluato
         running_cost.add(query_cost + eval_cost)
 
         # Update running accuracy
-        running_accuracy = 0.0
         if decision is not None:
             running_true_count.add(decision)
             running_total_count.add(1)
-            running_accuracy = running_true_count.get() / running_total_count.get()
+        running_accuracy = running_true_count.get() / running_total_count.get()
 
         ## Log results
-        decision_color = {True: "green", None: "blue", False: "red"}[decision > 0.5]
+        key_for_color_map = None if decision is None else (decision > 0.5)
+        decision_color = {True: "green", None: "blue", False: "red"}[key_for_color_map]
         colored_decision = color_text(str(decision), decision_color)
         result_to_print = f"""
 ---------
 Decision: {colored_decision}
 Accuracy: {running_accuracy:.2%}
+Progress: {running_total_count.get() / dataset_length:.2%}
+Index: {current_index}
 Question: {prompt}
 Expected Answer: {answer}
 Agent Answer: {agent_response}
@@ -630,7 +651,7 @@ def main():
         response_evaluator = evaluate_response_with_mcq_match
     elif args.dataset == "math500":
         response_evaluator = partial(
-            evaluate_response_with_gemini, eval_model=os.getenv("GEMINI_EVAL_MODEL", "gemini-1.5-flash-002")
+            evaluate_response_with_gemini, eval_model=os.getenv("GEMINI_EVAL_MODEL", "gemini-2.5-flash-lite")
         )
     elif args.dataset == "frames_ir":
         response_evaluator = evaluate_response_for_ir
@@ -667,7 +688,7 @@ def main():
     colored_accuracy_str = f"Overall Accuracy: {colored_accuracy} on {args.dataset.title()} dataset."
     accuracy_str = f"Overall Accuracy: {accuracy:.2%} on {args.dataset}."
     accuracy_by_reasoning = f"Accuracy by Reasoning Type:\n{reasoning_type_accuracy}"
-    cost = f"Total Cost: ${running_cost.get():.5f}."
+    cost = f"Total Cost: ${running_cost.get():.5f} to evaluate {running_total_count.get()} results."
     sample_type = f"Sampling Type: {SAMPLE_SIZE} samples." if SAMPLE_SIZE else "Whole dataset."
     sample_type += " Randomized." if RANDOMIZE else ""
     logger.info(f"\n{colored_accuracy_str}\n\n{accuracy_by_reasoning}\n\n{cost}\n\n{sample_type}\n")
@@ -690,7 +711,7 @@ def main():
 if __name__ == "__main__":
     """
     Evaluate Khoj on supported benchmarks.
-    Response are evaluated by GEMINI_EVAL_MODEL (default: gemini-pro-1.5-002).
+    Response are evaluated by GEMINI_EVAL_MODEL (default: gemini-2.5-flash).
 
     Khoj should be running at KHOJ_URL (default: http://localhost:42110).
     The Gemini judge model is accessed via the Gemini API with your GEMINI_API_KEY.

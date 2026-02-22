@@ -22,13 +22,13 @@ Using LiteLLM with Khoj makes it possible to turn any LLM behind an API into you
    litellm --model mistral/mistral-tiny --drop_params
    ```
 3. Create a new [API Model API](http://localhost:42110/server/admin/database/aimodelapi/add) on your Khoj admin panel
-   - Name: `proxy-name`
-   - Api Key: `any string`
-   - Api Base Url: **URL of your Openai Proxy API**
+   - **Name**: `litellm`
+   - **Api Key**: `any string`
+   - **Api Base Url**: `<URL of your Openai Proxy API>`
 4. Create a new [Chat Model](http://localhost:42110/server/admin/database/chatmodel/add) on your Khoj admin panel.
-   - Name: `llama3.1` (replace with the name of your local model)
-   - Model Type: `Openai`
-   - Openai Config: `<the proxy config you created in step 3>`
-   - Max prompt size: `20000` (replace with the max prompt size of your model)
-   - Tokenizer: *Do not set for OpenAI, Mistral, Llama3 based models*
+   - **Name**: `llama3.1` (replace with the name of your local model)
+   - **Model Type**: `Openai`
+   - **Ai Model Api**: *the litellm Ai Model API you created in step 3*
+   - **Max prompt size**: `20000` (replace with the max prompt size of your model)
+   - **Tokenizer**: *Do not set for OpenAI, Mistral, Llama3 based models*
 5. Go to [your config](http://localhost:42110/settings) and select the model you just created in the chat model dropdown.

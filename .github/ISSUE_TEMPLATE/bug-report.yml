@@ -1,0 +1,144 @@
+name: "🪲 Bug Report"
+description: "Use this template to report a bug."
+labels: ["fix"]
+body:
+    - type: "markdown"
+      attributes:
+          value: |
+              > [!IMPORTANT]
+              > To save time for both you and us, try follow these guidelines before submitting a new issue:
+              > 1. Check if there is an existing issue tracking your bug on our Github.
+              > 2. When unsure if your issue is an actual bug, first discuss it on a [Github discussion](https://github.com/khoj-ai/khoj/discussions/new?category=q-a) or the **#bugs** channel of our [Discord server](https://discord.gg/b6gUdpKr).
+              > These steps avoid opening issues which are duplicate or not actual bugs.
+
+    - type: "checkboxes"
+      id: "server"
+      attributes:
+          label: "Server"
+          description: "With which Khoj server are you experiencing the issue? (select at least one)"
+          options:
+              - label: "Cloud (https://app.khoj.dev)"
+                required: false
+              - label: "Self-Hosted Docker"
+                required: false
+              - label: "Self-Hosted Python package"
+                required: false
+              - label: "Self-Hosted source code"
+                required: false
+      validations:
+          required: true
+
+    - type: "checkboxes"
+      id: "clients"
+      attributes:
+          label: "Clients"
+          description: "With which Khoj client(s) are you experiencing the issue? (select at least one)"
+          options:
+              - label: "Web browser"
+                required: false
+              - label: "Desktop/mobile app"
+                required: false
+              - label: "Obsidian"
+                required: false
+              - label: "Emacs"
+                required: false
+              - label: "WhatsApp"
+                required: false
+      validations:
+          required: true
+
+    - type: "checkboxes"
+      id: "os"
+      attributes:
+          label: "OS"
+          description: "On which operating system do you experience the issue? (select at least one)"
+          options:
+              - label: "Windows"
+                required: false
+              - label: "macOS"
+                required: false
+              - label: "Linux"
+                required: false
+              - label: "Android"
+                required: false
+              - label: "iOS"
+                required: false
+      validations:
+          required: true
+
+    - type: "input"
+      id: "version"
+      attributes:
+          label: "Khoj version"
+          description: "Use `/help` command on the chat page to find the server version.\n
+                        If using the cloud service, you can input, latest.\n
+                        If self-hosting - please make sure to run the latest version of Khoj before reporting any issues as it may have already been fixed."
+      validations:
+          required: true
+
+    - type: "textarea"
+      id: "description"
+      attributes:
+          label: "Describe the bug"
+          description: "What is the problem? A clear and concise description of the bug."
+      validations:
+          required: true
+
+    - type: "textarea"
+      id: "current"
+      attributes:
+          label: "Current Behavior"
+          description: "What actually happened?\n\n
+                        Please include full errors, uncaught exceptions, stack traces, screenshots and other relevant logs."
+      validations:
+          required: true
+
+    - type: "textarea"
+      id: "expected"
+      attributes:
+          label: "Expected Behavior"
+          description: "What did you expect to happen?"
+      validations:
+          required: true
+
+    - type: "textarea"
+      id: "reproduction"
+      attributes:
+          label: "Reproduction Steps"
+          description: "Detail the steps needed to reproduce the issue. This can include a self-contained, concise snippet of
+                        code, if applicable.\n\n
+                        For more complex issues, provide a link to a repository with the smallest sample that reproduces
+                        the bug.\n
+                        If the issue can be replicated without code, please provide a clear, step-by-step description of
+                        the actions or conditions necessary to reproduce it. Any screenshots are also appreciated.\n
+                        Avoid including business logic or unrelated details, as this makes diagnosis more difficult.\n\n
+                        Whether it's a sequence of actions, code samples, or specific conditions, ensure that the steps
+                        are clear enough to be easily followed and replicated."
+      validations:
+          required: true
+
+    - type: "textarea"
+      id: "workaround"
+      attributes:
+          label: "Possible Workaround"
+          description: "If you find any workaround for this problem - please, provide it here."
+      validations:
+          required: false
+
+    - type: "textarea"
+      id: "context"
+      attributes:
+          label: "Additional Information"
+          description: "Anything else that might be relevant for troubleshooting this bug.\n
+                        Providing context helps us come up with a solution that is most useful in the real-world use case.\n
+                        For example if self-hosting, provide environment details like OS versin, Docker version etc."
+      validations:
+          required: false
+    - type: "input"
+      id: "discussion_link"
+      attributes:
+          label: "Link to Discord or Github discussion"
+          description: "Provide a link to the first message of bug's discussion on Discord or Github.\n
+                        This will help to keep history of why this bug exists."
+      validations:
+          required: false

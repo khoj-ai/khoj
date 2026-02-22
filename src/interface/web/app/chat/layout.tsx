@@ -1,8 +1,6 @@
 import type { Metadata } from "next";
-import { noto_sans, noto_sans_arabic } from "@/app/fonts";
 import "../globals.css";
-import { ContentSecurityPolicy } from "../common/layoutHelper";
-import { ThemeProvider } from "../components/providers/themeProvider";
+import { Toaster } from "@/components/ui/toaster";
 
 export const metadata: Metadata = {
     title: "Khoj AI - Chat",
@@ -34,38 +32,20 @@ export const metadata: Metadata = {
     },
 };
 
-export default function RootLayout({
+export default function ChildLayout({
     children,
 }: Readonly<{
     children: React.ReactNode;
 }>) {
     return (
-        <html lang="en" className={`${noto_sans.variable} ${noto_sans_arabic.variable}`}>
-            <head>
-                <script
-                    dangerouslySetInnerHTML={{
-                        __html: `
-                            try {
-                                if (localStorage.getItem('theme') === 'dark' ||
-                                    (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-                                    document.documentElement.classList.add('dark');
-                                }
-                            } catch (e) {}
-                        `,
-                    }}
-                />
-            </head>
-            <ContentSecurityPolicy />
-            <body>
-                <ThemeProvider>
-                    {children}
-                    <script
-                        dangerouslySetInnerHTML={{
-                            __html: `window.EXCALIDRAW_ASSET_PATH = 'https://assets.khoj.dev/@excalidraw/excalidraw/dist/';`,
-                        }}
-                    />
-                </ThemeProvider>
-            </body>
-        </html>
+        <>
+            {children}
+            <Toaster />
+            <script
+                dangerouslySetInnerHTML={{
+                    __html: `window.EXCALIDRAW_ASSET_PATH = 'https://assets.khoj.dev/@excalidraw/excalidraw/dist/';`,
+                }}
+            />
+        </>
     );
 }

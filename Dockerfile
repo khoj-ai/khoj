@@ -14,6 +14,7 @@ RUN apt update -y && apt -y install \
     libgl1 \
     libglx-mesa0 \
     libglib2.0-0 \
+    docker.io \
     # Required by llama-cpp-python pre-built wheels. See #1628
     musl-dev && \
     ln -s /usr/lib/x86_64-linux-musl/libc.so /lib/libc.musl-x86_64.so.1 && \
@@ -34,17 +35,17 @@ RUN sed -i "s/dynamic = \\[\"version\"\\]/version = \"$VERSION\"/" pyproject.tom
     pip install --no-cache-dir .
 
 # Build Web App
-FROM node:20-alpine AS web-app
+FROM oven/bun:1-alpine AS web-app
 # Set build optimization env vars
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 WORKDIR /app/src/interface/web
 # Install dependencies first (cache layer)
-COPY src/interface/web/package.json src/interface/web/yarn.lock ./
-RUN yarn install --frozen-lockfile
+COPY src/interface/web/package.json src/interface/web/bun.lock ./
+RUN bun install --frozen-lockfile
 # Copy source and build
 COPY src/interface/web/. ./
-RUN yarn build
+RUN bun run build
 
 # Merge the Server and Web App into a Single Image
 FROM base

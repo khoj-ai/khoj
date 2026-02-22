@@ -82,7 +82,7 @@ interface ChatInputProps {
     isLoggedIn: boolean;
     agentColor?: string;
     isResearchModeEnabled?: boolean;
-    setTriggeredAbort: (value: boolean) => void;
+    setTriggeredAbort: (value: boolean, newMessage?: string) => void;
     prefillMessage?: string;
     focus?: ChatInputFocus;
 }
@@ -180,19 +180,26 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
     }, [props.isResearchModeEnabled]);
 
     function onSendMessage() {
-        if (imageUploaded) {
-            setImageUploaded(false);
-            setImagePaths([]);
-            imageData.forEach((data) => props.sendImage(data));
-        }
-        if (!message.trim()) return;
-
+        if (!message.trim() && imageData.length === 0) return;
         if (!props.isLoggedIn) {
             setLoginRedirectMessage(
                 "Hey there, you need to be signed in to send messages to Khoj AI",
             );
             setShowLoginPrompt(true);
             return;
+        }
+
+        // If currently processing, handle interrupt first
+        if (props.sendDisabled) {
+            props.setTriggeredAbort(true, message.trim());
+            setMessage(""); // Clear the input
+            return; // Don't continue with regular message sending
+        }
+
+        if (imageUploaded) {
+            setImageUploaded(false);
+            setImagePaths([]);
+            imageData.forEach((data) => props.sendImage(data));
         }
 
         let messageToSend = message.trim();
@@ -643,7 +650,7 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
                 >
                     <input
                         type="file"
-                        accept=".pdf,.doc,.docx,.txt,.md,.org,.jpg,.jpeg,.png,.webp"
+                        accept=".pdf,.doc,.docx,.txt,.md,.org,.jpg,.jpeg,.png,.webp,.py,.tsx,.js,.json,.html,.css,.ipynb"
                         multiple={true}
                         ref={fileInputRef}
                         onChange={handleFileChange}
@@ -657,7 +664,7 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
                                     <Button
                                         variant={"ghost"}
                                         className="!bg-none p-0 m-2 h-auto text-3xl rounded-full text-gray-300 hover:text-gray-500"
-                                        disabled={props.sendDisabled || !props.isLoggedIn}
+                                        disabled={!props.isLoggedIn}
                                         onClick={handleFileButtonClick}
                                         ref={fileInputButtonRef}
                                     >
@@ -682,7 +689,13 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
                             autoFocus={true}
                             value={message}
                             onKeyDown={(e) => {
-                                if (e.key === "Enter" && !e.shiftKey && !props.isMobileWidth) {
+                                if (
+                                    e.key === "Enter" &&
+                                    !e.shiftKey &&
+                                    !props.isMobileWidth &&
+                                    !recording &&
+                                    message
+                                ) {
                                     setImageUploaded(false);
                                     setImagePaths([]);
                                     e.preventDefault();
@@ -690,7 +703,7 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
                                 }
                             }}
                             onChange={(e) => setMessage(e.target.value)}
-                            disabled={props.sendDisabled || recording}
+                            disabled={recording}
                         />
                     </div>
                     <div className="flex items-end pb-2">
@@ -720,7 +733,7 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
                             <TooltipProvider>
                                 <Tooltip>
                                     <TooltipTrigger asChild>
-                                        {props.sendDisabled ? (
+                                        {props.sendDisabled && !message ? (
                                             <Button
                                                 variant="default"
                                                 className={`${props.agentColor ? convertToBGClass(props.agentColor) : "bg-orange-300 hover:bg-orange-500"} rounded-full p-1 m-2 h-auto text-3xl transition transform md:hover:-translate-y-1`}
@@ -754,7 +767,7 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
                         )}
                         <Button
                             className={`${(!message || recording) && "hidden"} ${props.agentColor ? convertToBGClass(props.agentColor) : "bg-orange-300 hover:bg-orange-500"} rounded-full p-1 m-2 h-auto text-3xl transition transform md:hover:-translate-y-1`}
-                            disabled={props.sendDisabled || !props.isLoggedIn}
+                            disabled={!message || recording || !props.isLoggedIn}
                             onClick={onSendMessage}
                         >
                             <ArrowUp className="w-6 h-6" weight="bold" />
@@ -789,8 +802,8 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
                             </Button>
                         </TooltipTrigger>
                         <TooltipContent className="text-xs">
-                            Research Mode allows you to get more deeply researched,
-                            detailed responses. Response times may be longer.
+                            Research Mode allows you to get more deeply researched, detailed
+                            responses. Response times may be longer.
                         </TooltipContent>
                     </Tooltip>
                 </TooltipProvider>

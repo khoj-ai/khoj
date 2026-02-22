@@ -6,12 +6,14 @@ on:
   push:
     branches:
       - 'master'
+      - 'release/1.x'
     paths:
       - src/interface/emacs/*.el
       - .github/workflows/build_khoj_el.yml
   pull_request:
     branches:
       - 'master'
+      - 'release/1.x'
     paths:
       - src/interface/emacs/*.el
       - .github/workflows/build_khoj_el.yml

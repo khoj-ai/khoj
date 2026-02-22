@@ -17,7 +17,7 @@ Khoj supports a variety of features, including search and chat with a wide range
   - **Works online or offline**: Chat using online or offline AI chat models
 
 #### General
-  - **Cloud or Self-Host**: Use [cloud](https://app.khoj.dev/login) to use Khoj anytime from anywhere or [self-host](/get-started/setup) for privacy
+  - **Cloud or Self-Host**: Use [cloud](https://app.khoj.dev) to use Khoj anytime from anywhere or [self-host](/get-started/setup) for privacy
   - **Natural**: Advanced natural language understanding using Transformer based ML Models
   - **Pluggable**: Modular architecture makes it easy to plug in new data sources, frontends and ML models
   - **Multiple Sources**: Index your Org-mode, Markdown, PDF, plaintext files, Github repos and Notion pages
@@ -29,7 +29,7 @@ Khoj is available as a [Desktop app](/clients/desktop), [Emacs package](/clients
 ![](/img/khoj_clients.svg ':size=400px')
 
 ### Supported Data Sources
-Khoj can understand your word, PDF, org-mode, markdown, plaintext files, [Github projects](/data-sources/github_integration) and [Notion pages](/data-sources/notion_integration).
+Khoj can understand your word, PDF, org-mode, markdown, plaintext files, and [Notion pages](/data-sources/notion_integration).
 
 
 ![](/img/khoj_datasources.svg ':size=200px')

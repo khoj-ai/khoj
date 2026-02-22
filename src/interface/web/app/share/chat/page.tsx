@@ -22,6 +22,8 @@ import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/s
 import { AppSidebar } from "@/app/components/appSidebar/appSidebar";
 import { Separator } from "@/components/ui/separator";
 import { KhojLogoType } from "@/app/components/logo/khojLogo";
+import { Button } from "@/components/ui/button";
+import { Trash } from "@phosphor-icons/react";
 
 interface ChatBodyDataProps {
     chatOptionsData: ChatOptions | null;
@@ -34,6 +36,38 @@ interface ChatBodyDataProps {
     conversationId?: string;
     setQueryToProcess: (query: string) => void;
     setImages: (images: string[]) => void;
+    setIsOwner: (isOwner: boolean) => void;
+}
+
+function UnshareButton({ slug, className }: { slug: string; className?: string }) {
+    const handleUnshare = async () => {
+        try {
+            const response = await fetch(`/api/chat/share?public_conversation_slug=${slug}`, {
+                method: "DELETE",
+            });
+
+            if (response.redirected) {
+                window.location.reload();
+            } else {
+                console.error("Failed to unshare conversation");
+            }
+        } catch (error) {
+            console.error("Error unsharing conversation:", error);
+        }
+    };
+
+    return (
+        <div className="flex items-center gap-2">
+            <Button
+                className="p-0 text-sm h-auto text-rose-500 hover:text-rose-600"
+                variant={"ghost"}
+                title="Unshare conversation"
+                onClick={handleUnshare}
+            >
+                <Trash className={`${className}`} />
+            </Button>
+        </div>
+    );
 }
 
 function ChatBodyData(props: ChatBodyDataProps) {
@@ -87,6 +121,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
                         conversationId={props.conversationId || ""}
                         setAgent={setAgentMetadata}
                         setTitle={props.setTitle}
+                        setIsOwner={props.setIsOwner}
                         pendingMessage={processingMessage ? message : ""}
                         incomingMessages={props.streamedMessages}
                         customClassName={chatHistoryCustomClassName}
@@ -105,7 +140,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
                         agentColor={agentMetadata?.color}
                         isMobileWidth={props.isMobileWidth}
                         setUploadedFiles={props.setUploadedFiles}
-                        setTriggeredAbort={() => { }}
+                        setTriggeredAbort={() => {}}
                         ref={chatInputRef}
                     />
                 </div>
@@ -124,6 +159,7 @@ export default function SharedChat() {
     const [uploadedFiles, setUploadedFiles] = useState<AttachedFileText[] | null>(null);
     const [paramSlug, setParamSlug] = useState<string | undefined>(undefined);
     const [images, setImages] = useState<string[]>([]);
+    const [isOwner, setIsOwner] = useState(false);
 
     const {
         data: authenticatedData,
@@ -215,6 +251,12 @@ export default function SharedChat() {
                                         >
                                             {title}
                                         </h2>
+                                        {isOwner && authenticatedData && (
+                                            <UnshareButton
+                                                slug={paramSlug}
+                                                className={"h-4 w-4 mt-1"}
+                                            />
+                                        )}
                                     </>
                                 )
                             )}
@@ -237,6 +279,7 @@ export default function SharedChat() {
                                     setUploadedFiles={setUploadedFiles}
                                     isMobileWidth={isMobileWidth}
                                     setImages={setImages}
+                                    setIsOwner={setIsOwner}
                                 />
                             </Suspense>
                         </div>

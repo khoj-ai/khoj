@@ -24,9 +24,11 @@ import cron_descriptor
 from apscheduler.job import Job
 from asgiref.sync import sync_to_async
 from django.contrib.sessions.backends.db import SessionStore
+from django.db import transaction
 from django.db.models import Prefetch, Q
 from django.db.models.manager import BaseManager
 from django.db.utils import IntegrityError
+from django.utils import timezone as django_timezone
 from django_apscheduler import util
 from django_apscheduler.models import DjangoJob, DjangoJobExecution
 from fastapi import HTTPException
@@ -36,6 +38,7 @@ from torch import Tensor
 from khoj.database.models import (
     Agent,
     AiModelApi,
+    ChatMessageModel,
     ChatModel,
     ClientApplication,
     Conversation,
@@ -46,9 +49,12 @@ from khoj.database.models import (
     GoogleUser,
     KhojApiUser,
     KhojUser,
+    McpServer,
     NotionConfig,
+    PriceTier,
     ProcessLock,
     PublicConversation,
+    RateLimitRecord,
     ReflectiveQuestion,
     SearchModelConfig,
     ServerChatSettings,
@@ -56,6 +62,7 @@ from khoj.database.models import (
     Subscription,
     TextToImageModelConfig,
     UserConversationConfig,
+    UserMemory,
     UserRequests,
     UserTextToImageModelConfig,
     UserVoiceModelConfig,
@@ -67,8 +74,9 @@ from khoj.search_filter.date_filter import DateFilter
 from khoj.search_filter.file_filter import FileFilter
 from khoj.search_filter.word_filter import WordFilter
 from khoj.utils import state
-from khoj.utils.config import OfflineChatProcessorModel
 from khoj.utils.helpers import (
+    clean_object_for_db,
+    clean_text_for_db,
     generate_random_internal_agent_name,
     generate_random_name,
     in_debug_mode,
@@ -233,20 +241,21 @@ async def acreate_user_by_phone_number(phone_number: str) -> KhojUser:
     return user
 
 
-async def aget_or_create_user_by_email(input_email: str) -> tuple[KhojUser, bool]:
-    email, is_valid_email = normalize_email(input_email)
+async def aget_or_create_user_by_email(input_email: str, check_deliverability=False) -> tuple[KhojUser, bool]:
+    # Validate deliverability to email address of new user
+    email, is_valid_email = normalize_email(input_email, check_deliverability=check_deliverability)
     is_existing_user = await KhojUser.objects.filter(email=email).aexists()
-    # Validate email address of new users
     if not is_existing_user and not is_valid_email:
         logger.error(f"Account creation failed. Invalid email address: {email}")
         return None, False
 
+    # Get/create user based on email address
     user, is_new = await KhojUser.objects.filter(email=email).aupdate_or_create(
         defaults={"username": email, "email": email}
     )
 
     # Generate a secure 6-digit numeric code
-    user.email_verification_code = f"{secrets.randbelow(1000000):06}"
+    user.email_verification_code = f"{secrets.randbelow(int(1e6)):06}"
     user.email_verification_code_expiry = datetime.now(tz=timezone.utc) + timedelta(minutes=5)
     await user.asave()
 
@@ -255,25 +264,6 @@ async def aget_or_create_user_by_email(input_email: str) -> tuple[KhojUser, bool
         await Subscription.objects.acreate(user=user, type=Subscription.Type.STANDARD)
 
     return user, is_new
-
-
-@arequire_valid_user
-async def astart_trial_subscription(user: KhojUser) -> Subscription:
-    subscription = await Subscription.objects.filter(user=user).afirst()
-    if not subscription:
-        raise HTTPException(status_code=400, detail="User does not have a subscription")
-
-    if subscription.type == Subscription.Type.TRIAL:
-        raise HTTPException(status_code=400, detail="User already has a trial subscription")
-
-    if subscription.enabled_trial_at:
-        raise HTTPException(status_code=400, detail="User already has a trial subscription")
-
-    subscription.type = Subscription.Type.TRIAL
-    subscription.enabled_trial_at = datetime.now(tz=timezone.utc)
-    subscription.renewal_date = datetime.now(tz=timezone.utc) + timedelta(days=LENGTH_OF_FREE_TRIAL)
-    await subscription.asave()
-    return subscription
 
 
 async def aget_user_validated_by_email_verification_code(code: str, email: str) -> tuple[Optional[KhojUser], bool]:
@@ -379,7 +369,14 @@ async def set_user_subscription(
 def subscription_to_state(subscription: Subscription) -> str:
     if not subscription:
         return SubscriptionState.INVALID.value
-    elif subscription.type == Subscription.Type.TRIAL:
+    else:
+        # Ensure created_at is timezone-aware (UTC) if it's naive
+        if django_timezone.is_naive(subscription.created_at):
+            subscription.created_at = django_timezone.make_aware(subscription.created_at, timezone.utc)
+        if subscription.renewal_date and django_timezone.is_naive(subscription.renewal_date):
+            subscription.renewal_date = django_timezone.make_aware(subscription.renewal_date, timezone.utc)
+
+    if subscription.type == Subscription.Type.TRIAL:
         # Check if the trial has expired
         if not subscription.renewal_date:
             # If the renewal date is not set, set it to the current date + trial length and evaluate
@@ -516,8 +513,18 @@ def get_user_notion_config(user: KhojUser):
     return config
 
 
-def delete_user_requests(window: timedelta = timedelta(days=1)):
-    return UserRequests.objects.filter(created_at__lte=datetime.now(tz=timezone.utc) - window).delete()
+def delete_user_requests(max_age: timedelta = timedelta(days=1)):
+    """Deletes UserRequests entries older than the specified max_age."""
+    cutoff = django_timezone.now() - max_age
+    deleted_count, _ = UserRequests.objects.filter(created_at__lte=cutoff).delete()
+    return deleted_count
+
+
+def delete_ratelimit_records(max_age: timedelta = timedelta(days=1)):
+    """Deletes RateLimitRecord entries older than the specified max_age."""
+    cutoff = django_timezone.now() - max_age
+    deleted_count, _ = RateLimitRecord.objects.filter(created_at__lt=cutoff).delete()
+    return deleted_count
 
 
 @arequire_valid_user
@@ -560,6 +567,16 @@ def get_default_search_model() -> SearchModelConfig:
     return SearchModelConfig.objects.first()
 
 
+async def aget_default_search_model() -> SearchModelConfig:
+    default_search_model = await SearchModelConfig.objects.filter(name="default").afirst()
+
+    if default_search_model:
+        return default_search_model
+    elif await SearchModelConfig.objects.count() == 0:
+        await SearchModelConfig.objects.acreate()
+    return await SearchModelConfig.objects.afirst()
+
+
 def get_or_create_search_models():
     search_models = SearchModelConfig.objects.all()
     if search_models.count() == 0:
@@ -587,9 +604,13 @@ class ProcessLockAdapters:
 
     @staticmethod
     def is_process_locked(process_lock: ProcessLock):
-        if process_lock.started_at + timedelta(seconds=process_lock.max_duration_in_seconds) < datetime.now(
-            tz=timezone.utc
-        ):
+        started_at_ts = process_lock.started_at
+        # Ensure started_at_ts is timezone-aware (UTC) if it's naive
+        if django_timezone.is_naive(started_at_ts):
+            started_at_ts = django_timezone.make_aware(started_at_ts, timezone.utc)
+
+        max_duration_in_seconds = process_lock.max_duration_in_seconds
+        if started_at_ts + timedelta(seconds=max_duration_in_seconds) < datetime.now(tz=timezone.utc):
             process_lock.delete()
             logger.info(f"🔓 Deleted stale {process_lock.name} process lock on timeout")
             return False
@@ -674,8 +695,7 @@ class AgentAdapters:
         if agent.creator != user:
             return False
 
-        async for entry in Entry.objects.filter(agent=agent).aiterator():
-            await entry.adelete()
+        await Entry.objects.filter(agent=agent).adelete()
 
         if agent:
             await agent.adelete()
@@ -749,9 +769,9 @@ class AgentAdapters:
         return False
 
     @staticmethod
-    def get_conversation_agent_by_id(agent_id: int):
-        agent = Agent.objects.filter(id=agent_id).first()
-        if agent == AgentAdapters.get_default_agent():
+    async def aget_conversation_agent_by_id(agent_id: int):
+        agent = await Agent.objects.filter(id=agent_id).afirst()
+        if agent == await AgentAdapters.aget_default_agent():
             # If the agent is set to the default agent, then return None and let the default application code be used
             return None
         return agent
@@ -761,8 +781,8 @@ class AgentAdapters:
         return Agent.objects.filter(name=AgentAdapters.DEFAULT_AGENT_NAME).first()
 
     @staticmethod
-    def create_default_agent(user: KhojUser):
-        default_chat_model = ConversationAdapters.get_default_chat_model(user)
+    def create_default_agent():
+        default_chat_model = ConversationAdapters.get_default_chat_model(user=None)
         if default_chat_model is None:
             logger.info("No default conversation config found, skipping default agent creation")
             return None
@@ -799,6 +819,97 @@ class AgentAdapters:
         return await Agent.objects.filter(name=AgentAdapters.DEFAULT_AGENT_NAME).afirst()
 
     @staticmethod
+    def get_agent_chat_model(agent: Agent, user: Optional[KhojUser]) -> Optional[ChatModel]:
+        """
+        Gets the appropriate chat model for an agent.
+        For the default agent, it dynamically determines the model based on user/server settings.
+        For other agents, it returns their statically assigned chat model.
+        Requires the user context to determine the correct default model.
+        """
+        if agent.slug == AgentAdapters.DEFAULT_AGENT_SLUG:
+            # Dynamically get the default model based on context
+            return ConversationAdapters.get_default_chat_model(user)
+        elif agent.chat_model:
+            # Return the model assigned directly to the specific agent
+            # Ensure the related object is loaded if necessary (prefetching is recommended)
+            return agent.chat_model
+        else:
+            # Fallback if agent has no unset chat_model. For example if chat_model associated with agent was deleted.
+            logger.warning(f"Agent {agent.slug} has no chat_model or agent is None, returning overall default.")
+            return ConversationAdapters.get_default_chat_model(user)
+
+    @staticmethod
+    async def aget_agent_chat_model(agent: Agent, user: Optional[KhojUser]) -> Optional[ChatModel]:
+        return await sync_to_async(AgentAdapters.get_agent_chat_model)(agent, user)
+
+    @staticmethod
+    @transaction.atomic
+    @require_valid_user
+    def atomic_update_agent(
+        user: KhojUser,
+        name: str,
+        personality: str,
+        privacy_level: str,
+        icon: str,
+        color: str,
+        chat_model_option: ChatModel,
+        files: List[str],
+        input_tools: List[str],
+        output_modes: List[str],
+        slug: Optional[str] = None,
+        is_hidden: Optional[bool] = False,
+    ):
+        agent, created = Agent.objects.filter(slug=slug, creator=user).update_or_create(
+            defaults={
+                "name": name,
+                "creator": user,
+                "personality": personality,
+                "privacy_level": privacy_level,
+                "style_icon": icon,
+                "style_color": color,
+                "chat_model": chat_model_option,
+                "input_tools": input_tools,
+                "output_modes": output_modes,
+                "is_hidden": is_hidden,
+            }
+        )
+
+        FileObject.objects.filter(agent=agent).delete()
+        Entry.objects.filter(agent=agent).delete()
+
+        new_file_objects = []
+        reference_files_qs = FileObject.objects.filter(file_name__in=files, user=agent.creator, agent=None)
+        for ref_file in reference_files_qs:
+            new_file_objects.append(FileObject(file_name=ref_file.file_name, agent=agent, raw_text=ref_file.raw_text))
+
+        if new_file_objects:
+            FileObject.objects.bulk_create(new_file_objects, batch_size=100)
+
+        entries_to_create = []
+        reference_entries_qs = Entry.objects.filter(file_path__in=files, user=agent.creator, agent=None)
+        for entry in reference_entries_qs:
+            entries_to_create.append(
+                Entry(
+                    agent=agent,
+                    embeddings=entry.embeddings,
+                    raw=entry.raw,
+                    compiled=entry.compiled,
+                    heading=entry.heading,
+                    file_source=entry.file_source,
+                    file_type=entry.file_type,
+                    file_path=entry.file_path,
+                    file_name=entry.file_name,
+                    url=entry.url,
+                    hashed_value=entry.hashed_value,
+                )
+            )
+
+        if entries_to_create:
+            Entry.objects.bulk_create(entries_to_create, batch_size=500)
+
+        return agent
+
+    @staticmethod
     @arequire_valid_user
     async def aupdate_agent(
         user: KhojUser,
@@ -818,54 +929,24 @@ class AgentAdapters:
             chat_model = await ConversationAdapters.aget_default_chat_model(user)
         chat_model_option = await ChatModel.objects.filter(name=chat_model).afirst()
 
-        # Slug will be None for new agents, which will trigger a new agent creation with a generated, immutable slug
-        agent, created = await Agent.objects.filter(slug=slug, creator=user).aupdate_or_create(
-            defaults={
-                "name": name,
-                "creator": user,
-                "personality": personality,
-                "privacy_level": privacy_level,
-                "style_icon": icon,
-                "style_color": color,
-                "chat_model": chat_model_option,
-                "input_tools": input_tools,
-                "output_modes": output_modes,
-                "is_hidden": is_hidden,
-            }
-        )
-
-        # Delete all existing files and entries
-        await FileObject.objects.filter(agent=agent).adelete()
-        await Entry.objects.filter(agent=agent).adelete()
-
-        for file in files:
-            reference_file = await FileObject.objects.filter(file_name=file, user=agent.creator).afirst()
-            if reference_file:
-                await FileObject.objects.acreate(file_name=file, agent=agent, raw_text=reference_file.raw_text)
-
-                # Duplicate all entries associated with the file
-                entries: List[Entry] = []
-                async for entry in Entry.objects.filter(file_path=file, user=agent.creator).aiterator():
-                    entries.append(
-                        Entry(
-                            agent=agent,
-                            embeddings=entry.embeddings,
-                            raw=entry.raw,
-                            compiled=entry.compiled,
-                            heading=entry.heading,
-                            file_source=entry.file_source,
-                            file_type=entry.file_type,
-                            file_path=entry.file_path,
-                            file_name=entry.file_name,
-                            url=entry.url,
-                            hashed_value=entry.hashed_value,
-                        )
-                    )
-
-                # Bulk create entries
-                await Entry.objects.abulk_create(entries)
-
-        return agent
+        try:
+            return await sync_to_async(AgentAdapters.atomic_update_agent, thread_sensitive=True)(
+                user=user,
+                name=name,
+                personality=personality,
+                privacy_level=privacy_level,
+                icon=icon,
+                color=color,
+                chat_model_option=chat_model_option,
+                files=files,
+                input_tools=input_tools,
+                output_modes=output_modes,
+                slug=slug,
+                is_hidden=is_hidden,
+            )
+        except Exception as e:
+            logger.error(f"Error updating agent: {e}", exc_info=True)
+            raise
 
     @staticmethod
     @arequire_valid_user
@@ -908,6 +989,10 @@ class PublicConversationAdapters:
         # Public conversations are viewable by anyone, but not editable.
         return f"/share/chat/{public_conversation.slug}/"
 
+    @staticmethod
+    def delete_public_conversation_by_slug(user: KhojUser, slug: str):
+        return PublicConversation.objects.filter(source_owner=user, slug=slug).first().delete()
+
 
 class ConversationAdapters:
     @staticmethod
@@ -941,6 +1026,28 @@ class ConversationAdapters:
 
     @staticmethod
     @require_valid_user
+    def get_all_conversations_for_export(user: KhojUser, page: Optional[int] = 0):
+        all_conversations = Conversation.objects.filter(user=user).prefetch_related("agent")[page : page + 10]
+        histories = []
+        for conversation in all_conversations:
+            history = {
+                "title": conversation.title,
+                "agent": conversation.agent.name if conversation.agent else "Khoj",
+                "created_at": datetime.strftime(conversation.created_at, "%Y-%m-%d %H:%M:%S"),
+                "updated_at": datetime.strftime(conversation.updated_at, "%Y-%m-%d %H:%M:%S"),
+                "conversation_log": conversation.conversation_log,
+                "file_filters": conversation.file_filters,
+            }
+            histories.append(history)
+        return histories
+
+    @staticmethod
+    @require_valid_user
+    def get_num_conversations(user: KhojUser):
+        return Conversation.objects.filter(user=user).count()
+
+    @staticmethod
+    @require_valid_user
     def get_conversation_sessions(user: KhojUser, client_application: ClientApplication = None):
         return (
             Conversation.objects.filter(user=user, client=client_application)
@@ -957,7 +1064,7 @@ class ConversationAdapters:
             user=user, client=client_application, id=conversation_id
         ).afirst()
         if conversation:
-            conversation.title = title
+            conversation.title = clean_text_for_db(title)
             await conversation.asave()
             return conversation
         return None
@@ -1046,14 +1153,6 @@ class ConversationAdapters:
         return await sync_to_async(list)(ChatModel.objects.prefetch_related("ai_model_api").all())
 
     @staticmethod
-    def get_vision_enabled_config():
-        chat_models = ConversationAdapters.get_all_chat_models()
-        for config in chat_models:
-            if config.vision_enabled:
-                return config
-        return None
-
-    @staticmethod
     async def aget_vision_enabled_config():
         chat_models = await ConversationAdapters.aget_all_chat_models()
         for config in chat_models:
@@ -1090,22 +1189,60 @@ class ConversationAdapters:
     @staticmethod
     def get_chat_model(user: KhojUser):
         subscribed = is_user_subscribed(user)
-        if not subscribed:
-            return ConversationAdapters.get_default_chat_model(user)
         config = UserConversationConfig.objects.filter(user=user).first()
-        if config:
-            return config.setting
-        return ConversationAdapters.get_advanced_chat_model(user)
+        if subscribed:
+            # Subscibed users can use any available chat model
+            if config:
+                return config.setting
+            # Fallback to the default advanced chat model
+            return ConversationAdapters.get_advanced_chat_model(user)
+        else:
+            # Non-subscribed users can use any free chat model
+            if config and config.setting.price_tier == PriceTier.FREE:
+                return config.setting
+            # Fallback to the default chat model
+            return ConversationAdapters.get_default_chat_model(user)
 
     @staticmethod
     async def aget_chat_model(user: KhojUser):
         subscribed = await ais_user_subscribed(user)
-        if not subscribed:
+        config = (
+            await UserConversationConfig.objects.filter(user=user)
+            .prefetch_related("setting", "setting__ai_model_api")
+            .afirst()
+        )
+        if subscribed:
+            # Subscibed users can use any available chat model
+            if config:
+                return config.setting
+            # Fallback to the default advanced chat model
+            return await ConversationAdapters.aget_advanced_chat_model(user)
+        else:
+            # Non-subscribed users can use any free chat model
+            if config and config.setting.price_tier == PriceTier.FREE:
+                return config.setting
+            # Fallback to the default chat model
             return await ConversationAdapters.aget_default_chat_model(user)
-        config = await UserConversationConfig.objects.filter(user=user).prefetch_related("setting").afirst()
-        if config:
-            return config.setting
-        return ConversationAdapters.aget_advanced_chat_model(user)
+
+    @staticmethod
+    def get_chat_model_by_name(chat_model_name: str, ai_model_api_name: str = None):
+        if ai_model_api_name:
+            return ChatModel.objects.filter(name=chat_model_name, ai_model_api__name=ai_model_api_name).first()
+        return ChatModel.objects.filter(name=chat_model_name).first()
+
+    @staticmethod
+    async def aget_chat_model_by_name(chat_model_name: str, ai_model_api_name: str = None):
+        if ai_model_api_name:
+            return await ChatModel.objects.filter(name=chat_model_name, ai_model_api__name=ai_model_api_name).afirst()
+        return await ChatModel.objects.filter(name=chat_model_name).prefetch_related("ai_model_api").afirst()
+
+    @staticmethod
+    async def aget_chat_model_by_friendly_name(chat_model_name: str, ai_model_api_name: str = None):
+        if ai_model_api_name:
+            return await ChatModel.objects.filter(
+                friendly_name=chat_model_name, ai_model_api__name=ai_model_api_name
+            ).afirst()
+        return await ChatModel.objects.filter(friendly_name=chat_model_name).prefetch_related("ai_model_api").afirst()
 
     @staticmethod
     async def aget_voice_model_config(user: KhojUser) -> Optional[VoiceModelOption]:
@@ -1149,32 +1286,71 @@ class ConversationAdapters:
         return ChatModel.objects.filter().first()
 
     @staticmethod
-    async def aget_default_chat_model(user: KhojUser = None, fallback_chat_model: Optional[ChatModel] = None):
-        """Get default conversation config. Prefer chat model by server admin > user > first created chat model"""
+    async def aget_default_chat_model(
+        user: KhojUser = None, fallback_chat_model: Optional[ChatModel] = None, fast: Optional[bool] = None
+    ):
+        """
+        Get the chat model to use. Prefer chat model by server admin > agent > user > first created chat model
+
+        Fast is a trinary flag to indicate preference for fast, deep or default chat model configured by the server admin.
+        If fast is True, prefer fast models over deep models when both are configured.
+        If fast is False, prefer deep models over fast models when both are configured.
+        If fast is None, do not consider speed preference and use the default model selection logic.
+
+        If fallback_chat_model is provided, it will be used as a fallback if server chat settings are not configured.
+        Else if user settings are found use that.
+        Otherwise the first chat model will be used.
+        """
         # Get the server chat settings
         server_chat_settings: ServerChatSettings = (
             await ServerChatSettings.objects.filter()
             .prefetch_related(
-                "chat_default", "chat_default__ai_model_api", "chat_advanced", "chat_advanced__ai_model_api"
+                "chat_default",
+                "chat_default__ai_model_api",
+                "chat_advanced",
+                "chat_advanced__ai_model_api",
+                "think_free_fast",
+                "think_free_fast__ai_model_api",
+                "think_free_deep",
+                "think_free_deep__ai_model_api",
+                "think_paid_fast",
+                "think_paid_fast__ai_model_api",
+                "think_paid_deep",
+                "think_paid_deep__ai_model_api",
             )
             .afirst()
         )
         is_subscribed = await ais_user_subscribed(user) if user else False
 
         if server_chat_settings:
-            # If the user is subscribed and the advanced model is enabled, return the advanced model
-            if is_subscribed and server_chat_settings.chat_advanced:
-                return server_chat_settings.chat_advanced
-            # If the default model is set, return it
-            if server_chat_settings.chat_default:
-                return server_chat_settings.chat_default
+            # If the user is subscribed
+            if is_subscribed:
+                # If fast is requested and fast paid model is available
+                if server_chat_settings.think_paid_fast and fast is True:
+                    return server_chat_settings.think_paid_fast
+                # Else if fast is not requested and deep paid model is available
+                elif server_chat_settings.think_paid_deep and fast is not None:
+                    return server_chat_settings.think_paid_deep
+                # Else if advanced model is available
+                elif server_chat_settings.chat_advanced:
+                    return server_chat_settings.chat_advanced
+            else:
+                # If fast is requested and fast free model is available
+                if server_chat_settings.think_free_fast and fast:
+                    return server_chat_settings.think_free_fast
+                # Else if fast is not requested and deep free model is available
+                elif server_chat_settings.think_free_deep:
+                    return server_chat_settings.think_free_deep
+                # Else if default model is available
+                elif server_chat_settings.chat_default:
+                    return server_chat_settings.chat_default
 
         # Revert to an explicit fallback model if the server chat settings are not set
         if fallback_chat_model:
             # The chat model may not be full loaded from the db, so explicitly load it here
             return await ChatModel.objects.filter(id=fallback_chat_model.id).prefetch_related("ai_model_api").afirst()
 
-        # Get the user's chat settings, if the server chat settings are not set
+        # Get the user's chat settings, if both the server chat settings and the fallback model are not set
         user_chat_settings = (
             (await UserConversationConfig.objects.filter(user=user).prefetch_related("setting__ai_model_api").afirst())
             if user
@@ -1206,6 +1382,101 @@ class ConversationAdapters:
         return await ConversationAdapters.aget_default_chat_model(user)
 
     @staticmethod
+    def set_default_chat_model(chat_model: ChatModel):
+        server_chat_settings = ServerChatSettings.objects.first()
+        if server_chat_settings:
+            server_chat_settings.chat_default = chat_model
+            server_chat_settings.chat_advanced = chat_model
+            server_chat_settings.save()
+        else:
+            ServerChatSettings.objects.create(chat_default=chat_model, chat_advanced=chat_model)
+
+    @staticmethod
+    def get_max_context_size(chat_model: ChatModel, user: KhojUser) -> int | None:
+        """Get the max context size for the user based on the chat model."""
+        subscribed = is_user_subscribed(user) if user else False
+        if subscribed and chat_model.subscribed_max_prompt_size:
+            max_tokens = chat_model.subscribed_max_prompt_size
+        else:
+            max_tokens = chat_model.max_prompt_size
+        return max_tokens
+
+    @staticmethod
+    async def aget_max_context_size(chat_model: ChatModel, user: KhojUser) -> int | None:
+        """Get the max context size for the user based on the chat model."""
+        subscribed = await ais_user_subscribed(user) if user else False
+        if subscribed and chat_model.subscribed_max_prompt_size:
+            max_tokens = chat_model.subscribed_max_prompt_size
+        else:
+            max_tokens = chat_model.max_prompt_size
+        return max_tokens
+
+    @staticmethod
+    async def aget_chat_models_with_fallbacks(slot: ServerChatSettings.ChatModelSlot) -> list[ChatModel]:
+        """
+        Get chat models for a specific subscription, speed preference from all ServerChatSettings, ordered by priority.
+        Used for fallback logic when a chat model fails.
+
+        Args:
+            slot: The chat model slot to get based on user subscription, speed preference (e.g., THINK_FREE_FAST, CHAT_DEFAULT)
+
+        Returns:
+            List of ChatModel objects ordered by ServerChatSettings priority (lower first)
+        """
+        # Map slot enum to field name and prefetch related
+        slot_field = slot.value
+        prefetch_fields = [slot_field, f"{slot_field}__ai_model_api"]
+
+        # Get all server chat settings ordered by priority
+        all_settings = [
+            settings
+            async for settings in ServerChatSettings.objects.filter()
+            .prefetch_related(*prefetch_fields)
+            .order_by("priority")
+            .aiterator()
+        ]
+
+        # Extract the chat model for the requested slot from each settings
+        chat_models: list[ChatModel] = []
+        seen_model_ids: set[int] = set()
+        for settings in all_settings:
+            chat_model = getattr(settings, slot_field, None)
+            if chat_model and chat_model.id not in seen_model_ids:
+                chat_models.append(chat_model)
+                seen_model_ids.add(chat_model.id)
+
+        return chat_models
+
+    @staticmethod
+    async def aget_chat_model_slot(user: KhojUser = None, fast: Optional[bool] = None):
+        """
+        Determine which chat model slot to use based on user subscription and speed preference.
+
+        Args:
+            user: The user making the request
+            fast: Trinary flag for speed preference (True=fast, False=deep, None=default)
+
+        Returns:
+            The appropriate ChatModelSlot enum value, or None if no slot matches
+        """
+        is_subscribed = await ais_user_subscribed(user) if user else False
+
+        if is_subscribed:
+            if fast is True:
+                return ServerChatSettings.ChatModelSlot.THINK_PAID_FAST
+            elif fast is False:
+                return ServerChatSettings.ChatModelSlot.THINK_PAID_DEEP
+            else:
+                return ServerChatSettings.ChatModelSlot.CHAT_ADVANCED
+        else:
+            if fast is True:
+                return ServerChatSettings.ChatModelSlot.THINK_FREE_FAST
+            elif fast is False:
+                return ServerChatSettings.ChatModelSlot.THINK_FREE_DEEP
+            else:
+                return ServerChatSettings.ChatModelSlot.CHAT_DEFAULT
+
+    @staticmethod
     async def aget_server_webscraper():
         server_chat_settings = await ServerChatSettings.objects.filter().prefetch_related("web_scraper").afirst()
         if server_chat_settings is not None and server_chat_settings.web_scraper is not None:
@@ -1224,13 +1495,13 @@ class ConversationAdapters:
             enabled_scrapers = [scraper async for scraper in WebScraper.objects.all().order_by("priority").aiterator()]
         if not enabled_scrapers:
             # Use scrapers enabled via environment variables
-            if os.getenv("FIRECRAWL_API_KEY"):
-                api_url = os.getenv("FIRECRAWL_API_URL", "https://api.firecrawl.dev")
+            if os.getenv("EXA_API_KEY"):
+                api_url = os.getenv("EXA_API_URL", "https://api.exa.ai")
                 enabled_scrapers.append(
                     WebScraper(
-                        type=WebScraper.WebScraperType.FIRECRAWL,
-                        name=WebScraper.WebScraperType.FIRECRAWL.capitalize(),
-                        api_key=os.getenv("FIRECRAWL_API_KEY"),
+                        type=WebScraper.WebScraperType.EXA,
+                        name=WebScraper.WebScraperType.EXA.capitalize(),
+                        api_key=os.getenv("EXA_API_KEY"),
                         api_url=api_url,
                     )
                 )
@@ -1244,17 +1515,16 @@ class ConversationAdapters:
                         api_url=api_url,
                     )
                 )
-            # Jina is the default fallback scrapers to use as it does not require an API key
-            api_url = os.getenv("JINA_READER_API_URL", "https://r.jina.ai/")
-            enabled_scrapers.append(
-                WebScraper(
-                    type=WebScraper.WebScraperType.JINA,
-                    name=WebScraper.WebScraperType.JINA.capitalize(),
-                    api_key=os.getenv("JINA_API_KEY"),
-                    api_url=api_url,
+            if os.getenv("FIRECRAWL_API_KEY"):
+                api_url = os.getenv("FIRECRAWL_API_URL", "https://api.firecrawl.dev")
+                enabled_scrapers.append(
+                    WebScraper(
+                        type=WebScraper.WebScraperType.FIRECRAWL,
+                        name=WebScraper.WebScraperType.FIRECRAWL.capitalize(),
+                        api_key=os.getenv("FIRECRAWL_API_KEY"),
+                        api_url=api_url,
+                    )
                 )
-            )
-
             # Only enable the direct web page scraper by default in self-hosted single user setups.
             # Useful for reading webpages on your intranet.
             if state.anonymous_mode or in_debug_mode():
@@ -1288,30 +1558,41 @@ class ConversationAdapters:
 
     @staticmethod
     @require_valid_user
-    def save_conversation(
+    async def save_conversation(
         user: KhojUser,
-        conversation_log: dict,
+        new_messages: List[ChatMessageModel],
         client_application: ClientApplication = None,
         conversation_id: str = None,
         user_message: str = None,
     ):
         slug = user_message.strip()[:200] if user_message else None
         if conversation_id:
-            conversation = Conversation.objects.filter(user=user, client=client_application, id=conversation_id).first()
+            conversation = (
+                await Conversation.objects.filter(user=user, client=client_application, id=conversation_id)
+                .prefetch_related("agent", "agent__chat_model")
+                .afirst()
+            )
         else:
             conversation = (
-                Conversation.objects.filter(user=user, client=client_application).order_by("-updated_at").first()
+                await Conversation.objects.filter(user=user, client=client_application)
+                .prefetch_related("agent", "agent__chat_model")
+                .order_by("-updated_at")
+                .afirst()
             )
 
+        existing_messages = conversation.messages if conversation else []
+        conversation_log = {"chat": [msg.model_dump() for msg in existing_messages + new_messages]}
+        cleaned_conversation_log = clean_object_for_db(conversation_log)
         if conversation:
-            conversation.conversation_log = conversation_log
+            conversation.conversation_log = cleaned_conversation_log
             conversation.slug = slug
-            conversation.updated_at = datetime.now(tz=timezone.utc)
-            conversation.save()
+            conversation.updated_at = django_timezone.now()
+            await conversation.asave()
         else:
-            Conversation.objects.create(
-                user=user, conversation_log=conversation_log, client=client_application, slug=slug
+            conversation = await Conversation.objects.acreate(
+                user=user, conversation_log=cleaned_conversation_log, client=client_application, slug=slug
             )
+        return conversation
 
     @staticmethod
     def get_conversation_processor_options():
@@ -1331,6 +1612,85 @@ class ConversationAdapters:
         if not config:
             return None
         return config.setting
+
+    @staticmethod
+    async def ais_memory_enabled(user: KhojUser) -> bool:
+        """
+        Check if memory is enabled for the user based on server config and user preference.
+
+        Logic:
+        - If server memory_mode is DISABLED: return False (overrides user preference)
+        - If server memory_mode is ENABLED_DEFAULT_OFF: use user preference if set, else False
+        - If server memory_mode is ENABLED_DEFAULT_ON: use user preference if set, else True
+        - If no server config exists: default to True
+        """
+        # Get server-level memory configuration
+        server_settings = await ServerChatSettings.objects.afirst()
+        if server_settings:
+            memory_mode = server_settings.memory_mode
+            # Disabled mode overrides all user preferences
+            if memory_mode == ServerChatSettings.MemoryMode.DISABLED:
+                return False
+
+            # Get user preference
+            user_config = await UserConversationConfig.objects.filter(user=user).afirst()
+
+            if memory_mode == ServerChatSettings.MemoryMode.ENABLED_DEFAULT_OFF:
+                # User must explicitly opt-in; check if user has set a preference
+                if user_config is None:
+                    return False  # Default off for new users
+                return user_config.enable_memory
+
+            # ENABLED_DEFAULT_ON: use user preference if set, else True
+            if user_config is None:
+                return True  # Default on for new users
+            return user_config.enable_memory
+
+        # No server config - default behavior (enabled, default on)
+        user_config = await UserConversationConfig.objects.filter(user=user).afirst()
+        if user_config is None:
+            return True
+        return user_config.enable_memory
+
+    @staticmethod
+    def is_memory_enabled(user: KhojUser) -> bool:
+        """
+        Sync version of ais_memory_enabled.
+        Check if memory is enabled for the user based on server config and user preference.
+
+        Logic:
+        - If server memory_mode is DISABLED: return False (overrides user preference)
+        - If server memory_mode is ENABLED_DEFAULT_OFF: use user preference if set, else False
+        - If server memory_mode is ENABLED_DEFAULT_ON: use user preference if set, else True
+        - If no server config exists: default to True
+        """
+        # Get server-level memory configuration
+        server_settings = ServerChatSettings.objects.first()
+        if server_settings:
+            memory_mode = server_settings.memory_mode
+            # Disabled mode overrides all user preferences
+            if memory_mode == ServerChatSettings.MemoryMode.DISABLED:
+                return False
+
+            # Get user preference
+            user_config = UserConversationConfig.objects.filter(user=user).first()
+
+            if memory_mode == ServerChatSettings.MemoryMode.ENABLED_DEFAULT_OFF:
+                # User must explicitly opt-in; check if user has set a preference
+                if user_config is None:
+                    return False  # Default off for new users
+                return user_config.enable_memory
+
+            # ENABLED_DEFAULT_ON: use user preference if set, else True
+            if user_config is None:
+                return True  # Default on for new users
+            return user_config.enable_memory
+
+        # No server config - default behavior (enabled, default on)
+        user_config = UserConversationConfig.objects.filter(user=user).first()
+        if user_config is None:
+            return True
+        return user_config.enable_memory
 
     @staticmethod
     async def get_speech_to_text_config():
@@ -1356,25 +1716,21 @@ class ConversationAdapters:
         return random.sample(all_questions, max_results)
 
     @staticmethod
-    def get_valid_chat_model(user: KhojUser, conversation: Conversation, is_subscribed: bool):
-        agent: Agent = (
-            conversation.agent if is_subscribed and AgentAdapters.get_default_agent() != conversation.agent else None
-        )
-        if agent and agent.chat_model:
-            chat_model = conversation.agent.chat_model
+    async def aget_valid_chat_model(user: KhojUser, conversation: Conversation, is_subscribed: bool):
+        """
+        For paid users: Prefer any custom agent chat model > user default chat model > server default chat model.
+        For free users: Prefer conversation specific agent's chat model > user default chat model > server default chat model.
+        """
+        agent: Agent = conversation.agent if await AgentAdapters.aget_default_agent() != conversation.agent else None
+        if agent and agent.chat_model and (agent.is_hidden or is_subscribed):
+            chat_model = await ChatModel.objects.select_related("ai_model_api").aget(
+                pk=conversation.agent.chat_model.pk
+            )
         else:
-            chat_model = ConversationAdapters.get_chat_model(user)
+            chat_model = await ConversationAdapters.aget_chat_model(user)
 
         if chat_model is None:
-            chat_model = ConversationAdapters.get_default_chat_model()
-
-        if chat_model.model_type == ChatModel.ModelType.OFFLINE:
-            if state.offline_chat_processor_config is None or state.offline_chat_processor_config.loaded_model is None:
-                chat_model_name = chat_model.name
-                max_tokens = chat_model.max_prompt_size
-                state.offline_chat_processor_config = OfflineChatProcessorModel(chat_model_name, max_tokens)
-
-            return chat_model
+            chat_model = await ConversationAdapters.aget_default_chat_model()
 
         if (
             chat_model.model_type
@@ -1387,7 +1743,7 @@ class ConversationAdapters:
             return chat_model
 
         else:
-            raise ValueError("Invalid conversation config - either configure offline chat or openai chat")
+            raise ValueError("Invalid conversation settings. Configure some chat model on server.")
 
     @staticmethod
     async def aget_text_to_image_model_config():
@@ -1477,6 +1833,7 @@ class ConversationAdapters:
         conversation_log = conversation.conversation_log
         updated_log = [msg for msg in conversation_log["chat"] if msg.get("turnId") != turn_id]
         conversation.conversation_log["chat"] = updated_log
+        conversation.conversation_log = clean_object_for_db(conversation.conversation_log)
         conversation.save()
         return True
 
@@ -1484,13 +1841,15 @@ class ConversationAdapters:
 class FileObjectAdapters:
     @staticmethod
     def update_raw_text(file_object: FileObject, new_raw_text: str):
-        file_object.raw_text = new_raw_text
+        cleaned_raw_text = clean_text_for_db(new_raw_text)
+        file_object.raw_text = cleaned_raw_text
         file_object.save()
 
     @staticmethod
     @require_valid_user
     def create_file_object(user: KhojUser, file_name: str, raw_text: str):
-        return FileObject.objects.create(user=user, file_name=file_name, raw_text=raw_text)
+        cleaned_raw_text = clean_text_for_db(raw_text)
+        return FileObject.objects.create(user=user, file_name=file_name, raw_text=cleaned_raw_text)
 
     @staticmethod
     @require_valid_user
@@ -1514,18 +1873,28 @@ class FileObjectAdapters:
 
     @staticmethod
     async def aupdate_raw_text(file_object: FileObject, new_raw_text: str):
-        file_object.raw_text = new_raw_text
+        cleaned_raw_text = clean_text_for_db(new_raw_text)
+        file_object.raw_text = cleaned_raw_text
         await file_object.asave()
 
     @staticmethod
     @arequire_valid_user
     async def acreate_file_object(user: KhojUser, file_name: str, raw_text: str):
-        return await FileObject.objects.acreate(user=user, file_name=file_name, raw_text=raw_text)
+        cleaned_raw_text = clean_text_for_db(raw_text)
+        return await FileObject.objects.acreate(user=user, file_name=file_name, raw_text=cleaned_raw_text)
 
     @staticmethod
     @arequire_valid_user
     async def aget_file_objects_by_name(user: KhojUser, file_name: str, agent: Agent = None):
         return await sync_to_async(list)(FileObject.objects.filter(user=user, file_name=file_name, agent=agent))
+
+    @staticmethod
+    @arequire_valid_user
+    async def aget_file_objects_by_path_prefix(user: KhojUser, path_prefix: str, agent: Agent = None):
+        """Get file objects from the database by path prefix."""
+        return await sync_to_async(list)(
+            FileObject.objects.filter(user=user, agent=agent, file_name__startswith=path_prefix)
+        )
 
     @staticmethod
     @arequire_valid_user
@@ -1551,8 +1920,25 @@ class FileObjectAdapters:
 
     @staticmethod
     @arequire_valid_user
+    async def adelete_file_objects_by_names(user: KhojUser, file_names: List[str]):
+        return await FileObject.objects.filter(user=user, file_name__in=file_names).adelete()
+
+    @staticmethod
+    @arequire_valid_user
     async def adelete_all_file_objects(user: KhojUser):
         return await FileObject.objects.filter(user=user).adelete()
+
+    @staticmethod
+    @arequire_valid_user
+    async def aget_file_objects_by_regex(user: KhojUser, regex_pattern: str, path_prefix: Optional[str] = None):
+        """
+        Search for a regex pattern in file objects, with an optional path prefix filter.
+        Outputs results in grep format.
+        """
+        query = FileObject.objects.filter(user=user, agent=None, raw_text__iregex=regex_pattern)
+        if path_prefix:
+            query = query.filter(file_name__startswith=path_prefix)
+        return await sync_to_async(list)(query)
 
 
 class EntryAdapters:
@@ -1680,6 +2066,15 @@ class EntryAdapters:
 
     @staticmethod
     @require_valid_user
+    def get_all_filenames_by_type(user: KhojUser, file_type: str):
+        return (
+            Entry.objects.filter(user=user, file_type=file_type)
+            .distinct("file_path")
+            .values_list("file_path", flat=True)
+        )
+
+    @staticmethod
+    @require_valid_user
     def get_size_of_indexed_data_in_mb(user: KhojUser):
         entries = Entry.objects.filter(user=user).iterator()
         total_size = sum(sys.getsizeof(entry.compiled) for entry in entries)
@@ -1695,9 +2090,9 @@ class EntryAdapters:
 
         owner_filter = Q()
 
-        if user != None:
+        if user is not None:
             owner_filter = Q(user=user)
-        if agent != None:
+        if agent is not None:
             owner_filter |= Q(agent=agent)
 
         if owner_filter == Q():
@@ -1757,9 +2152,9 @@ class EntryAdapters:
     ):
         owner_filter = Q()
 
-        if user != None:
+        if user is not None:
             owner_filter = Q(user=user)
-        if agent != None:
+        if agent is not None:
             owner_filter |= Q(agent=agent)
 
         if owner_filter == Q():
@@ -1800,7 +2195,7 @@ class AutomationAdapters:
         # Perform validation checks
         # Check if user is allowed to delete this automation id
         if not automation.id.startswith(f"automation_{user.uuid}_"):
-            raise ValueError("Invalid automation id")
+            raise ValueError(f"Invalid automation id: {automation.id}")
 
         automation_metadata = json.loads(automation.name)
         crontime = automation_metadata["crontime"]
@@ -1821,7 +2216,7 @@ class AutomationAdapters:
         # Perform validation checks
         # Check if user is allowed to delete this automation id
         if not automation.id.startswith(f"automation_{user.uuid}_"):
-            raise ValueError("Invalid automation id")
+            raise ValueError(f"Invalid automation id: {automation.id}")
 
         django_job = DjangoJob.objects.filter(id=automation.id).first()
         execution = DjangoJobExecution.objects.filter(job=django_job, status="Executed")
@@ -1843,11 +2238,11 @@ class AutomationAdapters:
         # Perform validation checks
         # Check if user is allowed to retrieve this automation id
         if is_none_or_empty(automation_id) or not automation_id.startswith(f"automation_{user.uuid}_"):
-            raise ValueError("Invalid automation id")
+            raise ValueError(f"Invalid automation id: {automation_id}")
         # Check if automation with this id exist
         automation: Job = state.scheduler.get_job(job_id=automation_id)
         if not automation:
-            raise ValueError("Invalid automation id")
+            raise ValueError(f"Invalid automation id: {automation_id}")
 
         return automation
 
@@ -1856,11 +2251,11 @@ class AutomationAdapters:
         # Perform validation checks
         # Check if user is allowed to retrieve this automation id
         if is_none_or_empty(automation_id) or not automation_id.startswith(f"automation_{user.uuid}_"):
-            raise ValueError("Invalid automation id")
+            raise ValueError(f"Invalid automation id: {automation_id}")
         # Check if automation with this id exist
         automation: Job = await sync_to_async(state.scheduler.get_job)(job_id=automation_id)
         if not automation:
-            raise ValueError("Invalid automation id")
+            raise ValueError(f"Invalid automation id: {automation_id}")
 
         return automation
 
@@ -1874,3 +2269,106 @@ class AutomationAdapters:
 
         automation.remove()
         return automation_metadata
+
+
+class McpServerAdapters:
+    @staticmethod
+    async def aget_all_mcp_servers() -> List[McpServer]:
+        """Asynchronously retrieve all McpServer objects from the database."""
+        servers: List[McpServer] = []
+        try:
+            servers = [server async for server in McpServer.objects.all()]
+        except Exception as e:
+            logger.error(f"Error retrieving MCP servers: {e}", exc_info=True)
+        return servers
+
+
+class UserMemoryAdapters:
+    @staticmethod
+    @require_valid_user
+    async def pull_memories(user: KhojUser, agent: Agent = None, limit=10, window=7) -> list[UserMemory]:
+        """
+        Pulls memories from the database for a given user. Medium term memory.
+        """
+        time_frame = datetime.now(timezone.utc) - timedelta(days=window)
+        default_agent = await AgentAdapters.aget_default_agent()
+        if agent and agent != default_agent:
+            memories = UserMemory.objects.filter(user=user, agent=agent, updated_at__gte=time_frame).order_by(
+                "-created_at"
+            )[:limit]
+        else:
+            memories = UserMemory.objects.filter(user=user, updated_at__gte=time_frame).order_by("-created_at")[:limit]
+        return await sync_to_async(list)(memories)
+
+    @staticmethod
+    @require_valid_user
+    async def save_memory(user: KhojUser, memory: str, agent: Agent = None) -> UserMemory:
+        """
+        Saves a memory to the database for a given user.
+        """
+        embeddings_model = state.embeddings_model
+        model = await aget_default_search_model()
+        embeddings = await sync_to_async(embeddings_model[model.name].embed_query)(memory)
+        default_agent = await AgentAdapters.aget_default_agent()
+        if agent and agent != default_agent:
+            memory_instance = await UserMemory.objects.acreate(
+                user=user, embeddings=embeddings, raw=memory, search_model=model, agent=agent
+            )
+        else:
+            memory_instance = await UserMemory.objects.acreate(
+                user=user, embeddings=embeddings, raw=memory, search_model=model
+            )
+
+        return memory_instance
+
+    @staticmethod
+    @require_valid_user
+    async def search_memories(query: str, user: KhojUser, agent: Agent = None, limit: int = 10) -> list[UserMemory]:
+        """
+        Searches for memories in the database for a given user. Long term memory.
+        """
+        embeddings_model = state.embeddings_model
+        model = await aget_default_search_model()
+        max_distance = model.bi_encoder_confidence_threshold or math.inf
+        embedded_query = await sync_to_async(embeddings_model[model.name].embed_query)(query)
+        default_agent = await AgentAdapters.aget_default_agent()
+
+        if agent and agent != default_agent:
+            relevant_memories = UserMemory.objects.filter(user=user, agent=agent)
+        else:
+            relevant_memories = UserMemory.objects.filter(user=user)
+
+        relevant_memories = (
+            relevant_memories.annotate(distance=CosineDistance("embeddings", embedded_query))
+            .order_by("distance")
+            .filter(distance__lte=max_distance)
+        )
+
+        return await sync_to_async(list)(relevant_memories[:limit])
+
+    @staticmethod
+    @require_valid_user
+    async def delete_memory(user: KhojUser, memory_id: str) -> bool:
+        """
+        Deletes a memory from the database for a given user.
+        """
+        try:
+            memory = await UserMemory.objects.aget(user=user, id=memory_id)
+            await memory.adelete()
+            return True
+        except UserMemory.DoesNotExist:
+            return False
+
+    @staticmethod
+    def to_dict(memories: List[UserMemory]) -> List[dict]:
+        """
+        Converts a list of Memory objects to a list of dictionaries.
+        """
+        return [
+            {
+                "id": f"{memory.id}",
+                "raw": memory.raw,
+                "updated_at": memory.updated_at.astimezone(timezone.utc).isoformat(timespec="seconds"),
+            }
+            for memory in memories
+        ]

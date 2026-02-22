@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { noto_sans, noto_sans_arabic } from "@/app/fonts";
 import "./globals.css";
+import "./globals-print.css";
 import { ContentSecurityPolicy } from "./common/layoutHelper";
 import { ThemeProvider } from "./components/providers/themeProvider";
 
@@ -48,7 +49,11 @@ export default function RootLayout({
     children: React.ReactNode;
 }>) {
     return (
-        <html lang="en" className={`${noto_sans.variable} ${noto_sans_arabic.variable}`}>
+        <html
+            lang="en"
+            className={`${noto_sans.variable} ${noto_sans_arabic.variable}`}
+            suppressHydrationWarning
+        >
             <head>
                 <script
                     dangerouslySetInnerHTML={{
@@ -65,9 +70,7 @@ export default function RootLayout({
             </head>
             <ContentSecurityPolicy />
             <body>
-                <ThemeProvider>
-                    {children}
-                </ThemeProvider>
+                <ThemeProvider>{children}</ThemeProvider>
             </body>
         </html>
     );
