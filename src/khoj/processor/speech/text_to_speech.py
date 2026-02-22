@@ -20,8 +20,6 @@ def is_eleven_labs_enabled():
 class TextToSpeechError(Exception):
     """Exception raised when text-to-speech generation fails."""
 
-    pass
-
 
 def generate_text_to_speech(
     text_to_speak: str,
@@ -53,4 +51,4 @@ def generate_text_to_speech(
     if response.ok:
         return response
     else:
-        raise Exception(f"Failed to generate text-to-speech: {response.text}")
+        raise TextToSpeechError(f"Failed to generate text-to-speech: {response.text}")

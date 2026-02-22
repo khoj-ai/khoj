@@ -211,7 +211,7 @@ async def text_to_speech(
     try:
         speech_stream = generate_text_to_speech(**params)
     except TextToSpeechError as e:
-        raise HTTPException(status_code=501, detail=str(e))
+        raise HTTPException(status_code=503, detail=str(e))
     return StreamingResponse(speech_stream.iter_content(chunk_size=1024), media_type="audio/mpeg")
 
 
