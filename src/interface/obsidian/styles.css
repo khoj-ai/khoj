@@ -1300,6 +1300,11 @@ img.copy-icon {
     }
 }
 
+.khoj-file-suggestion {
+    padding: 8px;
+    color: var(--text-muted);
+}
+
 .khoj-similar-message {
     text-align: center;
     padding: 20px;
