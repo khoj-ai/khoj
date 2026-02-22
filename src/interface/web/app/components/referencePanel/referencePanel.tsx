@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-import { ArrowCircleDown, ArrowRight, Code, Note, Clipboard } from "@phosphor-icons/react";
+import { ArrowCircleDown, ArrowRight, Code, Note, Clipboard, Check } from "@phosphor-icons/react";
 
 import markdownIt from "markdown-it";
 const md = new markdownIt({
@@ -495,6 +495,18 @@ export function constructAllReferences(
     };
 }
 
+export function formatReferencesAsMarkdown(
+    notesReferenceCardData: NotesContextReferenceData[],
+    onlineReferenceCardData: OnlineReferenceData[],
+    codeReferenceCardData: CodeReferenceData[],
+): string {
+    return [
+        ...notesReferenceCardData.map((note) => `- ${note.title}`),
+        ...onlineReferenceCardData.map((online) => `- [${online.title}](${online.link})`),
+        ...codeReferenceCardData.map((_, index) => `- Code Reference ${index + 1}`),
+    ].join("\n");
+}
+
 interface SimpleIconProps {
     type: string;
     link?: string;
@@ -590,9 +602,19 @@ interface ReferencePanelDataProps {
 export default function ReferencePanel(props: ReferencePanelDataProps) {
     const [numTeaserSlots, setNumTeaserSlots] = useState(3);
 
+    const [copyReferencesSuccess, setCopyReferencesSuccess] = useState(false);
+
     useEffect(() => {
         setNumTeaserSlots(props.isMobileWidth ? 3 : 5);
     }, [props.isMobileWidth]);
+
+    useEffect(() => {
+        if (copyReferencesSuccess) {
+            setTimeout(() => {
+                setCopyReferencesSuccess(false);
+            }, 1000);
+        }
+    }, [copyReferencesSuccess]);
 
     if (!props.notesReferenceCardData && !props.onlineReferenceCardData) {
         return null;
@@ -611,19 +633,14 @@ export default function ReferencePanel(props: ReferencePanelDataProps) {
             : [];
 
     const copyReferencesToClipboard = () => {
-        const allReferences = [
-            ...props.notesReferenceCardData.map(
-                (note) => `- [${note.title}](#)`,
+        navigator.clipboard.writeText(
+            formatReferencesAsMarkdown(
+                props.notesReferenceCardData,
+                props.onlineReferenceCardData,
+                props.codeReferenceCardData,
             ),
-            ...props.onlineReferenceCardData.map(
-                (online) => `- [${online.title}](${online.link})`,
-            ),
-            ...props.codeReferenceCardData.map(
-                (code) => `- [Code Reference](#)`,
-            ),
-        ].join("\n");
-
-        navigator.clipboard.writeText(allReferences);
+        );
+        setCopyReferencesSuccess(true);
     };
 
     return (
@@ -667,8 +684,17 @@ export default function ReferencePanel(props: ReferencePanelDataProps) {
                         onClick={copyReferencesToClipboard}
                         className="mt-4"
                     >
-                        <Clipboard className="mr-2" />
-                        Copy References
+                        {copyReferencesSuccess ? (
+                            <>
+                                <Check className="mr-2 text-green-500" />
+                                Copied!
+                            </>
+                        ) : (
+                            <>
+                                <Clipboard className="mr-2" />
+                                Copy References
+                            </>
+                        )}
                     </Button>
                 </SheetHeader>
                 <div className="flex flex-wrap gap-2 w-auto mt-2">

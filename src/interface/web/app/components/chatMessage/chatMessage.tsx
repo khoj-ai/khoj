@@ -39,7 +39,6 @@ import {
     Shapes,
     Trash,
     Toolbox,
-    Clipboard,
     Browser,
     ArrowClockwise,
 } from "@phosphor-icons/react";
@@ -939,22 +938,6 @@ const ChatMessage = forwardRef<HTMLDivElement, ChatMessageProps>((props, ref) =>
         props.chatMessage.codeContext,
     );
 
-    const copyReferencesToClipboard = () => {
-        const allReferencesMarkdown = [
-            ...allReferences.notesReferenceCardData.map(
-                (note) => `- [${note.title}](#)`,
-            ),
-            ...allReferences.onlineReferenceCardData.map(
-                (online) => `- [${online.title}](${online.link})`,
-            ),
-            ...allReferences.codeReferenceCardData.map(
-                (code) => `- [Code Reference](#)`,
-            ),
-        ].join("\n");
-
-        navigator.clipboard.writeText(allReferencesMarkdown);
-    };
-
     return (
         <div
             ref={ref}
@@ -1240,16 +1223,6 @@ const ChatMessage = forwardRef<HTMLDivElement, ChatMessageProps>((props, ref) =>
                                         className="hsl(var(--muted-foreground)) hover:text-green-500"
                                     />
                                 )}
-                            </button>
-                            <button
-                                title="Copy References"
-                                className={`${styles.copyButton}`}
-                                onClick={copyReferencesToClipboard}
-                            >
-                                <Clipboard
-                                    alt="Copy References"
-                                    className="hsl(var(--muted-foreground)) hover:text-green-500"
-                                />
                             </button>
                             {props.chatMessage.by === "khoj" &&
                                 (props.chatMessage.intent ? (
