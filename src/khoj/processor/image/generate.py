@@ -128,6 +128,10 @@ async def text_to_image(
                     chat_history=chat_history,
                     query_images=query_images,
                 )
+            elif text_to_image_config.model_type == TextToImageModelConfig.ModelType.MODELSLAB:
+                webp_image_bytes = generate_image_with_modelslab(
+                    image_prompt, text_to_image_config, text2image_model, image_shape
+                )
         except openai.OpenAIError or openai.BadRequestError or openai.APIConnectionError as e:
             if "content_policy_violation" in e.message:
                 logger.error(f"Image Generation blocked by OpenAI: {e}")
@@ -290,6 +294,75 @@ def generate_image_with_replicate(
     # Get the generated image
     image_url = get_prediction["output"][0] if isinstance(get_prediction["output"], list) else get_prediction["output"]
     return io.BytesIO(requests.get(image_url).content).getvalue()
+
+
+def generate_image_with_modelslab(
+    improved_image_prompt: str,
+    text_to_image_config: TextToImageModelConfig,
+    text2image_model: str,
+    shape: ImageShape = ImageShape.SQUARE,
+) -> bytes:
+    "Generate image using ModelsLab API"
+
+    # Map shape to width/height dimensions
+    if shape == ImageShape.PORTRAIT:
+        width, height = 768, 1024
+    elif shape == ImageShape.LANDSCAPE:
+        width, height = 1024, 768
+    else:  # Square
+        width, height = 1024, 1024
+
+    # Submit image generation request
+    response = requests.post(
+        "https://modelslab.com/api/v6/images/text2img",
+        headers={"Content-Type": "application/json"},
+        json={
+            "key": text_to_image_config.api_key,
+            "model_id": text2image_model,
+            "prompt": improved_image_prompt,
+            "width": width,
+            "height": height,
+            "samples": 1,
+            "safety_checker": False,
+            "enhance_prompt": False,
+        },
+    )
+    response.raise_for_status()
+    data = response.json()
+
+    # Handle immediate success
+    if data.get("status") == "success" and data.get("output"):
+        image_url = data["output"][0] if isinstance(data["output"], list) else data["output"]
+        return convert_image_to_webp(requests.get(image_url).content)
+
+    # Handle async processing — poll fetch endpoint
+    if data.get("status") == "processing" and data.get("id"):
+        job_id = data["id"]
+        for _ in range(40):  # up to ~200s (40 × 5s)
+            time.sleep(5)
+            fetch_response = requests.post(
+                f"https://modelslab.com/api/v6/images/fetch/{job_id}",
+                headers={"Content-Type": "application/json"},
+                json={"key": text_to_image_config.api_key},
+            )
+            fetch_response.raise_for_status()
+            fetch_data = fetch_response.json()
+
+            if fetch_data.get("status") == "success" and fetch_data.get("output"):
+                image_url = fetch_data["output"][0] if isinstance(fetch_data["output"], list) else fetch_data["output"]
+                return convert_image_to_webp(requests.get(image_url).content)
+
+            if fetch_data.get("status") in ("error", "failed"):
+                raise requests.RequestException(
+                    f"ModelsLab image generation failed: {fetch_data.get('message', 'Unknown error')}"
+                )
+
+        raise requests.RequestException("ModelsLab image generation timed out after 200 seconds")
+
+    # Unexpected response
+    raise requests.RequestException(
+        f"ModelsLab API error: {data.get('message') or data.get('error') or 'Unexpected response'}"
+    )
 
 
 @retry(

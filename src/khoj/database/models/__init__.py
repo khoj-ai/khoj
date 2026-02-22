@@ -590,6 +590,7 @@ class TextToImageModelConfig(DbBaseModel):
         OPENAI = "openai"
         REPLICATE = "replicate"
         GOOGLE = "google"
+        MODELSLAB = "modelslab"
 
     model_name = models.CharField(max_length=200, default="dall-e-3")
     friendly_name = models.CharField(max_length=200, default=None, null=True, blank=True)
