@@ -46,7 +46,7 @@ dependencies = [
     "tiktoken >= 0.3.2",
     "tenacity >= 9.0.0",
     "magika ~= 0.5.1",
-    "pillow ~= 10.3.0",
+    "pillow >= 12.1.1",
     "pydantic[email] >= 2.0.0",
     "pyyaml ~= 6.0",
     "rich >= 13.3.1",
@@ -176,6 +176,9 @@ indent-style = "space"
 
 [tool.ruff.lint.isort]
 known-first-party = ["khoj"]
+
+[tool.uv]
+build-constraint-dependencies = ["setuptools>=61.2,<82"]
 
 [tool.pytest.ini_options]
 addopts = "--strict-markers"
