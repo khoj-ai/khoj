@@ -17,12 +17,16 @@ def is_eleven_labs_enabled():
     return ELEVEN_LABS_API_KEY is not None
 
 
+class TextToSpeechError(Exception):
+    """Exception raised when text-to-speech generation fails."""
+
+
 def generate_text_to_speech(
     text_to_speak: str,
     voice_id: str = VOICE_ID,
 ):
     if not is_eleven_labs_enabled():
-        return "Eleven Labs API key is not set"
+        raise TextToSpeechError("Eleven Labs API key is not set")
 
     # Convert the incoming text from markdown format to plain text
     html = markdown_renderer.render(text_to_speak)
@@ -47,4 +51,4 @@ def generate_text_to_speech(
     if response.ok:
         return response
     else:
-        raise Exception(f"Failed to generate text-to-speech: {response.text}")
+        raise TextToSpeechError(f"Failed to generate text-to-speech: {response.text}")

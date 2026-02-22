@@ -44,7 +44,7 @@ from khoj.processor.conversation.utils import (
 )
 from khoj.processor.image.generate import text_to_image
 from khoj.processor.operator import operate_environment
-from khoj.processor.speech.text_to_speech import generate_text_to_speech
+from khoj.processor.speech.text_to_speech import TextToSpeechError, generate_text_to_speech
 from khoj.processor.tools.online_search import (
     deduplicate_organic_results,
     read_webpages,
@@ -208,7 +208,10 @@ async def text_to_speech(
     if voice_model:
         params["voice_id"] = voice_model.model_id
 
-    speech_stream = generate_text_to_speech(**params)
+    try:
+        speech_stream = generate_text_to_speech(**params)
+    except TextToSpeechError as e:
+        raise HTTPException(status_code=503, detail=str(e))
     return StreamingResponse(speech_stream.iter_content(chunk_size=1024), media_type="audio/mpeg")
 
 
