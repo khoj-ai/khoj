@@ -641,7 +641,7 @@ export default function SettingsView() {
     const fetchMemories = async () => {
         try {
             console.log("Fetching memories...");
-            const response = await fetch('/api/memories/');
+            const response = await fetch('/api/memories');
             if (!response.ok) throw new Error('Failed to fetch memories');
             const data = await response.json();
             setMemories(data);
