@@ -1,0 +1,15 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "identifier": "default",
+  "description": "Default permissions for Khoj desktop",
+  "permissions": [
+    "dialog:allow-open",
+    "clipboard:allow-write-html-and-text",
+    "shell:allow-open",
+    "clipboard:allow-has-text",
+    "global-shortcut:allow-is-registered",
+    "global-shortcut:allow-register",
+    "global-shortcut:allow-unregister"
+  ]
+}
+

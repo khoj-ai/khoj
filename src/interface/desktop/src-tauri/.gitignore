@@ -1,0 +1,26 @@
+# Rust / Cargo build output (if CARGO_TARGET_DIR points here)
+target/
+
+# Tauri bundler outputs (platform installers / app bundles)
+target/**/bundle/
+
+# Updater/signing keys (never commit private keys)
+*.pem
+*.key
+*.pfx
+*.der
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+
+# OS / editor noise
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+
