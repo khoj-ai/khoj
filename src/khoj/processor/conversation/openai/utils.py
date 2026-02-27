@@ -58,6 +58,8 @@ openai_async_clients: Dict[str, openai.AsyncOpenAI] = {}
 # Default completion tokens
 # Reduce premature termination, especially when streaming structured responses
 MAX_COMPLETION_TOKENS = 16000
+# Groq API has a lower max_completion_tokens limit
+GROQ_MAX_COMPLETION_TOKENS = 8192
 
 
 def _extract_text_for_instructions(content: Union[str, List, Dict, None]) -> str:
@@ -157,6 +159,11 @@ def completion_with_backoff(
             add_qwen_no_think_tag(formatted_messages)
     elif is_groq_api(api_base_url):
         model_kwargs["service_tier"] = "auto"
+        # Groq API has a lower max_completion_tokens limit
+        model_kwargs["max_completion_tokens"] = min(
+            model_kwargs.get("max_completion_tokens", GROQ_MAX_COMPLETION_TOKENS),
+            GROQ_MAX_COMPLETION_TOKENS,
+        )
 
     read_timeout = 300 if is_local_api(api_base_url) else 60
     if os.getenv("KHOJ_LLM_SEED"):
@@ -359,6 +366,11 @@ async def chat_completion_with_backoff(
             add_qwen_no_think_tag(formatted_messages)
     elif is_groq_api(api_base_url):
         model_kwargs["service_tier"] = "auto"
+        # Groq API has a lower max_completion_tokens limit
+        model_kwargs["max_completion_tokens"] = min(
+            model_kwargs.get("max_completion_tokens", GROQ_MAX_COMPLETION_TOKENS),
+            GROQ_MAX_COMPLETION_TOKENS,
+        )
 
     read_timeout = 300 if is_local_api(api_base_url) else 60
     if os.getenv("KHOJ_LLM_SEED"):
