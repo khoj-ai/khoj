@@ -14,6 +14,12 @@ content_directory = "~/.khoj/content/"
 default_openai_chat_models = ["gpt-4o-mini", "gpt-4.1", "o3", "o4-mini"]
 default_gemini_chat_models = ["gemini-2.0-flash", "gemini-2.5-flash", "gemini-2.5-pro", "gemini-2.5-flash-lite"]
 default_anthropic_chat_models = ["claude-sonnet-4-0", "claude-3-5-haiku-latest"]
+default_avian_chat_models = [
+    "deepseek/deepseek-v3.2",
+    "moonshotai/kimi-k2.5",
+    "z-ai/glm-5",
+    "minimax/minimax-m2.5",
+]
 
 empty_config = {
     "search-type": {
@@ -89,4 +95,9 @@ model_to_cost: Dict[str, Dict[str, float]] = {
     # Miscellaneous
     # Moonshot AI, Baseten pricing for Kimi-K2-Thinking
     "moonshotai/kimi-k2-thinking": {"input": 0.60, "output": 2.50},
+    # Avian Pricing: https://avian.io/models
+    "deepseek/deepseek-v3.2": {"input": 0.26, "output": 0.38},
+    "moonshotai/kimi-k2.5": {"input": 0.45, "output": 2.20},
+    "z-ai/glm-5": {"input": 0.30, "output": 2.55},
+    "minimax/minimax-m2.5": {"input": 0.30, "output": 1.10},
 }

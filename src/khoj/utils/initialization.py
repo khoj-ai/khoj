@@ -15,6 +15,7 @@ from khoj.database.models import (
 from khoj.processor.conversation.utils import model_to_prompt_size, model_to_tokenizer
 from khoj.utils.constants import (
     default_anthropic_chat_models,
+    default_avian_chat_models,
     default_gemini_chat_models,
     default_openai_chat_models,
 )
@@ -141,6 +142,17 @@ def initialization(interactive: bool = True):
             default_api_key=os.getenv("ANTHROPIC_API_KEY"),
             vision_enabled=True,
             interactive=interactive,
+        )
+
+        # Set up Avian's online chat models
+        _setup_chat_model_provider(
+            ChatModel.ModelType.AVIAN,
+            default_avian_chat_models,
+            default_api_key=os.getenv("AVIAN_API_KEY"),
+            api_base_url="https://api.avian.io/v1",
+            vision_enabled=False,
+            interactive=interactive,
+            provider_name="Avian",
         )
 
         logger.info("🗣️ Chat model configuration complete")

@@ -179,6 +179,7 @@ async def is_ready_to_chat(user: KhojUser):
                 ChatModel.ModelType.OPENAI,
                 ChatModel.ModelType.ANTHROPIC,
                 ChatModel.ModelType.GOOGLE,
+                ChatModel.ModelType.AVIAN,
             ]
         )
         and user_chat_model.ai_model_api
@@ -1620,6 +1621,18 @@ def send_message_to_model(
             api_base_url=api_base_url,
             tracer=tracer,
         )
+    elif model_type == ChatModel.ModelType.AVIAN:
+        return openai_send_message_to_model(
+            messages=truncated_messages,
+            api_key=api_key,
+            model=chat_model_name,
+            response_type=response_type,
+            response_schema=response_schema,
+            tools=tools,
+            deepthought=deepthought,
+            api_base_url=api_base_url,
+            tracer=tracer,
+        )
     else:
         raise HTTPException(status_code=500, detail=f"Invalid model type: {model_type}")
 
@@ -1778,6 +1791,17 @@ def send_message_to_model_wrapper_sync(
 
     elif model_type == ChatModel.ModelType.GOOGLE:
         return gemini_send_message_to_model(
+            messages=truncated_messages,
+            api_key=api_key,
+            api_base_url=api_base_url,
+            model=chat_model_name,
+            response_type=response_type,
+            response_schema=response_schema,
+            tracer=tracer,
+        )
+
+    elif model_type == ChatModel.ModelType.AVIAN:
+        return openai_send_message_to_model(
             messages=truncated_messages,
             api_key=api_key,
             api_base_url=api_base_url,
@@ -2000,6 +2024,21 @@ async def agenerate_chat_response(
                 model=chat_model.name,
                 api_key=api_key,
                 api_base_url=api_base_url,
+                deepthought=deepthought,
+                tracer=tracer,
+            )
+
+        elif chat_model.model_type == ChatModel.ModelType.AVIAN:
+            avian_chat_config = chat_model.ai_model_api
+            api_key = avian_chat_config.api_key
+            chat_model_name = chat_model.name
+            chat_response_generator = converse_openai(
+                # Query + Context Messages
+                messages,
+                # Model
+                model=chat_model_name,
+                api_key=api_key,
+                api_base_url=avian_chat_config.api_base_url,
                 deepthought=deepthought,
                 tracer=tracer,
             )
