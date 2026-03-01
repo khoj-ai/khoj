@@ -212,14 +212,15 @@ def setup(
     regenerate: bool,
     user: KhojUser,
     config=None,
+    file_source: str = None,
 ) -> Tuple[int, int]:
     if config:
         num_new_embeddings, num_deleted_embeddings = text_to_entries(config).process(
-            files=files, user=user, regenerate=regenerate
+            files=files, user=user, regenerate=regenerate, file_source=file_source
         )
     else:
         num_new_embeddings, num_deleted_embeddings = text_to_entries().process(
-            files=files, user=user, regenerate=regenerate
+            files=files, user=user, regenerate=regenerate, file_source=file_source
         )
 
     if files:
