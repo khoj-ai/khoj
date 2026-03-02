@@ -6,7 +6,7 @@ import "intl-tel-input/styles";
 import { Suspense, useEffect, useState } from "react";
 import { useToast } from "@/components/ui/use-toast";
 
-import { useUserConfig, ModelOptions, UserConfig, SubscriptionStates } from "../common/auth";
+import { useUserConfig, ModelOptions, UserConfig, SubscriptionStates, isUserSubscribed } from "../common/auth";
 import { toTitleCase, useIsMobileWidth } from "../common/utils";
 
 import { isValidPhoneNumber } from "libphonenumber-js";
@@ -846,6 +846,7 @@ export default function SettingsView() {
                                                     </Button>
                                                 </CardFooter>
                                             </Card>
+                                            {isUserSubscribed(userConfig) && (
                                             <Card id="subscription" className={cardClassName}>
                                                 <CardHeader className="text-xl flex flex-row">
                                                     <CreditCard className="h-7 w-7 mr-2" />
@@ -906,34 +907,6 @@ export default function SettingsView() {
                                                                     </b>
                                                                 </p>
                                                             </>
-                                                        )) ||
-                                                        (userConfig.subscription_state ===
-                                                            "expired" && (
-                                                            <>
-                                                                <p className="text-xl">Humanist</p>
-                                                                {(userConfig.subscription_renewal_date && (
-                                                                    <p className="text-gray-400">
-                                                                        Subscription <b>expired</b>{" "}
-                                                                        on{" "}
-                                                                        <b>
-                                                                            {
-                                                                                userConfig.subscription_renewal_date
-                                                                            }
-                                                                        </b>
-                                                                    </p>
-                                                                )) || (
-                                                                    <p className="text-gray-400">
-                                                                        Check{" "}
-                                                                        <a
-                                                                            href="https://khoj.dev/#pricing"
-                                                                            target="_blank"
-                                                                        >
-                                                                            pricing page
-                                                                        </a>{" "}
-                                                                        to compare plans.
-                                                                    </p>
-                                                                )}
-                                                            </>
                                                         ))}
                                                 </CardContent>
                                                 <CardFooter className="flex flex-wrap gap-4">
@@ -987,6 +960,7 @@ export default function SettingsView() {
                                                         )}
                                                 </CardFooter>
                                             </Card>
+                                            )}
                                         </div>
                                     </div>
                                     <div className="section grid gap-8">
