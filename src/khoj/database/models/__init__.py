@@ -781,6 +781,7 @@ class Entry(DbBaseModel):
         COMPUTER = "computer"
         NOTION = "notion"
         GITHUB = "github"
+        OBSIDIAN = "obsidian"
 
     user = models.ForeignKey(KhojUser, on_delete=models.CASCADE, default=None, null=True, blank=True)
     agent = models.ForeignKey(Agent, on_delete=models.CASCADE, default=None, null=True, blank=True)
