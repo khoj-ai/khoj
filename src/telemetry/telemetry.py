@@ -33,10 +33,10 @@ def v1_telemetry(telemetry_data: List[Dict[str, str]]):
     except Exception:
         raise HTTPException(
             status_code=500,
-            detail="Could not POST equest to new khoj telemetry server. Contact developer to get this fixed.",
+            detail="Could not POST request to new khoj telemetry server. Contact developer to get this fixed.",
         )
 
-    # Insert recieved telemetry data into SQLite db
+    # Insert received telemetry data into SQLite db
     logger.info(f"Insert row into telemetry table at {sqlfile}: {telemetry_data}")
     with sqlite3.connect(sqlfile) as conn:
         cur = conn.cursor()
