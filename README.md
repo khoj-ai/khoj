@@ -34,8 +34,7 @@
 ***
 
 ### 🎁 New
-* Start any message with `/research` to try out the experimental research mode with Khoj.
-* Anyone can now [create custom agents](https://blog.khoj.dev/posts/create-agents-on-khoj/) with tunable personality, tools and knowledge bases.
+* Check out our new project **[Pipali](https://pipali.ai)**, the [open source](https://github.com/khoj-ai/pipali) ai coworker on your computer.
 * [Read](https://blog.khoj.dev/posts/evaluate-khoj-quality/) about Khoj's excellent performance on modern retrieval and reasoning benchmarks.
 
 ***
