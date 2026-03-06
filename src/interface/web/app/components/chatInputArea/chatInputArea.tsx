@@ -1,5 +1,5 @@
 import styles from "./chatInputArea.module.css";
-import React, { useEffect, useRef, useState, forwardRef } from "react";
+import React, { useEffect, useMemo, useRef, useState, forwardRef } from "react";
 
 import DOMPurify from "dompurify";
 import "katex/dist/katex.min.css";
@@ -87,6 +87,8 @@ interface ChatInputProps {
     focus?: ChatInputFocus;
 }
 
+const FILE_FILTER_TOKEN_REGEX = /file:(?:"([^"]*)|([^\s]*))$/i;
+
 export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((props, ref) => {
     const [message, setMessage] = useState("");
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -113,9 +115,31 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
     const [isDragAndDropping, setIsDragAndDropping] = useState(false);
 
     const [showCommandList, setShowCommandList] = useState(false);
+    const [showFileFilterSuggestions, setShowFileFilterSuggestions] = useState(false);
+    const [fileFilterQuery, setFileFilterQuery] = useState("");
+    const [allFiles, setAllFiles] = useState<string[]>([]);
+    const [isLoadingFileSuggestions, setIsLoadingFileSuggestions] = useState(false);
     const [useResearchMode, setUseResearchMode] = useState<boolean>(
         props.isResearchModeEnabled || false,
     );
+
+    const filteredFileSuggestions = useMemo(() => {
+        if (!fileFilterQuery) {
+            return allFiles.slice(0, 25);
+        }
+
+        const normalizedQuery = fileFilterQuery.toLowerCase();
+        const startsWithMatches = allFiles.filter((file) =>
+            file.toLowerCase().startsWith(normalizedQuery),
+        );
+        const containsMatches = allFiles.filter(
+            (file) =>
+                !file.toLowerCase().startsWith(normalizedQuery) &&
+                file.toLowerCase().includes(normalizedQuery),
+        );
+
+        return [...startsWithMatches, ...containsMatches].slice(0, 25);
+    }, [allFiles, fileFilterQuery]);
 
     const chatInputRef = ref as React.MutableRefObject<HTMLTextAreaElement>;
     useEffect(() => {
@@ -411,12 +435,48 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
         chatInputRef.current.style.height =
             Math.max(chatInputRef.current.scrollHeight - 24, 64) + "px";
 
-        if (message.startsWith("/") && message.split(" ").length === 1) {
+        const fileFilterMatch = message.match(FILE_FILTER_TOKEN_REGEX);
+        const shouldShowFileFilterSuggestions = Boolean(fileFilterMatch);
+        const extractedFileFilterQuery = (
+            fileFilterMatch?.[1] ??
+            fileFilterMatch?.[2] ??
+            ""
+        ).trim();
+        setShowFileFilterSuggestions(shouldShowFileFilterSuggestions);
+        setFileFilterQuery(extractedFileFilterQuery);
+
+        if (
+            message.startsWith("/") &&
+            message.split(" ").length === 1 &&
+            !shouldShowFileFilterSuggestions
+        ) {
             setShowCommandList(true);
         } else {
             setShowCommandList(false);
         }
     }, [message]);
+
+    useEffect(() => {
+        if (!showFileFilterSuggestions || allFiles.length > 0 || isLoadingFileSuggestions) return;
+
+        setIsLoadingFileSuggestions(true);
+        fetch("/api/content/computer", {
+            method: "GET",
+            headers: {
+                "Content-Type": "application/json",
+            },
+        })
+            .then((response) => response.json())
+            .then((data) => {
+                if (Array.isArray(data)) {
+                    setAllFiles(data.toSorted());
+                }
+            })
+            .catch((error) => {
+                console.error("Error loading file suggestions:", error);
+            })
+            .finally(() => setIsLoadingFileSuggestions(false));
+    }, [showFileFilterSuggestions, allFiles.length, isLoadingFileSuggestions]);
 
     function handleDragOver(event: React.DragEvent<HTMLDivElement>) {
         event.preventDefault();
@@ -434,6 +494,15 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
         if (imagePaths.length === 1) {
             setImageUploaded(false);
         }
+    }
+
+    function handleFileFilterSuggestionClick(file: string) {
+        setMessage(
+            (previousMessage) =>
+                `${previousMessage.replace(FILE_FILTER_TOKEN_REGEX, `file:"${file}"`)} `,
+        );
+        setShowFileFilterSuggestions(false);
+        chatInputRef?.current?.focus();
     }
 
     return (
@@ -548,6 +617,59 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
                                             )}
                                     </CommandGroup>
                                     <CommandSeparator />
+                                </CommandList>
+                            </Command>
+                        </PopoverContent>
+                    </Popover>
+                </div>
+            )}
+            {showFileFilterSuggestions && (
+                <div className="flex justify-center text-center">
+                    <Popover
+                        open={showFileFilterSuggestions}
+                        onOpenChange={setShowFileFilterSuggestions}
+                    >
+                        <PopoverTrigger className="flex justify-center text-center"></PopoverTrigger>
+                        <PopoverContent
+                            onOpenAutoFocus={(e) => e.preventDefault()}
+                            className={`${props.isMobileWidth ? "w-[100vw]" : "w-full"} rounded-md`}
+                            side="bottom"
+                            align="center"
+                            /* Offset below text area on home page (i.e where conversationId is unset) */
+                            sideOffset={props.conversationId ? 0 : 80}
+                            alignOffset={0}
+                        >
+                            <Command className="max-w-full">
+                                <CommandInput
+                                    placeholder="Search files..."
+                                    value={fileFilterQuery}
+                                    className="hidden"
+                                />
+                                <CommandList>
+                                    <CommandEmpty>
+                                        {isLoadingFileSuggestions
+                                            ? "Loading file suggestions..."
+                                            : "No files found."}
+                                    </CommandEmpty>
+                                    {!isLoadingFileSuggestions && (
+                                        <CommandGroup heading="File Filters">
+                                            {filteredFileSuggestions.map((file) => (
+                                                <CommandItem
+                                                    key={file}
+                                                    value={file}
+                                                    className="text-md"
+                                                    onSelect={() =>
+                                                        handleFileFilterSuggestionClick(file)
+                                                    }
+                                                >
+                                                    <div className="font-medium flex items-center truncate w-full">
+                                                        {getIconFromFilename(file, "h-4 w-4 mr-2")}
+                                                        <span className="truncate">{file}</span>
+                                                    </div>
+                                                </CommandItem>
+                                            ))}
+                                        </CommandGroup>
+                                    )}
                                 </CommandList>
                             </Command>
                         </PopoverContent>
