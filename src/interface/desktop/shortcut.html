@@ -258,28 +258,6 @@
     <div id="chat-body-wrapper">
         <div id="input-container">
             <textarea id="styled-input" name="styled-input">Hello World!</textarea>
-            <script>
-                try {
-                    if (!window.clipboardAPI) {
-                        throw new Error('clipboardAPI is not available');
-                    }
-
-                    window.clipboardAPI.sendClipboardText((clipboardText) => {
-                        try {
-                        const styledInput = document.getElementById('styled-input');
-                        if (!styledInput) {
-                            throw new Error('styled-input element not found');
-                        }
-                        styledInput.value = clipboardText;
-                        console.log("success: ", clipboardText);
-                        } catch (error) {
-                        console.error('Error handling clipboard text:', error);
-                        }
-                    });
-                    } catch (error) {
-                    console.error('Error setting up clipboard listener:', error);
-                    }
-            </script>
             <div style="display: flex;">
             <button id="send-button" onclick="chat()">
                 Send
@@ -305,8 +283,24 @@
     <script src="main.js"></script>
     <script type="text/javascript" src="./assets/purify.min.js?v={{ khoj_version }}"></script>
     <script type="text/javascript" src="./assets/markdown-it.min.js"></script>
-    <script src="./utils.js"></script>
-    <script src="./chatutils.js"></script>
+    <script type="module" src="./utils.js"></script>
+    <script type="module" src="./chatutils.js"></script>
+    <script type="module">
+      import { readText } from '@tauri-apps/api/clipboard';
+      import { invoke } from '@tauri-apps/api/tauri';
+      (async function() {
+        try {
+          const styledInput = document.getElementById('styled-input');
+          const text = await readText();
+          if (styledInput) styledInput.value = text || '';
+        } catch (e) { console.warn('clipboard read failed', e); }
+        // ensure host url and token are present before first chat
+        try {
+          await invoke('get_url');
+          await invoke('get_token');
+        } catch (e) { /* ignore */ }
+      })();
+    </script>
     <script>
         let region = null;
         let city = null;

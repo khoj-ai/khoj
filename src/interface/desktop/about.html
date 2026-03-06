@@ -8,7 +8,6 @@
         <link rel="manifest" href="/static/khoj.webmanifest">
         <link rel="stylesheet" href="./assets/khoj.css">
      </head>
-    <script type="text/javascript" src="./utils.js"></script>
     <style>
         html, body {
             height: 100%;
@@ -78,12 +77,34 @@
             <p id="about-page-version"></p>
         </header>
         <div class="action">
-            <button class="button" onclick="window.open('https://khoj.dev/terms-of-service', '_blank')">Terms of Service</button>
-            <button class="button" onclick="window.open('https://khoj.dev/privacy-policy', '_blank')">Privacy Policy</button>
-            <button class="button" onclick="window.open('https://github.com/khoj-ai/khoj', '_blank')">Source Code</button>
+            <button id="tos-btn" class="button">Terms of Service</button>
+            <button id="privacy-btn" class="button">Privacy Policy</button>
+            <button id="source-btn" class="button">Source Code</button>
         </div>
         <footer>
             © 2024 Khoj Inc. All rights reserved.
         </footer>
     </body>
+    <script type="module">
+        import { getVersion } from '@tauri-apps/api/app';
+        import { platform } from '@tauri-apps/api/os';
+        import { open as openShell } from '@tauri-apps/api/shell';
+
+        // Populate version and platform
+        (async function () {
+            try {
+                const ver = await getVersion();
+                const plat = await platform();
+                const verEl = document.getElementById('about-page-version');
+                if (verEl) verEl.innerHTML = `<code>${ver}</code>`;
+                const titleEl = document.getElementById('about-page-title');
+                if (titleEl) titleEl.innerHTML = '<b>Khoj for ' + (plat === 'win32' ? 'Windows' : plat === 'darwin' ? 'macOS' : 'Linux') + '</b>';
+            } catch (e) { console.warn(e); }
+        })();
+
+        // External links via OS
+        document.getElementById('tos-btn')?.addEventListener('click', () => openShell('https://khoj.dev/terms-of-service'));
+        document.getElementById('privacy-btn')?.addEventListener('click', () => openShell('https://khoj.dev/privacy-policy'));
+        document.getElementById('source-btn')?.addEventListener('click', () => openShell('https://github.com/khoj-ai/khoj'));
+    </script>
 </html>

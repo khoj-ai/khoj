@@ -256,16 +256,19 @@
             margin-top: 10px;
         }
     </style>
-    <script src="./utils.js"></script>
-    <script>
+    <script type="module">
+        import { populateHeaderPane, attachHeaderNavHandlers, toggleNavMenu } from './utils.js';
         window.addEventListener("DOMContentLoaded", async () => {
             // Setup the header pane
-            document.getElementById("khoj-header").innerHTML = await populateHeaderPane();
+            const header = document.getElementById("khoj-header");
+            if (header) header.innerHTML = await populateHeaderPane();
             // Setup the nav menu
-            document.getElementById("profile-picture").addEventListener("click", toggleNavMenu);
+            document.getElementById("profile-picture")?.addEventListener("click", toggleNavMenu);
+            // Attach link handlers
+            attachHeaderNavHandlers(document);
             // Set the active nav pane
             document.getElementById("settings-nav")?.classList.add("khoj-nav-selected");
-        })
+        });
     </script>
 </head>
 
@@ -315,6 +318,6 @@
         </div>
     </div>
 </body>
-<script src="./renderer.js"></script>
+<script type="module" src="./renderer.js"></script>
 
 </html>

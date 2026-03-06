@@ -438,6 +438,10 @@ let firstRun = true;
 let win = null;
 let titleBarStyle = process.platform === 'win32' ? 'default' : 'hidden';
 const {globalShortcut, clipboard} = require('electron'); // global shortcut and clipboard dependencies for shortcut window
+setInterval(async () => {
+  const memInfo = await process.getProcessMemoryInfo();
+  console.log('Memory info:', memInfo);
+}, 2000);
 const openShortcutWindowKeyBind = 'CommandOrControl+Shift+K'
 
 const createWindow = (tab = 'settings.html') => {
