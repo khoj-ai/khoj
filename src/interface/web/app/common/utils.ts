@@ -19,6 +19,8 @@ const locationFetcher = () =>
 export const toTitleCase = (str: string) =>
     str.replace(/\w\S*/g, (txt) => txt.charAt(0).toUpperCase() + txt.slice(1).toLowerCase());
 
+export const AUTO_SCROLL_ON_STREAM_SETTING_KEY = "chat_auto_scroll_on_stream";
+
 export function welcomeConsole() {
     console.log(
         `%c %s`,

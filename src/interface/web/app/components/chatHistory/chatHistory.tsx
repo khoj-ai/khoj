@@ -22,7 +22,10 @@ import AgentProfileCard from "../profileCard/profileCard";
 import { getIconFromIconName } from "@/app/common/iconUtils";
 import { AgentData } from "@/app/components/agentCard/agentCard";
 import React from "react";
-import { useIsMobileWidth } from "@/app/common/utils";
+import {
+    AUTO_SCROLL_ON_STREAM_SETTING_KEY,
+    useIsMobileWidth,
+} from "@/app/common/utils";
 import { Button } from "@/components/ui/button";
 import { KhojLogo } from "../logo/khojLogo";
 
@@ -279,10 +282,26 @@ export default function ChatHistory(props: ChatHistoryProps) {
     >(null);
     const [fetchingData, setFetchingData] = useState(false);
     const [isNearBottom, setIsNearBottom] = useState(true);
+    const [autoScrollOnStream, setAutoScrollOnStream] = useState(true);
+    const hasActiveStreamingMessage =
+        props.incomingMessages?.some((message) => !message.completed) ?? false;
     const isMobileWidth = useIsMobileWidth();
     const scrollAreaSelector = "[data-radix-scroll-area-viewport]";
     const fetchMessageCount = 10;
     const hasStartingMessage = localStorage.getItem("message");
+
+    useEffect(() => {
+        const storedPreference = localStorage.getItem(AUTO_SCROLL_ON_STREAM_SETTING_KEY);
+        setAutoScrollOnStream(storedPreference !== "false");
+
+        const onStorageUpdate = (event: StorageEvent) => {
+            if (event.key !== AUTO_SCROLL_ON_STREAM_SETTING_KEY) return;
+            setAutoScrollOnStream(event.newValue !== "false");
+        };
+
+        window.addEventListener("storage", onStorageUpdate);
+        return () => window.removeEventListener("storage", onStorageUpdate);
+    }, []);
 
     useEffect(() => {
         const scrollAreaEl = scrollAreaRef.current?.querySelector<HTMLElement>(scrollAreaSelector);
@@ -303,10 +322,15 @@ export default function ChatHistory(props: ChatHistoryProps) {
 
     // Auto scroll while incoming message is streamed
     useEffect(() => {
-        if (props.incomingMessages && props.incomingMessages.length > 0 && isNearBottom) {
+        if (
+            autoScrollOnStream &&
+            props.incomingMessages &&
+            props.incomingMessages.length > 0 &&
+            isNearBottom
+        ) {
             scrollToBottom(true);
         }
-    }, [props.incomingMessages, isNearBottom]);
+    }, [autoScrollOnStream, props.incomingMessages, isNearBottom]);
 
     // ResizeObserver to handle content height changes (e.g., images loading)
     useEffect(() => {
@@ -314,7 +338,7 @@ export default function ChatHistory(props: ChatHistoryProps) {
         const scrollViewport =
             scrollAreaRef.current?.querySelector<HTMLElement>(scrollAreaSelector);
 
-        if (!contentWrapper || !scrollViewport) return;
+        if (!contentWrapper || !scrollViewport || !autoScrollOnStream) return;
 
         const observer = new ResizeObserver(() => {
             // Check current scroll position to decide if auto-scroll is warranted
@@ -340,7 +364,7 @@ export default function ChatHistory(props: ChatHistoryProps) {
 
         observer.observe(contentWrapper);
         return () => observer.disconnect();
-    }, [props.incomingMessages, incompleteIncomingMessageIndex, scrollAreaRef]); // Dependencies
+    }, [autoScrollOnStream, props.incomingMessages, incompleteIncomingMessageIndex, scrollAreaRef]); // Dependencies
 
     // Scroll to most recent user message after the first page of chat messages is loaded.
     useEffect(() => {
@@ -486,6 +510,16 @@ export default function ChatHistory(props: ChatHistoryProps) {
                     5)
         ) {
             setIsNearBottom(true);
+        }
+    };
+
+    const handleToggleAutoScrollOnStream = () => {
+        const nextValue = !autoScrollOnStream;
+        setAutoScrollOnStream(nextValue);
+        localStorage.setItem(AUTO_SCROLL_ON_STREAM_SETTING_KEY, String(nextValue));
+
+        if (nextValue) {
+            scrollToBottom(true);
         }
     };
 
@@ -737,17 +771,34 @@ export default function ChatHistory(props: ChatHistoryProps) {
                     )}
                 </div>
                 <div className={`${props.customClassName} fixed bottom-[20%] z-10`}>
-                    {!isNearBottom && (
-                        <button
-                            title="Scroll to bottom"
-                            className="absolute bottom-0 right-0 bg-white dark:bg-[hsl(var(--background))] text-neutral-500 dark:text-white p-2 rounded-full shadow-xl"
-                            onClick={() => {
-                                scrollToBottom();
-                            }}
-                        >
-                            <ArrowDown size={24} />
-                        </button>
-                    )}
+                    <div className="absolute bottom-0 right-0 flex flex-col gap-2 items-end">
+                        {hasActiveStreamingMessage && (
+                            <button
+                                title={
+                                    autoScrollOnStream
+                                        ? "Pause auto-scroll"
+                                        : "Resume auto-scroll"
+                                }
+                                className="bg-white dark:bg-[hsl(var(--background))] text-neutral-700 dark:text-white px-3 py-2 rounded-full shadow-xl text-xs"
+                                onClick={handleToggleAutoScrollOnStream}
+                            >
+                                {autoScrollOnStream
+                                    ? "Pause auto-scroll"
+                                    : "Resume auto-scroll"}
+                            </button>
+                        )}
+                        {!isNearBottom && (
+                            <button
+                                title="Scroll to bottom"
+                                className="bg-white dark:bg-[hsl(var(--background))] text-neutral-500 dark:text-white p-2 rounded-full shadow-xl"
+                                onClick={() => {
+                                    scrollToBottom();
+                                }}
+                            >
+                                <ArrowDown size={24} />
+                            </button>
+                        )}
+                    </div>
                 </div>
             </div>
         </ScrollArea>

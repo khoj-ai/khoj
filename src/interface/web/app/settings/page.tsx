@@ -7,7 +7,11 @@ import { Suspense, useEffect, useState } from "react";
 import { useToast } from "@/components/ui/use-toast";
 
 import { useUserConfig, ModelOptions, UserConfig, SubscriptionStates, isUserSubscribed } from "../common/auth";
-import { toTitleCase, useIsMobileWidth } from "../common/utils";
+import {
+    AUTO_SCROLL_ON_STREAM_SETTING_KEY,
+    toTitleCase,
+    useIsMobileWidth,
+} from "../common/utils";
 
 import { isValidPhoneNumber } from "libphonenumber-js";
 
@@ -338,6 +342,7 @@ export default function SettingsView() {
     const [memories, setMemories] = useState<UserMemorySchema[]>([]);
     const [enableMemory, setEnableMemory] = useState<boolean>(true);
     const [serverMemoryMode, setServerMemoryMode] = useState<string>("enabled_default_on");
+    const [autoScrollOnStream, setAutoScrollOnStream] = useState<boolean>(true);
     const [isExporting, setIsExporting] = useState(false);
     const [exportProgress, setExportProgress] = useState(0);
     const [exportedConversations, setExportedConversations] = useState(0);
@@ -365,6 +370,11 @@ export default function SettingsView() {
         setEnableMemory(initialUserConfig?.enable_memory ?? true);
         setServerMemoryMode(initialUserConfig?.server_memory_mode ?? "enabled_default_on");
     }, [initialUserConfig]);
+
+    useEffect(() => {
+        const storedPreference = localStorage.getItem(AUTO_SCROLL_ON_STREAM_SETTING_KEY);
+        setAutoScrollOnStream(storedPreference !== "false");
+    }, []);
 
     const sendOTP = async () => {
         try {
@@ -717,6 +727,11 @@ export default function SettingsView() {
                 variant: "destructive"
             });
         }
+    };
+
+    const handleToggleAutoScrollOnStream = (enabled: boolean) => {
+        setAutoScrollOnStream(enabled);
+        localStorage.setItem(AUTO_SCROLL_ON_STREAM_SETTING_KEY, String(enabled));
     };
 
 
@@ -1284,6 +1299,34 @@ export default function SettingsView() {
                                                             : "Export Chats"}
                                                     </Button>
                                                 </CardFooter>
+                                            </Card>
+                                            <Card className={cardClassName}>
+                                                <CardHeader className="text-xl flex flex-row">
+                                                    <ChatCircleText className="h-7 w-7 mr-2" />
+                                                    Chat Experience
+                                                </CardHeader>
+                                                <CardContent className="overflow-hidden">
+                                                    <p className="pb-4 text-gray-400">
+                                                        Keep this enabled to follow new tokens as they
+                                                        stream. Disable it to keep your position when
+                                                        reading earlier messages.
+                                                    </p>
+                                                    <div className="flex items-center justify-between">
+                                                        <label
+                                                            htmlFor="auto-scroll-on-stream"
+                                                            className="text-sm font-medium leading-none"
+                                                        >
+                                                            Auto-scroll while responses stream
+                                                        </label>
+                                                        <Switch
+                                                            id="auto-scroll-on-stream"
+                                                            checked={autoScrollOnStream}
+                                                            onCheckedChange={
+                                                                handleToggleAutoScrollOnStream
+                                                            }
+                                                        />
+                                                    </div>
+                                                </CardContent>
                                             </Card>
                                             <Card className={cardClassName}>
                                                 <CardHeader className="text-xl flex flex-row">
