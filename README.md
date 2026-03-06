@@ -34,7 +34,7 @@
 ***
 
 ### 🎁 New
-* Check out our new project **[Pipali](https://pipali.ai)**, the [open source](https://github.com/khoj-ai/pipali) ai coworker on your computer.
+* Meet 🌶️ **[Pipali](https://pipali.ai)** - our [open-source](https://github.com/khoj-ai/pipali) AI coworker that runs on your computer.
 * [Read](https://blog.khoj.dev/posts/evaluate-khoj-quality/) about Khoj's excellent performance on modern retrieval and reasoning benchmarks.
 
 ***
