@@ -556,7 +556,6 @@ async def extract_from_webpage(
     tracer: dict = {},
 ) -> Tuple[set[str], str, Union[None, str]]:
     # Read the web page
-    content = None
     if is_none_or_empty(content):
         content = await scrape_webpage_with_fallback(url)
 
