@@ -747,7 +747,6 @@ def generate_chatml_messages_with_context(
                 {
                     f"# URI: {item.uri or item.file}\n## {item.compiled}\n"
                     for item in chat.context or []
-                    if isinstance(item, dict)
                 }
             )
             message_context += [{"type": "text", "text": f"{prompts.notes_conversation.format(references=references)}"}]
