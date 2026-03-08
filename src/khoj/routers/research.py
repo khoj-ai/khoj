@@ -503,7 +503,7 @@ async def research(
 
     # Incorporate previous partial research into current research chat history
     research_conversation_history = [chat for chat in deepcopy(conversation_history) if chat.message]
-    if current_iteration := len(previous_iterations) > 0:
+    if (current_iteration := len(previous_iterations)) > 0:
         logger.info(f"Continuing research with the previous {len(previous_iterations)} iteration results.")
         previous_iterations_history = construct_iteration_history(previous_iterations)
         research_conversation_history += previous_iterations_history
