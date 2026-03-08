@@ -24,15 +24,12 @@ RUN apt update -y && apt -y install \
 # Build Server
 FROM base AS server-deps
 WORKDIR /app
-COPY pyproject.toml .
-COPY README.md .
-ARG VERSION=0.0.0
+COPY requirements.txt ./
 # use the pre-built llama-cpp-python, torch cpu wheel
 ENV PIP_EXTRA_INDEX_URL="https://download.pytorch.org/whl/cpu https://abetlen.github.io/llama-cpp-python/whl/cpu"
 # avoid downloading unused cuda specific python packages
 ENV CUDA_VISIBLE_DEVICES=""
-RUN sed -i "s/dynamic = \\[\"version\"\\]/version = \"$VERSION\"/" pyproject.toml && \
-    pip install --no-cache-dir .
+RUN pip install --no-cache-dir -r requirements.txt
 
 # Build Web App
 FROM oven/bun:1-alpine AS web-app

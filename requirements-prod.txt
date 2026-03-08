@@ -1,0 +1,7 @@
+# Docker dependency layer for Khoj production image.
+# Keep in sync with [project.optional-dependencies].prod in pyproject.toml.
+-r requirements.txt
+gunicorn==22.0.0
+stripe==7.3.0
+twilio==8.11
+boto3>=1.34.57
