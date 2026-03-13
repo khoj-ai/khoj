@@ -19,7 +19,9 @@ class OrgToEntries(TextToEntries):
         super().__init__()
 
     # Define Functions
-    def process(self, files: dict[str, str], user: KhojUser, regenerate: bool = False) -> Tuple[int, int]:
+    def process(
+        self, files: dict[str, str], user: KhojUser, regenerate: bool = False, file_source: str = None
+    ) -> Tuple[int, int]:
         deletion_file_names = set([file for file in files if files[file] == ""])
         files_to_process = set(files) - deletion_file_names
         files = {file: files[file] for file in files_to_process}
@@ -38,7 +40,7 @@ class OrgToEntries(TextToEntries):
                 user,
                 current_entries,
                 DbEntry.EntryType.ORG,
-                DbEntry.EntrySource.COMPUTER,
+                file_source or DbEntry.EntrySource.COMPUTER,
                 "compiled",
                 logger,
                 deletion_file_names,
