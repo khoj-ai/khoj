@@ -117,6 +117,11 @@ def completion_with_backoff(
     model_kwargs["top_p"] = model_kwargs.get("top_p", 0.95)
     model_kwargs["max_completion_tokens"] = model_kwargs.get("max_completion_tokens", MAX_COMPLETION_TOKENS)
 
+    # Groq API has lower max_completion_tokens limits per model
+    # Most Groq models support up to 8192 output tokens
+    if is_groq_api(api_base_url):
+        model_kwargs["max_completion_tokens"] = min(model_kwargs["max_completion_tokens"], 8192)
+
     formatted_messages = format_message_for_api(messages, model_name, api_base_url)
 
     # Tune reasoning models arguments
@@ -309,6 +314,11 @@ async def chat_completion_with_backoff(
 
     model_kwargs["top_p"] = model_kwargs.get("top_p", 0.95)
     model_kwargs["max_completion_tokens"] = model_kwargs.get("max_completion_tokens", MAX_COMPLETION_TOKENS)
+
+    # Groq API has lower max_completion_tokens limits per model
+    # Most Groq models support up to 8192 output tokens
+    if is_groq_api(api_base_url):
+        model_kwargs["max_completion_tokens"] = min(model_kwargs["max_completion_tokens"], 8192)
 
     formatted_messages = format_message_for_api(messages, model_name, api_base_url)
 
