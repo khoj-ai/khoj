@@ -42,6 +42,7 @@ SERPER_DEV_API_KEY = os.getenv("SERPER_DEV_API_KEY")
 SERPER_DEV_URL = "https://google.serper.dev/search"
 # Firecrawl API configurations
 FIRECRAWL_API_KEY = os.getenv("FIRECRAWL_API_KEY")
+FIRECRAWL_API_URL = os.getenv("FIRECRAWL_API_URL")
 # SearXNG API configurations
 SEARXNG_URL = os.getenv("KHOJ_SEARXNG_URL")
 # Exa API credentials
@@ -264,7 +265,7 @@ async def search_with_firecrawl(query: str, location: LocationData) -> Tuple[str
         Tuple containing the original query and a dictionary of search results
     """
     # Set up API endpoint and headers
-    firecrawl_api_base = os.getenv("FIRECRAWL_API_URL", "https://api.firecrawl.dev")
+    firecrawl_api_base = FIRECRAWL_API_URL or "https://api.firecrawl.dev"
     firecrawl_api_url = f"{firecrawl_api_base}/v2/search"
     headers = {"Content-Type": "application/json", "Authorization": f"Bearer {FIRECRAWL_API_KEY}"}
 
