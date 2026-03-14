@@ -95,6 +95,10 @@ from khoj.processor.conversation.openai.gpt import (
     converse_openai,
     openai_send_message_to_model,
 )
+from khoj.processor.conversation.zhipu.glc import (
+    converse_zhipu,
+    zhipu_send_message_to_model,
+)
 from khoj.processor.conversation.utils import (
     ChatEvent,
     OperatorRun,
@@ -1620,6 +1624,18 @@ def send_message_to_model(
             api_base_url=api_base_url,
             tracer=tracer,
         )
+    elif model_type == ChatModel.ModelType.ZHIPU:
+        return zhipu_send_message_to_model(
+            messages=truncated_messages,
+            api_key=api_key,
+            model=chat_model_name,
+            response_type=response_type,
+            response_schema=response_schema,
+            tools=tools,
+            deepthought=deepthought,
+            api_base_url=api_base_url,
+            tracer=tracer,
+        )
     else:
         raise HTTPException(status_code=500, detail=f"Invalid model type: {model_type}")
 
@@ -1994,6 +2010,19 @@ async def agenerate_chat_response(
             api_key = chat_model.ai_model_api.api_key
             api_base_url = chat_model.ai_model_api.api_base_url
             chat_response_generator = converse_gemini(
+                # Query + Context Messages
+                messages,
+                # Model
+                model=chat_model.name,
+                api_key=api_key,
+                api_base_url=api_base_url,
+                deepthought=deepthought,
+                tracer=tracer,
+            )
+        elif chat_model.model_type == ChatModel.ModelType.ZHIPU:
+            api_key = chat_model.ai_model_api.api_key
+            api_base_url = chat_model.ai_model_api.api_base_url
+            chat_response_generator = converse_zhipu(
                 # Query + Context Messages
                 messages,
                 # Model
