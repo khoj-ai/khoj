@@ -236,7 +236,7 @@ class ChatModel(DbBaseModel):
     strengths = models.TextField(default=None, null=True, blank=True)
 
     def __str__(self):
-        return self.friendly_name
+        return self.friendly_name or self.name
 
 
 class VoiceModelOption(DbBaseModel):
