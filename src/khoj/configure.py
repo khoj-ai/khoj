@@ -54,7 +54,7 @@ from khoj.routers.api_content import configure_content
 from khoj.routers.twilio import is_twilio_enabled
 from khoj.utils import constants, state
 from khoj.utils.config import SearchType
-from khoj.utils.helpers import is_none_or_empty
+from khoj.utils.helpers import is_env_var_true, is_none_or_empty
 
 logger = logging.getLogger(__name__)
 
@@ -403,7 +403,11 @@ def configure_middleware(app, ssl_enabled: bool = False):
     app.add_middleware(AuthenticationMiddleware, backend=UserAuthenticationBackend())
     app.add_middleware(ServerErrorMiddleware)  # Add after AuthenticationMiddleware to catch its exceptions
     app.add_middleware(NextJsMiddleware)
-    app.add_middleware(SessionMiddleware, secret_key=os.environ.get("KHOJ_DJANGO_SECRET_KEY", "!secret"))
+    app.add_middleware(
+        SessionMiddleware,
+        secret_key=os.environ.get("KHOJ_DJANGO_SECRET_KEY", "!secret"),
+        https_only=not is_env_var_true("KHOJ_NO_HTTPS") or bool(os.environ.get("KHOJ_DOMAIN")),
+    )
 
 
 def update_content_index():

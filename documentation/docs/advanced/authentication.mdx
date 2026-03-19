@@ -1,11 +1,7 @@
 # Authenticate (Multi-User Setup)
 
-```mdx-code-block
-import Tabs from '@theme/Tabs';
-import TabItem from '@theme/TabItem';
-```
 
-By default, most of the instructions for self-hosting Khoj assume a single user, and so the default configuration is to run in anonymous mode. However, if you want to enable authentication, you can do so either with with [Magic Links](#using-magic-links) or [Google OAuth](#using-google-oauth) as shown below. This can be helpful to make Khoj securely accessible to you and your team.
+By default, most of the instructions for self-hosting Khoj assume a single user, and so the default configuration is to run in anonymous mode. However, if you want to enable authentication, you can do so either with [Magic Links](#using-magic-links) or [OAuth / OIDC](#using-oauth--oidc) as shown below. This can be helpful to make Khoj securely accessible to you and your team.
 
 :::tip[Note]
 Remove the `--anonymous-mode` flag from your khoj start up command or docker-compose file to enable authentication.
@@ -43,32 +39,84 @@ It's still possible to use the magic links feature without Resend, but you'll ne
 
     A given magic link can only be used once. If the user tries to use it again, they'll be redirected to the login page to get a new magic link.
 
-## Using Google OAuth
+## Using OAuth / OIDC
 
-For this method, you'll need to use the prod version of the Khoj package. You can install it as below:
+Khoj supports any OAuth 2.0 / OpenID Connect provider (Google, Authentik, Auth0, Keycloak, etc.) via a generic configuration.
 
-<Tabs groupId="server" queryString>
-  <TabItem value="docker" label="Docker">
-  Update your `docker-compose.yml` to use the prod image
-      ```bash
-      image: ghcr.io/khoj-ai/khoj-cloud:latest
-      ```
-  </TabItem>
+### Required environment variables
 
-  <TabItem value="pip" label="Pip">
-  ```bash
-  pip install khoj[prod]
-  ```
-  </TabItem>
-</Tabs>
+| Variable | Description |
+|----------|-------------|
+| `GENERIC_OAUTH_ENABLED` | Set to `True` to enable OAuth |
+| `GENERIC_OAUTH_CLIENT_ID` | OAuth client ID from your provider |
+| `GENERIC_OAUTH_CLIENT_SECRET` | OAuth client secret from your provider |
 
-To set up your self-hosted Khoj with Google Auth, you need to create a project in the Google Cloud Console and enable the Google Auth API.
+In addition to the above, you **must** configure endpoints in one of two ways:
 
-To implement this, you'll need to:
-1. [Create authorization credentials](https://developers.google.com/identity/sign-in/web/sign-in) for your application.
-2. Open your [Google cloud console](https://console.developers.google.com/apis/credentials) and create a configuration like below for the relevant `OAuth 2.0 Client IDs` project:
-![Google auth login project settings](https://github.com/khoj-ai/khoj/assets/65192171/9bcbf6f4-197d-4d0c-973a-c10b1331c892)
+- **Option A (recommended):** Set `GENERIC_OAUTH_ISSUER` — Khoj auto-discovers all endpoints via OIDC.
+- **Option B:** Set `GENERIC_OAUTH_AUTHORIZATION_ENDPOINT` and `GENERIC_OAUTH_TOKEN_ENDPOINT` manually.
 
-3. Configure these environment variables: `GOOGLE_CLIENT_SECRET`, and `GOOGLE_CLIENT_ID`. You can find these values in the Google cloud console, in the same place where you configured the authorized origins and redirect URIs.
+Without at least one of these, OAuth login will not work.
 
-That's it! That should be all you have to do. Now, when you reload Khoj without `--anonymous-mode`, you should be able to use your Google account to sign in.
+### Endpoint configuration
+
+| Variable | Description | Required |
+|----------|-------------|----------|
+| `GENERIC_OAUTH_ISSUER` | OIDC issuer URL — enables auto-discovery of all endpoints | **Yes**, unless using manual endpoints below |
+| `GENERIC_OAUTH_AUTHORIZATION_ENDPOINT` | OAuth authorization endpoint | **Yes**, if no issuer set |
+| `GENERIC_OAUTH_TOKEN_ENDPOINT` | OAuth token endpoint | **Yes**, if no issuer set |
+| `GENERIC_OAUTH_USERINFO_ENDPOINT` | Userinfo endpoint | Recommended if no issuer set |
+| `GENERIC_OAUTH_JWKS_URI` | JWKS URI for token verification | Optional |
+
+### Other optional variables
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `GENERIC_OAUTH_SCOPE` | OAuth scopes to request | `openid profile email` |
+| `GENERIC_OAUTH_PROVIDER_NAME` | Display name for the login button | `OAuth` |
+| `GENERIC_OAUTH_BUTTON_LABEL` | Custom login button label | `Continue with {provider_name}` |
+
+### OIDC discovery mode (recommended)
+
+If your provider supports OpenID Connect discovery, just set the issuer URL. Khoj will automatically fetch all endpoints from `{issuer}/.well-known/openid-configuration`.
+
+### Example: Google
+
+1. Create OAuth 2.0 credentials in the [Google Cloud Console](https://console.developers.google.com/apis/credentials).
+2. Add `https://your-khoj-domain/auth/oauth/oauth` as an authorized redirect URI.
+3. Set the following environment variables:
+
+```bash
+GENERIC_OAUTH_ENABLED=True
+GENERIC_OAUTH_CLIENT_ID=your-google-client-id
+GENERIC_OAUTH_CLIENT_SECRET=your-google-client-secret
+GENERIC_OAUTH_ISSUER=https://accounts.google.com
+GENERIC_OAUTH_PROVIDER_NAME=Google
+```
+
+### Example: Authentik
+
+1. Create an OAuth2/OIDC provider in your Authentik admin panel.
+2. Add `https://your-khoj-domain/auth/oauth/oauth` as an authorized redirect URI.
+3. Set the following environment variables:
+
+```bash
+GENERIC_OAUTH_ENABLED=True
+GENERIC_OAUTH_CLIENT_ID=your-authentik-client-id
+GENERIC_OAUTH_CLIENT_SECRET=your-authentik-client-secret
+GENERIC_OAUTH_ISSUER=https://your-authentik-domain/application/o/khoj/
+GENERIC_OAUTH_PROVIDER_NAME=Authentik
+```
+
+### Manual endpoint mode
+
+For providers that don't support OIDC discovery, set the endpoints manually instead of `GENERIC_OAUTH_ISSUER`:
+
+```bash
+GENERIC_OAUTH_ENABLED=True
+GENERIC_OAUTH_CLIENT_ID=your-client-id
+GENERIC_OAUTH_CLIENT_SECRET=your-client-secret
+GENERIC_OAUTH_AUTHORIZATION_ENDPOINT=https://provider.example/authorize
+GENERIC_OAUTH_TOKEN_ENDPOINT=https://provider.example/token
+GENERIC_OAUTH_USERINFO_ENDPOINT=https://provider.example/userinfo
+```

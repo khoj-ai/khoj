@@ -25,6 +25,7 @@ from khoj.database.models import (
     KhojUser,
     McpServer,
     NotionConfig,
+    OAuthAccount,
     ProcessLock,
     RateLimitRecord,
     ReflectiveQuestion,
@@ -105,18 +106,18 @@ class KhojUserAdmin(UserAdmin, unfold_admin.ModelAdmin):
                 return queryset.filter(date_joined__gte=date_threshold)
             return queryset
 
-    class HasGoogleAuthFilter(admin.SimpleListFilter):
-        title = "Has Google Auth"
-        parameter_name = "has_google_auth"
+    class HasOAuthFilter(admin.SimpleListFilter):
+        title = "Has OAuth"
+        parameter_name = "has_oauth"
 
         def lookups(self, request, model_admin):
             return (("True", "True"), ("False", "False"))
 
         def queryset(self, request, queryset):
             if self.value() == "True":
-                return queryset.filter(googleuser__isnull=False)
+                return queryset.filter(oauth_account__isnull=False)
             if self.value() == "False":
-                return queryset.filter(googleuser__isnull=True)
+                return queryset.filter(oauth_account__isnull=True)
 
     list_display = (
         "id",
@@ -132,7 +133,7 @@ class KhojUserAdmin(UserAdmin, unfold_admin.ModelAdmin):
     filter_horizontal = ("groups", "user_permissions")
 
     list_filter = (
-        HasGoogleAuthFilter,
+        HasOAuthFilter,
         DateJoinedAfterFilter,
         "verified_email",
     ) + UserAdmin.list_filter
@@ -184,6 +185,7 @@ admin.site.register(VoiceModelOption, unfold_admin.ModelAdmin)
 admin.site.register(UserRequests, unfold_admin.ModelAdmin)
 admin.site.register(RateLimitRecord, unfold_admin.ModelAdmin)
 admin.site.register(UserMemory, unfold_admin.ModelAdmin)
+admin.site.register(OAuthAccount, unfold_admin.ModelAdmin)
 
 
 @admin.register(McpServer)
