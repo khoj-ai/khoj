@@ -54,8 +54,8 @@ def normalize_filename(filename):
 
 
 def makelist_with_filepath(filename):
-    f = open(filename, "r")
-    return makelist(f, filename)
+    with open(filename, "r") as f:
+        return makelist(f, filename)
 
 
 def makelist(file, filename, start_line: int = 1, ancestry_lines: int = 0) -> List["Orgnode"]:
