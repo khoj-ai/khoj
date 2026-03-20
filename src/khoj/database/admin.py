@@ -115,9 +115,9 @@ class KhojUserAdmin(UserAdmin, unfold_admin.ModelAdmin):
 
         def queryset(self, request, queryset):
             if self.value() == "True":
-                return queryset.filter(oauth_account__isnull=False)
+                return queryset.filter(oauth_accounts__isnull=False).distinct()
             if self.value() == "False":
-                return queryset.filter(oauth_account__isnull=True)
+                return queryset.filter(oauth_accounts__isnull=True)
 
     list_display = (
         "id",

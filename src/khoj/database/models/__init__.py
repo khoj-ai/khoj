@@ -177,7 +177,7 @@ class OAuthAccount(DbBaseModel):
     family_name = models.CharField(max_length=255, blank=True)
     picture = models.CharField(max_length=500, blank=True)
     raw_info = models.JSONField(blank=True, null=True)  # Store full userinfo response
-    user = models.OneToOneField(KhojUser, on_delete=models.CASCADE, related_name='oauth_account')
+    user = models.ForeignKey(KhojUser, on_delete=models.CASCADE, related_name='oauth_accounts')
 
     class Meta:
         unique_together = ('provider', 'provider_user_id')

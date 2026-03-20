@@ -51,6 +51,11 @@ Khoj supports any OAuth 2.0 / OpenID Connect provider (Google, Authentik, Auth0,
 | `GENERIC_OAUTH_CLIENT_ID` | OAuth client ID from your provider |
 | `GENERIC_OAUTH_CLIENT_SECRET` | OAuth client secret from your provider |
 
+Set the **redirect URI** in your OAuth provider to:
+```
+https://your-khoj-domain/auth/callback/oauth
+```
+
 In addition to the above, you **must** configure endpoints in one of two ways:
 
 - **Option A (recommended):** Set `GENERIC_OAUTH_ISSUER` — Khoj auto-discovers all endpoints via OIDC.
@@ -83,7 +88,7 @@ If your provider supports OpenID Connect discovery, just set the issuer URL. Kho
 ### Example: Google
 
 1. Create OAuth 2.0 credentials in the [Google Cloud Console](https://console.developers.google.com/apis/credentials).
-2. Add `https://your-khoj-domain/auth/oauth/oauth` as an authorized redirect URI.
+2. Add `https://your-khoj-domain/auth/callback/oauth` as an authorized redirect URI.
 3. Set the following environment variables:
 
 ```bash
@@ -97,7 +102,7 @@ GENERIC_OAUTH_PROVIDER_NAME=Google
 ### Example: Authentik
 
 1. Create an OAuth2/OIDC provider in your Authentik admin panel.
-2. Add `https://your-khoj-domain/auth/oauth/oauth` as an authorized redirect URI.
+2. Add `https://your-khoj-domain/auth/callback/oauth` as an authorized redirect URI.
 3. Set the following environment variables:
 
 ```bash

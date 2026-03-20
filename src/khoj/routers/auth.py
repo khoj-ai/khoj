@@ -129,9 +129,8 @@ async def login_provider(request: Request, provider: str):
         return RedirectResponse(url="/login?error=unknown_provider", status_code=HTTP_302_FOUND)
 
     base_url = str(request.base_url).rstrip("/")
-    # Force HTTPS in redirect_uri when behind a TLS-terminating reverse proxy.
-    # KHOJ_DOMAIN being set indicates a production deployment behind a proxy.
-    if not DISABLE_HTTPS or os.environ.get("KHOJ_DOMAIN"):
+    # Force HTTPS in redirect_uri unless explicitly disabled via KHOJ_NO_HTTPS.
+    if not DISABLE_HTTPS:
         base_url = base_url.replace("http://", "https://")
     redirect_uri = f"{base_url}{request.app.url_path_for('oauth_callback', provider=provider)}"
     return await oauth_client.authorize_redirect(request, redirect_uri)
@@ -256,7 +255,7 @@ async def oauth_metadata(request: Request):
 
 
 # Unified OAuth callback handler
-@auth_router.get("/oauth/{provider}")
+@auth_router.get("/callback/{provider}")
 async def oauth_callback(request: Request, provider: str):
     """Unified callback handler for all OAuth providers."""
     oauth_client = oauth.create_client(provider)

@@ -203,6 +203,27 @@ class TestCreateUserByOAuth:
         assert user.verified_email is True
 
     @pytest.mark.asyncio
+    async def test_multiple_providers_same_email(self):
+        """Switching OAuth provider (e.g. Authentik → Google) with the same email should work."""
+        user_info_authentik = {**SAMPLE_USERINFO, "sub": "authentik-001"}
+        user_info_google = {**SAMPLE_USERINFO, "sub": "google-12345"}
+
+        user1 = await create_user_by_oauth("authentik", user_info_authentik)
+        user2 = await create_user_by_oauth("google", user_info_google)
+
+        # Same KhojUser for both providers
+        assert user1.id == user2.id
+
+        # Two distinct OAuthAccount rows
+        count = await OAuthAccount.objects.filter(user=user1).acount()
+        assert count == 2
+
+        providers = set()
+        async for acct in OAuthAccount.objects.filter(user=user1):
+            providers.add(acct.provider)
+        assert providers == {"authentik", "google"}
+
+    @pytest.mark.asyncio
     async def test_does_not_duplicate_subscription(self):
         user = await create_user_by_oauth("google", SAMPLE_USERINFO)
         # Call again — should not create a second subscription

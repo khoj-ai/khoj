@@ -25,7 +25,7 @@ class Migration(migrations.Migration):
                 ('family_name', models.CharField(blank=True, max_length=255)),
                 ('picture', models.CharField(blank=True, max_length=500)),
                 ('raw_info', models.JSONField(blank=True, null=True)),
-                ('user', models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, related_name='oauth_account', to='database.khojuser')),
+                ('user', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='oauth_accounts', to='database.khojuser')),
             ],
             options={
                 'verbose_name': 'OAuth Account',
