@@ -145,7 +145,7 @@ async def transcribe(
             if speech_to_text_config.ai_model_api:
                 api_key = speech_to_text_config.ai_model_api.api_key
                 api_base_url = speech_to_text_config.ai_model_api.api_base_url
-                openai_client = openai.OpenAI(api_key=api_key, base_url=api_base_url)
+                openai_client = openai.OpenAI(api_key=api_key, base_url=api_base_url, timeout=60.0)
             elif state.openai_client:
                 openai_client = state.openai_client
             if openai_client:

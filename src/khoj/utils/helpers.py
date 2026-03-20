@@ -1146,11 +1146,13 @@ def get_openai_client(api_key: str, api_base_url: str) -> Union[openai.OpenAI, o
             api_key=api_key,
             azure_endpoint=api_base_url,
             api_version="2024-10-21",
+            timeout=60.0,
         )
     else:
         client = openai.OpenAI(
             api_key=api_key,
             base_url=api_base_url,
+            timeout=60.0,
         )
     return client
 
@@ -1163,11 +1165,13 @@ def get_openai_async_client(api_key: str, api_base_url: str) -> Union[openai.Asy
             api_key=api_key,
             azure_endpoint=api_base_url,
             api_version="2024-10-21",
+            timeout=60.0,
         )
     else:
         client = openai.AsyncOpenAI(
             api_key=api_key,
             base_url=api_base_url,
+            timeout=60.0,
         )
     return client
 
