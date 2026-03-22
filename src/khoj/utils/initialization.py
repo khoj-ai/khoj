@@ -16,6 +16,7 @@ from khoj.processor.conversation.utils import model_to_prompt_size, model_to_tok
 from khoj.utils.constants import (
     default_anthropic_chat_models,
     default_gemini_chat_models,
+    default_novita_chat_models,
     default_openai_chat_models,
 )
 
@@ -143,6 +144,17 @@ def initialization(interactive: bool = True):
             interactive=interactive,
         )
 
+        # Set up Novita AI's online chat models
+        _setup_chat_model_provider(
+            ChatModel.ModelType.NOVITA,
+            default_novita_chat_models,
+            default_api_key=os.getenv("NOVITA_API_KEY"),
+            api_base_url="https://api.novita.ai/openai",
+            vision_enabled=True,
+            interactive=interactive,
+            provider_name="Novita AI",
+        )
+
         logger.info("🗣️ Chat model configuration complete")
 
     def _setup_chat_model_provider(
@@ -155,7 +167,10 @@ def initialization(interactive: bool = True):
         provider_name: str = None,
     ) -> Tuple[bool, AiModelApi]:
         supported_vision_models = (
-            default_openai_chat_models + default_anthropic_chat_models + default_gemini_chat_models
+            default_openai_chat_models
+            + default_anthropic_chat_models
+            + default_gemini_chat_models
+            + ["moonshotai/kimi-k2.5"]
         )
         provider_name = provider_name or model_type.name.capitalize()
 

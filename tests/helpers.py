@@ -39,6 +39,8 @@ def get_chat_provider(default: ChatModel.ModelType | None = ChatModel.ModelType.
         return ChatModel.ModelType.GOOGLE
     elif os.getenv("ANTHROPIC_API_KEY"):
         return ChatModel.ModelType.ANTHROPIC
+    elif os.getenv("NOVITA_API_KEY"):
+        return ChatModel.ModelType.NOVITA
     else:
         return default
 
@@ -51,8 +53,15 @@ def get_chat_api_key(provider: ChatModel.ModelType = None):
         return os.getenv("GEMINI_API_KEY")
     elif provider == ChatModel.ModelType.ANTHROPIC:
         return os.getenv("ANTHROPIC_API_KEY")
+    elif provider == ChatModel.ModelType.NOVITA:
+        return os.getenv("NOVITA_API_KEY")
     else:
-        return os.getenv("OPENAI_API_KEY") or os.getenv("GEMINI_API_KEY") or os.getenv("ANTHROPIC_API_KEY")
+        return (
+            os.getenv("OPENAI_API_KEY")
+            or os.getenv("GEMINI_API_KEY")
+            or os.getenv("ANTHROPIC_API_KEY")
+            or os.getenv("NOVITA_API_KEY")
+        )
 
 
 def generate_chat_history(message_list):

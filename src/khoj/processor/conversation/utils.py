@@ -94,6 +94,10 @@ model_to_prompt_size = {
     "claude-sonnet-4-20250514": 60000,
     "claude-opus-4-0": 60000,
     "claude-opus-4-20250514": 60000,
+    # Novita AI Models
+    "moonshotai/kimi-k2.5": 120000,
+    "zai-org/glm-5": 120000,
+    "minimax/minimax-m2.5": 120000,
 }
 model_to_tokenizer: Dict[str, str] = {}
 
