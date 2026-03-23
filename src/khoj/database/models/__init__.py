@@ -394,6 +394,7 @@ class WebScraper(DbBaseModel):
         FIRECRAWL = "Firecrawl"
         OLOSTEP = "Olostep"
         EXA = "Exa"
+        TAVILY = "Tavily"
         DIRECT = "Direct"
 
     name = models.CharField(
@@ -438,6 +439,8 @@ class WebScraper(DbBaseModel):
                 self.api_url = os.getenv("OLOSTEP_API_URL", "https://agent.olostep.com/olostep-p2p-incomingAPI")
             elif self.type == self.WebScraperType.EXA:
                 self.api_url = os.getenv("EXA_API_URL", "https://api.exa.ai")
+            elif self.type == self.WebScraperType.TAVILY:
+                self.api_url = os.getenv("TAVILY_API_URL", "https://api.tavily.com")
         if self.api_key is None:
             if self.type == self.WebScraperType.FIRECRAWL:
                 self.api_key = os.getenv("FIRECRAWL_API_KEY")
@@ -451,6 +454,10 @@ class WebScraper(DbBaseModel):
                 self.api_key = os.getenv("EXA_API_KEY")
                 if self.api_key is None:
                     error["api_key"] = "Set API key to use Exa. Get API key from https://exa.ai/."
+            elif self.type == self.WebScraperType.TAVILY:
+                self.api_key = os.getenv("TAVILY_API_KEY")
+                if self.api_key is None:
+                    error["api_key"] = "Set API key to use Tavily. Get API key from https://app.tavily.com/."
         if error:
             raise ValidationError(error)
 
