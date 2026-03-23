@@ -49,6 +49,7 @@ EXA_API_KEY = os.getenv("EXA_API_KEY")
 # Tavily API configurations
 TAVILY_API_KEY = os.getenv("TAVILY_API_KEY")
 TAVILY_API_URL = os.getenv("TAVILY_API_URL", "https://api.tavily.com")
+TAVILY_SEARCH_DEPTH = os.getenv("TAVILY_SEARCH_DEPTH", "basic")
 
 # Whether to automatically read web pages from search results
 AUTO_READ_WEBPAGE = is_env_var_true("KHOJ_AUTO_READ_WEBPAGE")
@@ -214,10 +215,14 @@ async def search_with_tavily(query: str, location: LocationData) -> Tuple[str, D
     payload = {
         "query": query,
         "max_results": 10,
-        "search_depth": "advanced",
+        "search_depth": TAVILY_SEARCH_DEPTH,
         "topic": "general",
         "include_answer": True,
     }
+
+    # Pass location country code for geo-targeted results if available
+    if location and location.country_code:
+        payload["country"] = location.country_code.upper()
 
     async with aiohttp.ClientSession() as session:
         try:
