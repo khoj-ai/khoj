@@ -103,6 +103,8 @@ services:
       # - FIRECRAWL_API_KEY=your_firecrawl_api_key
       # Paid, Fast API. Does both web search and webpage read. Get API key from https://exa.ai/
       # - EXA_API_KEY=your_exa_api_key
+      # Paid, Fast API. Does both web search and webpage read. Get API key from https://app.tavily.com/
+      # - TAVILY_API_KEY=your_tavily_api_key
       #
       # Uncomment the necessary lines below to make your instance publicly accessible.
       # Proceed with caution, especially if you are using anonymous mode.

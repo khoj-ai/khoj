@@ -46,6 +46,9 @@ FIRECRAWL_API_KEY = os.getenv("FIRECRAWL_API_KEY")
 SEARXNG_URL = os.getenv("KHOJ_SEARXNG_URL")
 # Exa API credentials
 EXA_API_KEY = os.getenv("EXA_API_KEY")
+# Tavily API configurations
+TAVILY_API_KEY = os.getenv("TAVILY_API_KEY")
+TAVILY_API_URL = os.getenv("TAVILY_API_URL", "https://api.tavily.com")
 
 # Whether to automatically read web pages from search results
 AUTO_READ_WEBPAGE = is_env_var_true("KHOJ_AUTO_READ_WEBPAGE")
@@ -102,6 +105,9 @@ async def search_online(
     if SERPER_DEV_API_KEY:
         search_engine = "Serper"
         search_engines.append((search_engine, search_with_serper))
+    if TAVILY_API_KEY:
+        search_engine = "Tavily"
+        search_engines.append((search_engine, search_with_tavily))
     if EXA_API_KEY:
         search_engine = "Exa"
         search_engines.append((search_engine, search_with_exa))
@@ -182,6 +188,78 @@ async def search_online(
             response_dict[subqueries.pop()]["webpages"] = {"link": url, "snippet": webpage_extract}
 
     yield response_dict
+
+
+async def search_with_tavily(query: str, location: LocationData) -> Tuple[str, Dict[str, List[Dict]]]:
+    """
+    Search using Tavily API.
+
+    Args:
+        query: The search query string
+        location: Location data for geolocation-based search
+
+    Returns:
+        Tuple containing the original query and a dictionary of search results
+    """
+    tavily_search_url = f"{TAVILY_API_URL}/search"
+    headers = {"Content-Type": "application/json", "Authorization": f"Bearer {TAVILY_API_KEY}"}
+
+    max_query_length = 400
+    if len(query) > max_query_length:
+        logger.warning(
+            f"Truncate online query. Query length {len(query)} exceeds {max_query_length} supported by Tavily. Query: {query}"
+        )
+        query = query[:max_query_length]
+
+    payload = {
+        "query": query,
+        "max_results": 10,
+        "search_depth": "advanced",
+        "topic": "general",
+        "include_answer": True,
+    }
+
+    async with aiohttp.ClientSession() as session:
+        try:
+            async with session.post(
+                tavily_search_url, headers=headers, json=payload, timeout=WEBPAGE_REQUEST_TIMEOUT
+            ) as response:
+                if response.status != 200:
+                    error_text = await response.text()
+                    logger.error(f"Tavily search failed: {error_text}")
+                    return query, {}
+
+                response_json = await response.json()
+                results = response_json.get("results", [])
+
+                if is_none_or_empty(results):
+                    logger.error(f"Tavily search returned no results for query: {query}")
+                    return query, {}
+
+                # Transform Tavily response to match the expected format
+                organic_results = []
+                for item in results:
+                    organic_results.append(
+                        {
+                            "title": item.get("title", ""),
+                            "link": item.get("url", ""),
+                            "snippet": item.get("content", ""),
+                            "content": item.get("raw_content", None),
+                        }
+                    )
+
+                extracted_search_result: Dict[str, Any] = {"organic": organic_results}
+
+                # Include Tavily's generated answer as an answer box if available
+                answer = response_json.get("answer")
+                if answer:
+                    extracted_search_result["answerBox"] = {"title": "Tavily Answer", "snippet": answer}
+
+                return query, extracted_search_result
+
+        except Exception as e:
+            logger.error(f"Error searching with Tavily: {str(e)}")
+            return query, {}
 
 
 async def search_with_exa(query: str, location: LocationData) -> Tuple[str, Dict[str, List[Dict]]]:
@@ -512,6 +590,8 @@ async def scrape_webpage(url, scraper_type=None, api_key=None, api_url=None) -> 
         return await read_webpage_with_olostep(url, api_key, api_url)
     elif scraper_type == WebScraper.WebScraperType.EXA:
         return await read_webpage_with_exa(url, api_key, api_url)
+    elif scraper_type == WebScraper.WebScraperType.TAVILY:
+        return await read_webpage_with_tavily(url, api_key, api_url)
     else:
         return await read_webpage_at_url(url)
 
@@ -646,6 +726,25 @@ async def read_webpage_with_firecrawl(web_url: str, api_key: str, api_url: str) 
             response.raise_for_status()
             response_json = await response.json()
             return response_json["data"]["markdown"]
+
+
+async def read_webpage_with_tavily(web_url: str, api_key: str, api_url: str) -> str:
+    tavily_extract_url = f"{api_url}/extract"
+    headers = {"Content-Type": "application/json", "Authorization": f"Bearer {api_key}"}
+    payload = {
+        "urls": [web_url],
+    }
+
+    async with aiohttp.ClientSession() as session:
+        async with session.post(
+            tavily_extract_url, json=payload, headers=headers, timeout=WEBPAGE_REQUEST_TIMEOUT
+        ) as response:
+            response.raise_for_status()
+            response_json = await response.json()
+            results = response_json.get("results", [])
+            if results:
+                return results[0].get("raw_content", "")
+            return ""
 
 
 def deduplicate_organic_results(online_results: dict) -> dict:
