@@ -94,6 +94,7 @@ class PdfToEntries(TextToEntries):
     @staticmethod
     def extract_text(pdf_file):
         """Extract text from specified PDF files"""
+        pdf_entry_by_pages = []
         try:
             # Create temp file with .pdf extension that gets auto-deleted
             with tempfile.NamedTemporaryFile(suffix=".pdf", delete=True) as tmpf:
