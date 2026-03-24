@@ -189,11 +189,11 @@ def generate_image_with_openai(
     api_key = None
     if text_to_image_config.api_key:
         api_key = text_to_image_config.api_key
-        openai_client = openai.OpenAI(api_key=api_key, timeout=60.0)
+        openai_client = openai.OpenAI(api_key=api_key, timeout=60.0, max_retries=3)
     elif text_to_image_config.ai_model_api:
         api_key = text_to_image_config.ai_model_api.api_key
         api_base_url = text_to_image_config.ai_model_api.api_base_url
-        openai_client = openai.OpenAI(api_key=api_key, base_url=api_base_url, timeout=60.0)
+        openai_client = openai.OpenAI(api_key=api_key, base_url=api_base_url, timeout=60.0, max_retries=3)
     elif state.openai_client:
         openai_client = state.openai_client
 

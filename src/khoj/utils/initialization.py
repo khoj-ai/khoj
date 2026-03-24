@@ -49,7 +49,7 @@ def initialization(interactive: bool = True):
         if openai_base_url:
             # Get available chat models from OpenAI compatible API
             try:
-                openai_client = openai.OpenAI(api_key=openai_api_key, base_url=openai_base_url, timeout=60.0)
+                openai_client = openai.OpenAI(api_key=openai_api_key, base_url=openai_base_url, timeout=60.0, max_retries=3)
                 available_chat_models = [model.id for model in openai_client.models.list()]
                 # Put the available default OpenAI models at the top
                 known_available_models = [
@@ -220,7 +220,7 @@ def initialization(interactive: bool = True):
             for config in custom_configs:
                 try:
                     # Create OpenAI client with custom base URL
-                    openai_client = openai.OpenAI(api_key=config.api_key, base_url=config.api_base_url, timeout=60.0)
+                    openai_client = openai.OpenAI(api_key=config.api_key, base_url=config.api_base_url, timeout=60.0, max_retries=3)
 
                     # Get available models
                     available_models = [model.id for model in openai_client.models.list()]
