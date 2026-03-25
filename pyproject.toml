@@ -60,7 +60,7 @@ dependencies = [
     "aiohttp ~= 3.13.0",
     "langchain-text-splitters == 0.3.11",
     "langchain-community == 0.3.31",
-    "requests >= 2.32.4",
+    "requests >= 2.33.0",
     "anyio ~= 4.8.0",
     "pymupdf == 1.24.11",
     "django == 5.1.15",

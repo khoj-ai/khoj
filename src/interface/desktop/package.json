@@ -22,6 +22,7 @@
     "electron-store": "^8.1.0"
   },
   "resolutions": {
-    "ajv": "^8.18.0"
+    "ajv": "^8.18.0",
+    "picomatch": ">=2.3.2"
   }
 }

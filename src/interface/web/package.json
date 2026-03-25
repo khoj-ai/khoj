@@ -102,5 +102,8 @@
     },
     "lint-staged": {
         "*": "bun run lint"
+    },
+    "overrides": {
+        "picomatch": ">=2.3.2"
     }
 }

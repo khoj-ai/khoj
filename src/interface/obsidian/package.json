@@ -31,5 +31,8 @@
     "dependencies": {
         "diff": "^8.0.3",
         "isomorphic-dompurify": "^2.25.0"
+    },
+    "resolutions": {
+        "picomatch": ">=2.3.2"
     }
 }
