@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import styles from "./settings.module.css";
 import "intl-tel-input/styles";
 
@@ -799,9 +800,9 @@ export default function SettingsView() {
                     <SidebarTrigger className="-ml-1" />
                     <Separator orientation="vertical" className="mr-2 h-4" />
                     {isMobileWidth ? (
-                        <a className="p-0 no-underline" href="/">
+                        <Link className="p-0 no-underline" href="/">
                             <KhojLogoType className="h-auto w-16" />
-                        </a>
+                        </Link>
                     ) : (
                         <h2 className="text-lg">Settings</h2>
                     )}

@@ -778,9 +778,9 @@ export default function Search() {
                     <SidebarTrigger className="-ml-1" />
                     <Separator orientation="vertical" className="mr-2 h-4" />
                     {isMobileWidth ? (
-                        <a className="p-0 no-underline" href="/">
+                        <Link className="p-0 no-underline" href="/">
                             <KhojLogoType className="h-auto w-16" />
-                        </a>
+                        </Link>
                     ) : (
                         <h2 className="text-lg">Search Your Knowledge Base</h2>
                     )}

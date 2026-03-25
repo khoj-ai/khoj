@@ -6,6 +6,7 @@ import useWebSocket from "react-use-websocket";
 
 import ChatHistory from "../components/chatHistory/chatHistory";
 import { useSearchParams } from "next/navigation";
+import Link from "next/link";
 import Loading from "../components/loading/loading";
 
 import { generateNewTitle, processMessageChunk } from "../common/chatFunctions";
@@ -584,9 +585,9 @@ export default function Chat() {
                             className={`${styles.chatTitleWrapper} text-nowrap text-ellipsis overflow-hidden max-w-screen-md grid items-top font-bold mx-2 md:mr-8 col-auto h-fit`}
                         >
                             {isMobileWidth ? (
-                                <a className="p-0 no-underline" href="/">
+                                <Link className="p-0 no-underline" href="/">
                                     <KhojLogoType className="h-auto w-16" />
-                                </a>
+                                </Link>
                             ) : (
                                 title && (
                                     <>

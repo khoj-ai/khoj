@@ -46,6 +46,7 @@ import { LocationData, useIPLocationData, useIsMobileWidth } from "../common/uti
 import styles from "./automations.module.css";
 import ShareLink from "../components/shareLink/shareLink";
 import { useSearchParams } from "next/navigation";
+import Link from "next/link";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import {
     CalendarCheck,
@@ -1059,9 +1060,9 @@ export default function Automations() {
                     <SidebarTrigger className="-ml-1" />
                     <Separator orientation="vertical" className="mr-2 h-4" />
                     {isMobileWidth ? (
-                        <a className="p-0 no-underline" href="/">
+                        <Link className="p-0 no-underline" href="/">
                             <KhojLogoType className="h-auto w-16" />
-                        </a>
+                        </Link>
                     ) : (
                         <h2 className="text-lg">Automations</h2>
                     )}
