@@ -1,6 +1,7 @@
 import styles from "./agentCard.module.css";
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 
 import { UserProfile, ModelOptions, UserConfig } from "@/app/common/auth";
 import { Button } from "@/components/ui/button";
@@ -705,7 +706,7 @@ export function AgentModificationForm(props: AgentModificationFormProps) {
                     </AlertDialogHeader>
                     <AlertDialogDescription>
                         You need to be a Futurist subscriber to create more agents.{" "}
-                        <a href="/settings">Upgrade now</a>.
+                        <Link href="/settings">Upgrade now</Link>.
                     </AlertDialogDescription>
                     <AlertDialogFooter>
                         <AlertDialogCancel
@@ -767,7 +768,7 @@ export function AgentModificationForm(props: AgentModificationFormProps) {
                                 <FormDescription>
                                     {!props.isSubscribed ? (
                                         <p className="text-secondary-foreground">
-                                            Upgrade to the <a href="/settings">Futurist plan</a> to
+                                            Upgrade to the <Link href="/settings">Futurist plan</Link> to
                                             access all models.
                                         </p>
                                     ) : (
@@ -971,7 +972,7 @@ export function AgentModificationForm(props: AgentModificationFormProps) {
                                 <FormLabel>Knowledge Base</FormLabel>
                                 <FormDescription>
                                     Which information should be part of its digital brain?{" "}
-                                    <a href="/settings">Manage data</a>.
+                                    <Link href="/settings">Manage data</Link>.
                                 </FormDescription>
                                 <Collapsible>
                                     <CollapsibleTrigger className="flex items-center justify-between text-sm gap-2 bg-muted p-2 rounded-lg">

@@ -27,6 +27,7 @@ import { UserPlusIcon } from "lucide-react";
 import { useAuthenticatedData, UserProfile } from "@/app/common/auth";
 import LoginPrompt from "../loginPrompt/loginPrompt";
 import { usePathname } from "next/navigation";
+import Link from "next/link";
 
 async function openChat(userData: UserProfile | null | undefined) {
     const unauthenticatedRedirectUrl = `/login?redirect=${encodeURIComponent(window.location.pathname)}`;
@@ -112,15 +113,15 @@ export function AppSidebar(props: AppSidebarProps) {
                     <SidebarMenuItem className="p-0 m-0">
                         {open ? (
                             <SidebarMenuButton>
-                                <a className="p-0 no-underline" href="/">
+                                <Link className="p-0 no-underline" href="/">
                                     <KhojLogoType className="h-auto w-16" />
-                                </a>
+                                </Link>
                             </SidebarMenuButton>
                         ) : (
                             <SidebarMenuButton asChild>
-                                <a className="flex items-center gap-2 no-underline" href="/">
+                                <Link className="flex items-center gap-2 no-underline" href="/">
                                     <KhojLogo className="w-14 h-auto" />
-                                </a>
+                                </Link>
                             </SidebarMenuButton>
                         )}
                     </SidebarMenuItem>
