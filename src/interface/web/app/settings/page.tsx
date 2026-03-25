@@ -85,6 +85,7 @@ import Loading from "../components/loading/loading";
 
 import IntlTelInput from "intl-tel-input/react";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { DeprecationBanner } from "@/app/components/deprecationBanner";
 import { AppSidebar } from "../components/appSidebar/appSidebar";
 import { UserMemory, UserMemorySchema } from "../components/userMemory/userMemory";
 import { Separator } from "@/components/ui/separator";
@@ -796,6 +797,7 @@ export default function SettingsView() {
         <SidebarProvider>
             <AppSidebar conversationId={""} />
             <SidebarInset>
+                <DeprecationBanner />
                 <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
                     <SidebarTrigger className="-ml-1" />
                     <Separator orientation="vertical" className="mr-2 h-4" />
@@ -1247,7 +1249,7 @@ export default function SettingsView() {
                                         </div>
                                     </div>
                                     <div className="section grid gap-8">
-                                        <div id="clients" className="text-2xl">
+                                        <div id="account" className="text-2xl">
                                             Account
                                         </div>
                                         <div className="cards flex flex-wrap gap-16">

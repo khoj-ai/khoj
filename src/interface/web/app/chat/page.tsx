@@ -29,6 +29,7 @@ import { useAuthenticatedData } from "../common/auth";
 import { AgentData } from "@/app/components/agentCard/agentCard";
 import { ChatSessionActionMenu } from "../components/allConversations/allConversations";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { DeprecationBanner } from "@/app/components/deprecationBanner";
 import { AppSidebar } from "../components/appSidebar/appSidebar";
 import { Separator } from "@/components/ui/separator";
 import { KhojLogoType } from "../components/logo/khojLogo";
@@ -577,6 +578,7 @@ export default function Chat() {
                 <AppSidebar conversationId={conversationId || ""} />
             </div>
             <SidebarInset>
+                <DeprecationBanner />
                 <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4 print-hidden">
                     <SidebarTrigger className="-ml-1" />
                     <Separator orientation="vertical" className="mr-2 h-4" />
