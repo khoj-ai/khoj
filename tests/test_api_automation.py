@@ -32,6 +32,7 @@ def create_test_automation(client: TestClient) -> str:
 
 
 @pytest.mark.django_db(transaction=True)
+@pytest.mark.skipif(not get_chat_api_key("google"), reason="Requires GEMINI_API_KEY to be set")
 def test_create_automation(client: TestClient):
     """Test that creating an automation works as expected."""
     # Arrange
@@ -55,7 +56,7 @@ def test_create_automation(client: TestClient):
 
 
 @pytest.mark.django_db(transaction=True)
-@pytest.mark.skipif(get_chat_api_key("google") is None, reason="Requires GEMINI_API_KEY to be set")
+@pytest.mark.skipif(not get_chat_api_key("google"), reason="Requires GEMINI_API_KEY to be set")
 def test_get_automations(client: TestClient):
     """Test that getting a list of automations works."""
     automation_id = create_test_automation(client)
@@ -72,7 +73,7 @@ def test_get_automations(client: TestClient):
 
 
 @pytest.mark.django_db(transaction=True)
-@pytest.mark.skipif(get_chat_api_key("google") is None, reason="Requires GEMINI_API_KEY to be set")
+@pytest.mark.skipif(not get_chat_api_key("google"), reason="Requires GEMINI_API_KEY to be set")
 def test_delete_automation(client: TestClient):
     """Test that deleting an automation works."""
     automation_id = create_test_automation(client)
@@ -91,7 +92,7 @@ def test_delete_automation(client: TestClient):
 
 
 @pytest.mark.django_db(transaction=True)
-@pytest.mark.skipif(get_chat_api_key("google") is None, reason="Requires GEMINI_API_KEY to be set")
+@pytest.mark.skipif(not get_chat_api_key("google"), reason="Requires GEMINI_API_KEY to be set")
 def test_edit_automation(client: TestClient):
     """Test that editing an automation works."""
     automation_id = create_test_automation(client)
@@ -118,7 +119,7 @@ def test_edit_automation(client: TestClient):
 
 
 @pytest.mark.django_db(transaction=True)
-@pytest.mark.skipif(get_chat_api_key("google") is None, reason="Requires GEMINI_API_KEY to be set")
+@pytest.mark.skipif(not get_chat_api_key("google"), reason="Requires GEMINI_API_KEY to be set")
 def test_trigger_automation(client: TestClient):
     """Test that triggering an automation works."""
     automation_id = create_test_automation(client)
