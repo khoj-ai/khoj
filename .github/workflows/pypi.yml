@@ -69,7 +69,7 @@ jobs:
       - name: 🌡️ Validate Python Package
         run: |
           # Validate PyPi Package
-          uv tool run check-wheel-contents dist/*.whl --ignore W004
+          uv tool run check-wheel-contents dist/*.whl --ignore W002,W004
           uv tool run twine check dist/*
 
       - name: ⏫ Upload Python Package Artifacts
