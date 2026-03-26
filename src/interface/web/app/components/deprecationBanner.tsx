@@ -9,7 +9,7 @@ const DISMISS_KEY = "khoj-cloud-deprecation-dismissed";
 
 export function DeprecationBanner() {
     const [isDismissed, setIsDismissed] = useState(true);
-    const { data: userConfig } = useUserConfig();
+    const { data: userConfig } = useUserConfig(true);
 
     useEffect(() => {
         setIsDismissed(localStorage.getItem(DISMISS_KEY) === "true");
