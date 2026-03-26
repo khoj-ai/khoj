@@ -13,6 +13,32 @@
     <link rel="icon" href="/home/favicon.png" type="image/png">
 </head>
 <body>
+    <!-- Deprecation Banner -->
+    <div id="deprecation-banner" style="display:none; width:100%; padding:8px 16px; background:rgba(234,88,12,0.9); text-align:center; font-size:14px; color:#fff7ed; position:fixed; top:0; left:0; right:0; z-index:1100;">
+        <span style="margin-right:8px;">&#9888;</span>
+        <strong>Khoj Cloud is being deprecated on April 15, 2026.</strong>
+        Please <a href="/settings#account" style="color:white; font-weight:500; text-decoration:underline;">export your data</a> before then.
+        To continue using Khoj, you can <a href="https://docs.khoj.dev/get-started/setup" target="_blank" rel="noopener noreferrer" style="color:white; font-weight:500; text-decoration:underline;">self-host it</a>.
+        <button onclick="dismissDeprecationBanner()" style="margin-left:8px; background:none; border:none; color:#fff7ed; cursor:pointer; font-size:16px;" aria-label="Dismiss banner">&times;</button>
+    </div>
+    <script>
+        function dismissDeprecationBanner() {
+            localStorage.setItem('khoj-cloud-deprecation-dismissed', 'true');
+            document.getElementById('deprecation-banner').style.display = 'none';
+            document.querySelector('.navbar').style.top = '0';
+            document.body.style.paddingTop = '0';
+        }
+        if (localStorage.getItem('khoj-cloud-deprecation-dismissed') !== 'true') {
+            var banner = document.getElementById('deprecation-banner');
+            banner.style.display = 'block';
+            requestAnimationFrame(function() {
+                var bannerHeight = banner.offsetHeight + 'px';
+                document.querySelector('.navbar').style.top = bannerHeight;
+                document.body.style.paddingTop = bannerHeight;
+            });
+        }
+    </script>
+
     <!-- Navigation -->
     <nav class="navbar">
         <div class="nav-container">
