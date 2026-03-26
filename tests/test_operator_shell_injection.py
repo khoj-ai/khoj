@@ -8,7 +8,6 @@ Verifies that:
 4. File operations with malicious paths/content cannot inject commands
 """
 
-import asyncio
 import importlib
 import importlib.util
 import os
@@ -80,10 +79,9 @@ _target = _load_module("khoj.processor.operator.operator_environment_computer", 
 ComputerEnvironment = _target.ComputerEnvironment
 
 from khoj.processor.operator.operator_actions import (
-    TerminalAction,
     TextEditorCreateAction,
-    TextEditorStrReplaceAction,
     TextEditorInsertAction,
+    TextEditorStrReplaceAction,
     TextEditorViewAction,
 )
 from khoj.processor.operator.operator_environment_base import EnvState
