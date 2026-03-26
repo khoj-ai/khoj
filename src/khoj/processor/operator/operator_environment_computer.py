@@ -3,6 +3,7 @@ import asyncio
 import base64
 import io
 import logging
+import os
 import platform
 import subprocess
 from typing import Literal, Optional, Union
@@ -352,52 +353,36 @@ class ComputerEnvironment(Environment):
                     logger.debug(f"Action: {action.type} with command '{action.command}'")
 
                 case "text_editor_view":
-                    # View file contents
+                    # View file contents using Python file I/O (safe from shell injection)
                     file_path = action.path
                     view_range = action.view_range
                     # Type guard: path should be str for text editor actions
                     if not isinstance(file_path, str):
                         raise TypeError("Invalid path type for text editor view action")
-                    escaped_path = file_path.replace("'", "'\"'\"'")
-                    is_dir = await self._execute("os.path.isdir", escaped_path)
-                    if is_dir:
-                        cmd = rf"find {escaped_path} -maxdepth 2 -not -path '*/\.*'"
-                    elif view_range:
-                        # Use head/tail to view specific line range
-                        start_line, end_line = view_range
-                        lines_to_show = end_line - start_line + 1
-                        cmd = f"head -n {end_line} '{escaped_path}' | tail -n {lines_to_show}"
-                    else:
-                        # View entire file
-                        cmd = f"cat '{escaped_path}'"
 
-                    result = await self._execute_shell_command(cmd)
+                    result = await self._file_view(file_path, view_range)
                     MAX_OUTPUT_LENGTH = 15000  # Limit output length to avoid excessive data
-                    if len(result["output"]) > MAX_OUTPUT_LENGTH:
-                        result["output"] = f"{result['output'][:MAX_OUTPUT_LENGTH]}..."
                     if result["success"]:
-                        if is_dir:
-                            output = f"Here's the files and directories up to 2 levels deep in {file_path}, excluding hidden items:\n{result['output']}"
+                        result_output = result["output"]
+                        if len(result_output) > MAX_OUTPUT_LENGTH:
+                            result_output = f"{result_output[:MAX_OUTPUT_LENGTH]}..."
+                        if result.get("is_dir"):
+                            output = f"Here's the files and directories up to 2 levels deep in {file_path}, excluding hidden items:\n{result_output}"
                         else:
-                            output = f"File contents of {file_path}:\n{result['output']}"
+                            output = f"File contents of {file_path}:\n{result_output}"
                     else:
                         error = f"Failed to view file {file_path}: {result['error']}"
                     logger.debug(f"Action: {action.type} for file {file_path}")
 
                 case "text_editor_create":
-                    # Create new file with contents
+                    # Create new file with contents using Python file I/O (safe from shell injection)
                     file_path = action.path
                     file_text = action.file_text
                     # Type guard: path should be str for text editor actions
                     if not isinstance(file_path, str):
                         raise TypeError("Invalid path type for text editor create action")
-                    escaped_path = file_path.replace("'", "'\"'\"'")
-                    escaped_content = file_text.replace("\t", "    ").replace(
-                        "'", "'\"'\"'"
-                    )  # Escape single quotes for shell
-                    cmd = f"echo '{escaped_content}' > '{escaped_path}'"
 
-                    result = await self._execute_shell_command(cmd)
+                    result = await self._file_create(file_path, file_text)
                     if result["success"]:
                         output = f"Created file {file_path} with {len(file_text)} characters"
                     else:
@@ -405,7 +390,7 @@ class ComputerEnvironment(Environment):
                     logger.debug(f"Action: {action.type} created file {file_path}")
 
                 case "text_editor_str_replace":
-                    # Execute string replacement
+                    # Execute string replacement using Python file I/O (safe from shell injection)
                     file_path = action.path
                     old_str = action.old_str
                     new_str = action.new_str
@@ -413,26 +398,8 @@ class ComputerEnvironment(Environment):
                     # Type guard: path should be str for text editor actions
                     if not isinstance(file_path, str):
                         raise TypeError("Invalid path type for text editor str_replace action")
-                    # Use sed for string replacement, escaping special characters
-                    escaped_path = file_path.replace("'", "'\"'\"'")
-                    escaped_old = (
-                        old_str.replace("\t", "    ")
-                        .replace("\\", "\\\\")
-                        .replace("\n", "\\n")
-                        .replace("/", "\\/")
-                        .replace("'", "'\"'\"'")
-                    )
-                    escaped_new = (
-                        new_str.replace("\t", "    ")
-                        .replace("\\", "\\\\")
-                        .replace("\n", "\\n")
-                        .replace("&", "\\&")
-                        .replace("/", "\\/")
-                        .replace("'", "'\"'\"'")
-                    )
-                    cmd = f"sed -i.bak 's/{escaped_old}/{escaped_new}/g' '{escaped_path}'"
 
-                    result = await self._execute_shell_command(cmd)
+                    result = await self._file_str_replace(file_path, old_str, new_str)
                     if result["success"]:
                         output = f"Replaced '{old_str[:50]}...' with '{new_str[:50]}...' in {file_path}"
                     else:
@@ -440,26 +407,16 @@ class ComputerEnvironment(Environment):
                     logger.debug(f"Action: {action.type} in file {file_path}")
 
                 case "text_editor_insert":
-                    # Insert text after specified line
+                    # Insert text after specified line using Python file I/O (safe from shell injection)
                     file_path = action.path
                     insert_line = action.insert_line
                     new_str = action.new_str
 
                     # Type guard: path should be str for text editor actions
                     if not isinstance(file_path, str):
-                        error = "Invalid path type for text editor insert action.\n"
-                        error += f"Failed to insert text in {file_path}: {result['error']}"
-                        raise TypeError(error)
-                    escaped_path = file_path.replace("'", "'\"'\"'")
-                    escaped_content = (
-                        new_str.replace("\t", "    ")
-                        .replace("\\", "\\\\")
-                        .replace("'", "'\"'\"'")
-                        .replace("\n", "\\\n")
-                    )
-                    cmd = f"sed -i.bak '{insert_line}a\\{escaped_content}' '{escaped_path}'"
+                        raise TypeError("Invalid path type for text editor insert action")
 
-                    result = await self._execute_shell_command(cmd)
+                    result = await self._file_insert(file_path, insert_line, new_str)
                     if result["success"]:
                         output = f"Inserted text after line {insert_line} in {file_path}"
                     else:
@@ -494,7 +451,12 @@ class ComputerEnvironment(Environment):
         )
 
     async def _execute_shell_command(self, command: str, new: bool = True) -> dict:
-        """Execute a shell command and return the result."""
+        """Execute a shell command and return the result.
+
+        Uses subprocess with shell=False to prevent OS command injection (CWE-78).
+        The command string is passed as a single argument to the shell interpreter
+        rather than being evaluated through shell expansion.
+        """
         try:
             if self.provider == "docker":
                 # Execute command in Docker container
@@ -515,11 +477,12 @@ class ComputerEnvironment(Environment):
                     timeout=120,
                 )
             else:
-                # Execute command locally
+                # Execute command locally via explicit bash -c with shell=False.
+                # This avoids shell=True which would allow shell metacharacter injection
+                # from constructed commands (e.g. file paths with special characters).
                 process = await asyncio.to_thread(
                     subprocess.run,
-                    command,
-                    shell=True,
+                    ["bash", "-c", command],
                     capture_output=True,
                     text=True,
                     check=False,
@@ -533,6 +496,118 @@ class ComputerEnvironment(Environment):
                 return {"success": False, "output": process.stdout, "error": process.stderr}
         except asyncio.TimeoutError:
             return {"success": False, "output": "", "error": "Command timed out after 120 seconds."}
+        except Exception as e:
+            return {"success": False, "output": "", "error": str(e)}
+
+    # --- Safe file I/O methods (replace shell-based file operations) ---
+
+    async def _file_view(self, file_path: str, view_range: Optional[list] = None) -> dict:
+        """View file contents or directory listing using Python I/O.
+
+        Uses Python's built-in file operations instead of shell commands
+        to prevent OS command injection via crafted file paths.
+        """
+        try:
+            def _do_view():
+                path = os.path.expanduser(file_path)
+                if os.path.isdir(path):
+                    # List directory contents up to 2 levels deep, excluding hidden items
+                    entries = []
+                    for root, dirs, files in os.walk(path):
+                        # Calculate depth relative to the starting path
+                        rel_root = os.path.relpath(root, path)
+                        depth = 0 if rel_root == "." else rel_root.count(os.sep) + 1
+                        if depth > 2:
+                            continue
+                        # Filter out hidden directories for further traversal
+                        dirs[:] = [d for d in dirs if not d.startswith(".")]
+                        for name in dirs + files:
+                            if not name.startswith("."):
+                                entries.append(os.path.join(root, name))
+                    return {"success": True, "output": "\n".join(entries), "error": None, "is_dir": True}
+                elif os.path.isfile(path):
+                    with open(path, "r", errors="replace") as f:
+                        if view_range and len(view_range) == 2:
+                            start_line, end_line = view_range
+                            lines = f.readlines()
+                            # Convert to 0-indexed, clamp to file bounds
+                            start_idx = max(0, start_line - 1)
+                            end_idx = min(len(lines), end_line)
+                            content = "".join(lines[start_idx:end_idx])
+                        else:
+                            content = f.read()
+                    return {"success": True, "output": content, "error": None, "is_dir": False}
+                else:
+                    return {"success": False, "output": "", "error": f"Path not found: {file_path}"}
+
+            return await asyncio.to_thread(_do_view)
+        except Exception as e:
+            return {"success": False, "output": "", "error": str(e)}
+
+    async def _file_create(self, file_path: str, content: str) -> dict:
+        """Create a file with the given content using Python I/O.
+
+        Uses Python's built-in file operations instead of shell echo
+        to prevent OS command injection via crafted paths or content.
+        """
+        try:
+            def _do_create():
+                path = os.path.expanduser(file_path)
+                # Create parent directories if they don't exist
+                parent_dir = os.path.dirname(path)
+                if parent_dir:
+                    os.makedirs(parent_dir, exist_ok=True)
+                with open(path, "w") as f:
+                    f.write(content)
+                return {"success": True, "output": "", "error": None}
+
+            return await asyncio.to_thread(_do_create)
+        except Exception as e:
+            return {"success": False, "output": "", "error": str(e)}
+
+    async def _file_str_replace(self, file_path: str, old_str: str, new_str: str) -> dict:
+        """Replace all occurrences of old_str with new_str in a file using Python I/O.
+
+        Uses Python's built-in string replacement instead of shell sed
+        to prevent OS command injection via crafted file paths or content.
+        """
+        try:
+            def _do_replace():
+                path = os.path.expanduser(file_path)
+                with open(path, "r", errors="replace") as f:
+                    content = f.read()
+                if old_str not in content:
+                    return {"success": False, "output": "", "error": f"String '{old_str[:50]}...' not found in {file_path}"}
+                new_content = content.replace(old_str, new_str)
+                with open(path, "w") as f:
+                    f.write(new_content)
+                return {"success": True, "output": "", "error": None}
+
+            return await asyncio.to_thread(_do_replace)
+        except Exception as e:
+            return {"success": False, "output": "", "error": str(e)}
+
+    async def _file_insert(self, file_path: str, insert_line: int, new_str: str) -> dict:
+        """Insert text after a specified line number using Python I/O.
+
+        Uses Python's built-in file operations instead of shell sed
+        to prevent OS command injection via crafted file paths or content.
+        """
+        try:
+            def _do_insert():
+                path = os.path.expanduser(file_path)
+                with open(path, "r", errors="replace") as f:
+                    lines = f.readlines()
+                # Insert after the specified line (1-indexed)
+                insert_idx = min(insert_line, len(lines))
+                # Ensure the new string ends with a newline for proper insertion
+                insert_text = new_str if new_str.endswith("\n") else new_str + "\n"
+                lines.insert(insert_idx, insert_text)
+                with open(path, "w") as f:
+                    f.writelines(lines)
+                return {"success": True, "output": "", "error": None}
+
+            return await asyncio.to_thread(_do_insert)
         except Exception as e:
             return {"success": False, "output": "", "error": str(e)}
 
@@ -624,17 +699,22 @@ class ComputerEnvironment(Environment):
             logger.error("Container name or Docker display not set for Docker execution.")
             return None
 
-        safe_python_cmd = python_command_str.replace('"', '\\"')
-        docker_full_cmd = (
-            f'docker exec -e DISPLAY={self.docker_display} "{self.docker_container_name}" '
-            f'python3 -c "{safe_python_cmd}"'
-        )
+        # Use list-based subprocess call to avoid shell injection (CWE-78).
+        docker_args = [
+            "docker",
+            "exec",
+            "-e",
+            f"DISPLAY={self.docker_display}",
+            self.docker_container_name,
+            "python3",
+            "-c",
+            python_command_str,
+        ]
 
         try:
             process = await asyncio.to_thread(
                 subprocess.run,
-                docker_full_cmd,
-                shell=True,
+                docker_args,
                 capture_output=True,
                 text=True,
                 check=False,  # We check returncode manually
@@ -644,7 +724,7 @@ class ComputerEnvironment(Environment):
                     raise KeyboardInterrupt(process.stderr or process.stdout)
                 else:
                     error_msg = (
-                        f"Docker command failed:\nCmd: {docker_full_cmd}\n"
+                        f"Docker command failed:\nCmd: {docker_args}\n"
                         f"Return Code: {process.returncode}\nStderr: {process.stderr}\nStdout: {process.stdout}"
                     )
                     logger.error(error_msg)
@@ -653,6 +733,6 @@ class ComputerEnvironment(Environment):
         except KeyboardInterrupt:  # Re-raise if caught from above
             raise
         except Exception as e:
-            logger.error(f"Unexpected error running command in Docker '{docker_full_cmd}': {e}")
+            logger.error(f"Unexpected error running command in Docker '{docker_args}': {e}")
             # Encapsulate as RuntimeError to avoid leaking subprocess errors directly
             raise RuntimeError(f"Unexpected Docker error: {e}") from e
