@@ -1192,13 +1192,13 @@ class ConversationAdapters:
         config = UserConversationConfig.objects.filter(user=user).first()
         if subscribed:
             # Subscibed users can use any available chat model
-            if config:
+            if config and config.setting:
                 return config.setting
             # Fallback to the default advanced chat model
             return ConversationAdapters.get_advanced_chat_model(user)
         else:
             # Non-subscribed users can use any free chat model
-            if config and config.setting.price_tier == PriceTier.FREE:
+            if config and config.setting and config.setting.price_tier == PriceTier.FREE:
                 return config.setting
             # Fallback to the default chat model
             return ConversationAdapters.get_default_chat_model(user)
@@ -1213,13 +1213,13 @@ class ConversationAdapters:
         )
         if subscribed:
             # Subscibed users can use any available chat model
-            if config:
+            if config and config.setting:
                 return config.setting
             # Fallback to the default advanced chat model
             return await ConversationAdapters.aget_advanced_chat_model(user)
         else:
             # Non-subscribed users can use any free chat model
-            if config and config.setting.price_tier == PriceTier.FREE:
+            if config and config.setting and config.setting.price_tier == PriceTier.FREE:
                 return config.setting
             # Fallback to the default chat model
             return await ConversationAdapters.aget_default_chat_model(user)
