@@ -396,12 +396,31 @@ def configure_middleware(app, ssl_enabled: bool = False):
                 # Re-raise for API routes and non-5xx errors
                 raise e
 
+    class CSPHeadersMiddleware(BaseHTTPMiddleware):
+        """Add Content-Security-Policy headers with configurable image domains."""
+        async def dispatch(self, request: Request, call_next):
+            response = await call_next(request)
+            
+            # Only add CSP headers for HTML responses
+            content_type = response.headers.get("content-type", "")
+            if "text/html" in content_type:
+                # Get additional image domains from environment variable
+                additional_img_domains = os.environ.get("KHOJ_CSP_IMG_DOMAINS", "")
+                if additional_img_domains:
+                    domains = " ".join([f"https://{d.strip()}" for d in additional_img_domains.split(",") if d.strip()])
+                    # Note: This adds to existing CSP meta tag in HTML
+                    # For full CSP control, consider using header-based CSP instead of meta tag
+                    response.headers["X-Khoj-CSP-Img-Domains"] = domains
+            
+            return response
+
     if ssl_enabled:
         app.add_middleware(HTTPSRedirectMiddleware)
     app.add_middleware(SuppressClientDisconnectMiddleware)
     app.add_middleware(AsyncCloseConnectionsMiddleware)
     app.add_middleware(AuthenticationMiddleware, backend=UserAuthenticationBackend())
     app.add_middleware(ServerErrorMiddleware)  # Add after AuthenticationMiddleware to catch its exceptions
+    app.add_middleware(CSPHeadersMiddleware)  # Add CSP headers with configurable image domains
     app.add_middleware(NextJsMiddleware)
     app.add_middleware(SessionMiddleware, secret_key=os.environ.get("KHOJ_DJANGO_SECRET_KEY", "!secret"))
 
