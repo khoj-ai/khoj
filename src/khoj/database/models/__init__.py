@@ -167,19 +167,25 @@ class KhojUser(AbstractUser):
         return f"{self.username} ({self.uuid})"
 
 
-class GoogleUser(models.Model):
-    user = models.OneToOneField(KhojUser, on_delete=models.CASCADE)
-    sub = models.CharField(max_length=200)
-    azp = models.CharField(max_length=200)
-    email = models.CharField(max_length=200)
-    name = models.CharField(max_length=200, null=True, default=None, blank=True)
-    given_name = models.CharField(max_length=200, null=True, default=None, blank=True)
-    family_name = models.CharField(max_length=200, null=True, default=None, blank=True)
-    picture = models.CharField(max_length=200, null=True, default=None)
-    locale = models.CharField(max_length=200, null=True, default=None, blank=True)
+class OAuthAccount(DbBaseModel):
+    """Unified OAuth account model for all providers (Google, Authentik, Auth0, etc.)"""
+    provider = models.CharField(max_length=50)  # 'google', 'authentik', 'auth0', etc.
+    provider_user_id = models.CharField(max_length=255)  # Provider's user ID (sub claim)
+    email = models.EmailField()
+    name = models.CharField(max_length=255, blank=True)
+    given_name = models.CharField(max_length=255, blank=True)
+    family_name = models.CharField(max_length=255, blank=True)
+    picture = models.CharField(max_length=500, blank=True)
+    raw_info = models.JSONField(blank=True, null=True)  # Store full userinfo response
+    user = models.ForeignKey(KhojUser, on_delete=models.CASCADE, related_name='oauth_accounts')
+
+    class Meta:
+        unique_together = ('provider', 'provider_user_id')
+        verbose_name = 'OAuth Account'
+        verbose_name_plural = 'OAuth Accounts'
 
     def __str__(self):
-        return self.name
+        return f"{self.provider}: {self.email}"
 
 
 class KhojApiUser(models.Model):

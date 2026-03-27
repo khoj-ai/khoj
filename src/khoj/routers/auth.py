@@ -3,12 +3,9 @@ import datetime
 import logging
 import os
 from typing import Optional
-from urllib.parse import urlencode, urlparse, urlunparse
 
-import requests
 from fastapi import APIRouter, Depends, HTTPException
 from starlette.authentication import requires
-from starlette.config import Config
 from starlette.requests import Request
 from starlette.responses import HTMLResponse, RedirectResponse, Response
 from starlette.status import HTTP_302_FOUND
@@ -20,7 +17,7 @@ from khoj.database.adapters import (
     aget_user_validated_by_email_verification_code,
     delete_khoj_token,
     get_khoj_tokens,
-    get_or_create_user,
+    get_or_create_user_oauth,
 )
 from khoj.routers.email import send_magic_link_email, send_welcome_email
 from khoj.routers.helpers import (
@@ -31,7 +28,8 @@ from khoj.routers.helpers import (
     update_telemetry_state,
 )
 from khoj.utils import state
-from khoj.utils.helpers import in_debug_mode
+from khoj.utils.helpers import in_debug_mode, is_env_var_true
+from khoj.utils.oauth_config import get_all_oauth_configs
 
 logger = logging.getLogger(__name__)
 
@@ -39,40 +37,109 @@ auth_router = APIRouter()
 
 
 if not state.anonymous_mode:
-    missing_requirements = []
     from authlib.integrations.starlette_client import OAuth, OAuthError
-    from google.auth.transport import requests as google_requests
-    from google.oauth2 import id_token
+    from authlib.jose.errors import JoseError
 
-    if not os.environ.get("RESEND_API_KEY") and (
-        not os.environ.get("GOOGLE_CLIENT_ID") or not os.environ.get("GOOGLE_CLIENT_SECRET")
-    ):
-        missing_requirements += [
-            "Set your RESEND_API_KEY or GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET as environment variables"
-        ]
-    if missing_requirements:
-        requirements_string = "\n   - " + "\n   - ".join(missing_requirements)
-        error_msg = f"🚨 Start Khoj with --anonymous-mode flag or to enable authentication:{requirements_string}"
-        logger.error(error_msg)
+    # Check for authentication configuration
+    has_resend = bool(os.environ.get("RESEND_API_KEY"))
 
-    config = Config(environ=os.environ)
+    # Register all configured OAuth providers
+    oauth_configs = get_all_oauth_configs()
 
-    oauth = OAuth(config)
+    if not has_resend and not oauth_configs:
+        logger.error(
+            "🚨 Start Khoj with --anonymous-mode flag or configure authentication:"
+            "\n   - Set RESEND_API_KEY for magic link authentication, OR"
+            "\n   - Configure OAuth (GENERIC_OAUTH_ENABLED, GENERIC_OAUTH_CLIENT_ID, GENERIC_OAUTH_CLIENT_SECRET)"
+        )
 
-    CONF_URL = "https://accounts.google.com/.well-known/openid-configuration"
-    oauth.register(name="google", server_metadata_url=CONF_URL, client_kwargs={"scope": "openid email profile"})
+    oauth = OAuth()
+
+    for provider_name, provider_config in oauth_configs.items():
+        # Only pass endpoint params that are actually set to avoid passing None as URL
+        register_kwargs = {
+            "name": provider_config["name"],
+            "client_id": provider_config["client_id"],
+            "client_secret": provider_config["client_secret"],
+            "client_kwargs": {"scope": provider_config.get("scope", "openid profile email")},
+        }
+        for key in ("authorize_url", "access_token_url"):
+            if provider_config.get(key):
+                register_kwargs[key] = provider_config[key]
+
+        # Pass pre-fetched OIDC metadata so Authlib can verify JWT tokens
+        # without making HTTP requests at runtime
+        if provider_config.get("server_metadata"):
+            register_kwargs.update(provider_config["server_metadata"])
+
+        logger.info(f"Registering OAuth provider '{provider_name}'")
+        oauth.register(**register_kwargs)
 
 
-@auth_router.get("/login")
-async def login_get(request: Request):
-    redirect_uri = str(request.app.url_path_for("auth"))
-    return await oauth.google.authorize_redirect(request, redirect_uri)
+def _patch_parse_id_token(oauth_client):
+    """Patch parse_id_token to gracefully handle JWT verification failures.
+
+    Authlib's authorize_access_token exchanges the auth code (consuming it),
+    then tries to parse the ID token. If JWT parsing fails (e.g. unsupported_algorithm),
+    the auth code is already consumed and we can't retry. This patch catches the error
+    so authorize_access_token can still return the token, and we fall back to the
+    userinfo endpoint for user details.
+    """
+    if getattr(oauth_client, "_parse_patched", False):
+        return
+
+    _orig_parse = oauth_client.parse_id_token
+
+    async def _resilient_parse(token, nonce, **kw):
+        try:
+            return await _orig_parse(token, nonce, **kw)
+        except (JoseError, ValueError) as e:
+            logger.warning(f"ID token parse failed ({e}), falling back to userinfo endpoint")
+            return None
+
+    oauth_client.parse_id_token = _resilient_parse
+    oauth_client._parse_patched = True
 
 
-@auth_router.post("/login")
-async def login(request: Request):
-    redirect_uri = str(request.app.url_path_for("auth"))
-    return await oauth.google.authorize_redirect(request, redirect_uri)
+async def get_oauth_userinfo(oauth_client, token_data: dict) -> dict:
+    """Get user info from OAuth token. Uses Authlib's built-in OIDC parsing and userinfo fetching."""
+    # Authlib auto-parses the ID token for OIDC providers
+    if token_data.get("userinfo"):
+        return token_data["userinfo"]
+
+    # Fetch from userinfo endpoint via Authlib
+    try:
+        user_info = await oauth_client.userinfo(token=token_data)
+        if user_info:
+            return dict(user_info)
+    except Exception as e:
+        logger.warning(f"Failed to fetch userinfo via Authlib: {e}")
+
+    # Last resort: return raw token data
+    return token_data
+
+
+# Unified login endpoint - supports all providers
+@auth_router.get("/login/{provider}")
+async def login_provider(request: Request, provider: str):
+    """Redirect to OAuth provider for authentication."""
+    oauth_client = oauth.create_client(provider)
+    if not oauth_client:
+        logger.error(f"Unknown OAuth provider: {provider}")
+        return RedirectResponse(url="/login?error=unknown_provider", status_code=HTTP_302_FOUND)
+
+    base_url = str(request.base_url).rstrip("/")
+    # Force HTTPS in redirect_uri unless explicitly disabled via KHOJ_NO_HTTPS.
+    if not DISABLE_HTTPS:
+        base_url = base_url.replace("http://", "https://")
+    redirect_uri = f"{base_url}{request.app.url_path_for('oauth_callback', provider=provider)}"
+    return await oauth_client.authorize_redirect(request, redirect_uri)
+
+
+@auth_router.post("/login/{provider}")
+async def login_provider_post(request: Request, provider: str):
+    """POST variant for OAuth login."""
+    return await login_provider(request, provider)
 
 
 @auth_router.post("/magic")
@@ -164,138 +231,6 @@ async def delete_token(request: Request, token: str):
     return await delete_khoj_token(user=request.user.object, token=token)
 
 
-@auth_router.post("/redirect")
-async def auth_post(request: Request):
-    # This is maintained for compatibility with the /login endpoint
-    form = await request.form()
-    next_url = get_next_url(request)
-    for q in request.query_params:
-        if q != "next":
-            next_url += f"&{q}={request.query_params[q]}"
-
-    credential = form.get("credential")
-
-    csrf_token_cookie = request.cookies.get("g_csrf_token")
-    if not csrf_token_cookie:
-        logger.info("Missing CSRF token. Redirecting user to login page")
-        return RedirectResponse(url=next_url)
-    csrf_token_body = form.get("g_csrf_token")
-    if not csrf_token_body:
-        logger.info("Missing CSRF token body. Redirecting user to login page")
-        return RedirectResponse(url=next_url)
-    if csrf_token_cookie != csrf_token_body:
-        return Response("Invalid CSRF token", status_code=400)
-
-    try:
-        idinfo = id_token.verify_oauth2_token(credential, google_requests.Request(), os.environ["GOOGLE_CLIENT_ID"])
-    except OAuthError as error:
-        return HTMLResponse(f"<h1>{error.error}</h1>")
-    khoj_user = await get_or_create_user(idinfo)
-
-    if khoj_user:
-        request.session["user"] = dict(idinfo)
-
-        if datetime.timedelta(minutes=3) > (datetime.datetime.now(datetime.timezone.utc) - khoj_user.date_joined):
-            asyncio.create_task(send_welcome_email(idinfo["name"], idinfo["email"]))
-            update_telemetry_state(
-                request=request,
-                telemetry_type="api",
-                api="create_user__google",
-                metadata={"server_id": str(khoj_user.uuid)},
-            )
-            logger.log(logging.INFO, f"🥳 New User Created: {khoj_user.uuid}")
-            return RedirectResponse(url=next_url, status_code=HTTP_302_FOUND)
-
-    return RedirectResponse(url=next_url, status_code=HTTP_302_FOUND)
-
-
-@auth_router.get("/redirect")
-async def auth(request: Request):
-    next_url_path = get_next_url(request)
-
-    # Add query params from request, excluding OAuth params to next URL
-    oauth_params = {"code", "state", "scope", "authuser", "prompt", "session_state", "access_type", "next"}
-    query_params = {param: value for param, value in request.query_params.items() if param not in oauth_params}
-
-    # Rebuild next URL with updated query params
-    parsed_next_url_path = urlparse(next_url_path)
-    next_url = urlunparse(
-        (
-            parsed_next_url_path.scheme,
-            parsed_next_url_path.netloc,
-            parsed_next_url_path.path,
-            parsed_next_url_path.params,
-            urlencode(query_params, doseq=True),
-            parsed_next_url_path.fragment,
-        )
-    )
-
-    # Construct the full redirect URI including domain
-    base_url = str(request.base_url).rstrip("/")
-    if not DISABLE_HTTPS:
-        base_url = base_url.replace("http://", "https://")
-    redirect_uri = f"{base_url}{request.app.url_path_for('auth')}"
-
-    # Build the payload for the token request
-    code = request.query_params.get("code")
-    payload = {
-        "code": code,
-        "client_id": os.environ["GOOGLE_CLIENT_ID"],
-        "client_secret": os.environ["GOOGLE_CLIENT_SECRET"],
-        "redirect_uri": redirect_uri,
-        "grant_type": "authorization_code",
-    }
-
-    # Request the token from Google
-    verified_data = requests.post(
-        "https://oauth2.googleapis.com/token",
-        headers={"Content-Type": "application/x-www-form-urlencoded"},
-        data=payload,
-    )
-
-    # Validate the OAuth response
-    if verified_data.status_code != 200:
-        logger.error(f"Token request failed: {verified_data.text}")
-        try:
-            error_json = verified_data.json()
-            logger.error(f"Error response JSON for Google verification: {error_json}")
-        except ValueError:
-            logger.error("Response content is not valid JSON")
-        verified_data.raise_for_status()
-
-    credential = verified_data.json().get("id_token")
-    if not credential:
-        logger.error("Missing id_token in OAuth response")
-        return RedirectResponse(url="/login?error=invalid_token", status_code=HTTP_302_FOUND)
-
-    # Validate the OAuth token
-    try:
-        idinfo = id_token.verify_oauth2_token(credential, google_requests.Request(), os.environ["GOOGLE_CLIENT_ID"])
-    except OAuthError as error:
-        return HTMLResponse(f"<h1>{error.error}</h1>")
-
-    # Get or create the authenticated user in the database
-    khoj_user = await get_or_create_user(idinfo)
-
-    # Set the user session if the user is authenticated
-    if khoj_user:
-        request.session["user"] = dict(idinfo)
-
-        # Send a welcome email to new users
-        if datetime.timedelta(minutes=3) > (datetime.datetime.now(datetime.timezone.utc) - khoj_user.date_joined):
-            asyncio.create_task(send_welcome_email(idinfo["name"], idinfo["email"]))
-            update_telemetry_state(
-                request=request,
-                telemetry_type="api",
-                api="create_user__google",
-                metadata={"server_id": str(khoj_user.uuid)},
-            )
-            logger.log(logging.INFO, f"🥳 New User Created: {khoj_user.uuid}")
-
-    # Redirect the user to the next URL
-    return RedirectResponse(url=next_url, status_code=HTTP_302_FOUND)
-
-
 @auth_router.get("/logout")
 async def logout(request: Request):
     request.session.pop("user", None)
@@ -304,11 +239,75 @@ async def logout(request: Request):
 
 @auth_router.get("/oauth/metadata")
 async def oauth_metadata(request: Request):
-    redirect_uri = str(request.app.url_path_for("auth"))
+    """Return OAuth provider configuration for the frontend."""
+    metadata = {}
 
-    return {
-        "google": {
-            "client_id": os.environ.get("GOOGLE_CLIENT_ID"),
-            "redirect_uri": f"{redirect_uri}",
+    for provider_key, provider_config in oauth_configs.items():
+        redirect_uri = str(request.app.url_path_for("oauth_callback", provider=provider_key))
+        metadata[provider_key] = {
+            "client_id": provider_config["client_id"],
+            "redirect_uri": redirect_uri,
+            "provider_name": provider_config.get("provider_name", "OAuth"),
+            "button_label": provider_config.get("button_label"),
         }
-    }
+
+    return metadata
+
+
+# Unified OAuth callback handler
+@auth_router.get("/callback/{provider}")
+async def oauth_callback(request: Request, provider: str):
+    """Unified callback handler for all OAuth providers."""
+    oauth_client = oauth.create_client(provider)
+    if not oauth_client:
+        logger.error(f"Unknown OAuth provider: {provider}")
+        return RedirectResponse(url="/login?error=unknown_provider", status_code=HTTP_302_FOUND)
+
+    next_url_path = get_next_url(request)
+
+    # Make ID token parsing resilient — if JWT verification fails,
+    # we fall back to the userinfo endpoint instead of losing the auth code.
+    _patch_parse_id_token(oauth_client)
+
+    try:
+        token_data = await oauth_client.authorize_access_token(request)
+
+        # Get user info from userinfo endpoint (OIDC standard)
+        user_info = await get_oauth_userinfo(oauth_client, token_data)
+
+        if not user_info or not user_info.get("email"):
+            logger.error(f"Failed to get user info from {provider}: {user_info}")
+            return RedirectResponse(url="/login?error=auth_failed", status_code=HTTP_302_FOUND)
+
+        # Get or create user via unified adapter
+        khoj_user = await get_or_create_user_oauth(provider, user_info)
+
+        if not khoj_user:
+            logger.error(f"Failed to create user from {provider} OAuth: {user_info.get('email')}")
+            return RedirectResponse(url="/login?error=auth_failed", status_code=HTTP_302_FOUND)
+
+        # Set session
+        request.session["user"] = {
+            "email": user_info["email"],
+            "name": user_info.get("name"),
+        }
+
+        # Send welcome email for new users
+        if datetime.timedelta(minutes=3) > (datetime.datetime.now(datetime.timezone.utc) - khoj_user.date_joined):
+            asyncio.create_task(send_welcome_email(user_info.get("name", ""), user_info["email"]))
+            update_telemetry_state(
+                request=request,
+                telemetry_type="api",
+                api=f"create_user__oauth_{provider}",
+                metadata={"server_id": str(khoj_user.uuid)},
+            )
+            logger.log(logging.INFO, f"🥳 New User Created via {provider}: {khoj_user.uuid}")
+
+        return RedirectResponse(url=next_url_path, status_code=HTTP_302_FOUND)
+
+    except OAuthError as error:
+        logger.error(f"OAuth error for {provider}: {error}")
+        return HTMLResponse(f"<h1>Authentication Error</h1><p>{error.error}</p>")
+    except Exception as error:
+        logger.error(f"Unexpected error in {provider} OAuth: {error}")
+        return RedirectResponse(url="/login?error=auth_failed", status_code=HTTP_302_FOUND)

@@ -1,6 +1,5 @@
 "use client";
 
-import styles from "./loginPrompt.module.css";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -14,9 +13,8 @@ import {
     Spinner,
 } from "@phosphor-icons/react";
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import useSWR from "swr";
-import { GoogleSignIn } from "./GoogleSignIn";
 import { Drawer, DrawerContent } from "@/components/ui/drawer";
 import {
     Carousel,
@@ -41,10 +39,12 @@ const ALLOWED_OTP_ATTEMPTS = 5;
 interface Provider {
     client_id: string;
     redirect_uri: string;
+    provider_name?: string;
+    button_label?: string;
 }
 
 interface CredentialsData {
-    [provider: string]: Provider;
+    [key: string]: Provider | undefined;
 }
 
 export default function LoginPrompt(props: LoginPromptProps) {
@@ -52,66 +52,9 @@ export default function LoginPrompt(props: LoginPromptProps) {
 
     const [useEmailSignIn, setUseEmailSignIn] = useState(false);
 
-    useEffect(() => {
-        const google = (window as any).google;
-
-        if (!google) return;
-
-        // Initialize Google Sign In after script loads
-        google.accounts.id.initialize({
-            client_id: data?.google?.client_id,
-            callback: handleGoogleSignIn,
-            auto_select: false,
-            login_uri: data?.google?.redirect_uri,
-        });
-
-        // Render the button
-        google.accounts.id.renderButton(document.getElementById("g_id_signin")!, {
-            theme: "outline",
-            size: "large",
-            width: "100%",
-        });
-    }, [data]);
-
-    const handleGoogleSignIn = () => {
-        if (!data?.google?.client_id || !data?.google?.redirect_uri) return;
-
-        // Create full redirect URL using current origin
-        const fullRedirectUri = `${window.location.origin}${data.google.redirect_uri}`;
-
-        const params = new URLSearchParams({
-            client_id: data.google.client_id,
-            redirect_uri: fullRedirectUri,
-            response_type: "code",
-            scope: "email profile openid",
-            state: window.location.pathname,
-            access_type: "offline",
-            prompt: "consent select_account",
-            include_granted_scopes: "true",
-        });
-
-        window.location.href = `https://accounts.google.com/o/oauth2/v2/auth?${params}`;
-    };
-
-    const handleGoogleScriptLoad = () => {
-        const google = (window as any).google;
-
-        if (!data?.google?.client_id || !data?.google?.redirect_uri) return;
-
-        // Initialize Google Sign In after script loads
-        google.accounts.id.initialize({
-            client_id: data?.google?.client_id,
-            callback: handleGoogleSignIn,
-            auto_select: false,
-            login_uri: data?.google?.redirect_uri,
-        });
-
-        // Render the button
-        google.accounts.id.renderButton(document.getElementById("g_id_signin")!, {
-            theme: "outline",
-            size: "large",
-            width: "100%",
-        });
+    const handleOAuthSignIn = (providerKey: string) => {
+        // Redirect to backend login endpoint which handles OAuth flow
+        window.location.href = `/auth/login/${providerKey}`;
     };
 
     if (props.isMobileWidth) {
@@ -123,8 +66,7 @@ export default function LoginPrompt(props: LoginPromptProps) {
                             <EmailSignInContext setUseEmailSignIn={setUseEmailSignIn} />
                         ) : (
                             <MainSignInContext
-                                handleGoogleScriptLoad={handleGoogleScriptLoad}
-                                handleGoogleSignIn={handleGoogleSignIn}
+                                handleOAuthSignIn={handleOAuthSignIn}
                                 isLoading={isLoading}
                                 data={data}
                                 setUseEmailSignIn={setUseEmailSignIn}
@@ -150,8 +92,7 @@ export default function LoginPrompt(props: LoginPromptProps) {
                         <EmailSignInContext setUseEmailSignIn={setUseEmailSignIn} />
                     ) : (
                         <MainSignInContext
-                            handleGoogleScriptLoad={handleGoogleScriptLoad}
-                            handleGoogleSignIn={handleGoogleSignIn}
+                            handleOAuthSignIn={handleOAuthSignIn}
                             isLoading={isLoading}
                             data={data}
                             setUseEmailSignIn={setUseEmailSignIn}
@@ -360,15 +301,13 @@ function EmailSignInContext({
 }
 
 function MainSignInContext({
-    handleGoogleScriptLoad,
-    handleGoogleSignIn,
+    handleOAuthSignIn,
     isLoading,
     data,
     setUseEmailSignIn,
     isMobileWidth,
 }: {
-    handleGoogleScriptLoad: () => void;
-    handleGoogleSignIn: () => void;
+    handleOAuthSignIn: (providerKey: string) => void;
     isLoading: boolean;
     data: CredentialsData | undefined;
     setUseEmailSignIn: (useEmailSignIn: boolean) => void;
@@ -444,58 +383,46 @@ function MainSignInContext({
                 </div>
             </div>
             <div className="flex flex-col gap-8 pb-4 text-center align-middle items-center">
-                <GoogleSignIn onLoad={handleGoogleScriptLoad} />
-                {/* <div id="g_id_signin" /> */}
-                <Button
-                    variant="outline"
-                    className="w-[300px] p-8 flex gap-2 items-center justify-center rounded-lg font-bold"
-                    onClick={handleGoogleSignIn}
-                    disabled={
-                        isLoading ||
-                        !data?.google ||
-                        !data?.google.client_id ||
-                        !data?.google.redirect_uri
-                    }
-                >
-                    {isLoading ? (
-                        <Spinner className="h-6 w-6" />
-                    ) : (
-                        <button className={`${styles.gsiMaterialButton}`}>
-                            <div className={styles.gsiMaterialButtonState}></div>
-                            <div className={styles.gsiMaterialButtonContentWrapper}>
-                                <div
-                                    className={`${styles.gsiMaterialButtonIcon} flex items-center justify-center`}
+                {Object.entries(data || {}).map(([providerKey, providerData]) => {
+                    if (!providerData) return null;
+
+                    const providerName =
+                        providerData.provider_name ||
+                        providerKey.charAt(0).toUpperCase() + providerKey.slice(1);
+
+                    return (
+                        <Button
+                            key={providerKey}
+                            variant="outline"
+                            className="w-[300px] p-8 flex gap-2 items-center justify-center rounded-lg font-bold"
+                            onClick={() => handleOAuthSignIn(providerKey)}
+                            disabled={
+                                isLoading ||
+                                !providerData?.client_id ||
+                                !providerData?.redirect_uri
+                            }
+                        >
+                            {isLoading ? (
+                                <Spinner className="h-6 w-6" />
+                            ) : (
+                                <svg
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth="2"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    className="h-6 w-6"
                                 >
-                                    <svg
-                                        version="1.1"
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        viewBox="0 0 48 48"
-                                        xmlnsXlink="http://www.w3.org/1999/xlink"
-                                    >
-                                        <path
-                                            fill="#EA4335"
-                                            d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"
-                                        ></path>
-                                        <path
-                                            fill="#4285F4"
-                                            d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"
-                                        ></path>
-                                        <path
-                                            fill="#FBBC05"
-                                            d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"
-                                        ></path>
-                                        <path
-                                            fill="#34A853"
-                                            d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"
-                                        ></path>
-                                        <path fill="none" d="M0 0h48v48H0z"></path>
-                                    </svg>
-                                </div>
-                            </div>
-                        </button>
-                    )}
-                    Continue with Google
-                </Button>
+                                    <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
+                                    <polyline points="10 17 15 12 10 7" />
+                                    <line x1="15" y1="12" x2="3" y2="12" />
+                                </svg>
+                            )}
+                            {providerData.button_label || `Continue with ${providerName}`}
+                        </Button>
+                    );
+                })}
 
                 <Button
                     variant="outline"

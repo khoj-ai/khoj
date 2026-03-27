@@ -46,11 +46,11 @@ from khoj.database.models import (
     FileObject,
     GithubConfig,
     GithubRepoConfig,
-    GoogleUser,
     KhojApiUser,
     KhojUser,
     McpServer,
     NotionConfig,
+    OAuthAccount,
     PriceTier,
     ProcessLock,
     PublicConversation,
@@ -176,13 +176,6 @@ async def delete_khoj_token(user: KhojUser, token: str):
     await KhojApiUser.objects.filter(token=token, user=user).adelete()
 
 
-async def get_or_create_user(token: dict) -> KhojUser:
-    user = await get_user_by_token(token)
-    if not user:
-        user = await create_user_by_google_token(token)
-    return user
-
-
 async def aget_or_create_user_by_phone_number(phone_number: str) -> tuple[KhojUser, bool]:
     is_new = False
     if is_none_or_empty(phone_number):
@@ -286,28 +279,58 @@ async def aget_user_validated_by_email_verification_code(code: str, email: str) 
     return user, False
 
 
-async def create_user_by_google_token(token: dict) -> KhojUser:
-    user, _ = await KhojUser.objects.filter(email=token.get("email")).aupdate_or_create(
-        defaults={"username": token.get("email"), "email": token.get("email")}
-    )
-    user.verified_email = True
-    await user.asave()
+# ============================================================================
+# Unified OAuth Adapter Functions
+# ============================================================================
 
-    await GoogleUser.objects.acreate(
-        sub=token.get("sub"),
-        azp=token.get("azp"),
-        email=token.get("email"),
-        name=token.get("name"),
-        given_name=token.get("given_name"),
-        family_name=token.get("family_name"),
-        picture=token.get("picture"),
-        locale=token.get("locale"),
-        user=user,
+async def get_or_create_user_oauth(provider: str, user_info: dict) -> KhojUser:
+    """Get or create user from OAuth provider userinfo."""
+    user = await get_user_by_oauth(provider, user_info)
+    if not user:
+        user = await create_user_by_oauth(provider, user_info)
+    return user
+
+
+async def get_user_by_oauth(provider: str, user_info: dict) -> KhojUser:
+    """Look up user by OAuth provider and user ID."""
+    oauth_account = await OAuthAccount.objects.filter(
+        provider=provider,
+        provider_user_id=user_info.get("sub")
+    ).select_related("user").afirst()
+    if not oauth_account:
+        return None
+    return oauth_account.user
+
+
+async def create_user_by_oauth(provider: str, user_info: dict) -> KhojUser:
+    """Create user from OAuth provider userinfo."""
+    email = user_info.get("email")
+    if not email:
+        logger.error(f"No email in OAuth userinfo from {provider}: {user_info}")
+        return None
+
+    # Create or update KhojUser
+    user, _ = await KhojUser.objects.filter(email=email).aupdate_or_create(
+        defaults={"username": email, "email": email, "verified_email": True}
     )
 
-    user_subscription = await Subscription.objects.filter(user=user).afirst()
-    if not user_subscription:
-        await Subscription.objects.acreate(user=user, type=Subscription.Type.STANDARD)
+    # Create OAuthAccount record
+    await OAuthAccount.objects.aupdate_or_create(
+        provider=provider,
+        provider_user_id=user_info.get("sub"),
+        defaults={
+            "email": email,
+            "name": user_info.get("name") or "",
+            "given_name": user_info.get("given_name") or "",
+            "family_name": user_info.get("family_name") or "",
+            "picture": user_info.get("picture") or "",
+            "raw_info": user_info,
+            "user": user,
+        }
+    )
+
+    # Create standard subscription if not exists
+    await Subscription.objects.aget_or_create(user=user, defaults={"type": Subscription.Type.STANDARD})
 
     return user
 
@@ -325,18 +348,19 @@ def get_user_name(user: KhojUser):
     full_name = user.get_full_name()
     if not is_none_or_empty(full_name):
         return full_name
-    google_profile: GoogleUser = GoogleUser.objects.filter(user=user).first()
-    if google_profile:
-        return google_profile.given_name
+
+    oauth_account = OAuthAccount.objects.filter(user=user).first()
+    if oauth_account and oauth_account.given_name:
+        return oauth_account.given_name
 
     return None
 
 
 @require_valid_user
 def get_user_photo(user: KhojUser):
-    google_profile: GoogleUser = GoogleUser.objects.filter(user=user).first()
-    if google_profile:
-        return google_profile.picture
+    oauth_account = OAuthAccount.objects.filter(user=user).first()
+    if oauth_account and oauth_account.picture:
+        return oauth_account.picture
 
     return None
 
@@ -460,13 +484,6 @@ async def aget_user_by_uuid(uuid: str) -> KhojUser:
     return await KhojUser.objects.filter(uuid=uuid).afirst()
 
 
-async def get_user_by_token(token: dict) -> KhojUser:
-    google_user = await GoogleUser.objects.filter(sub=token.get("sub")).select_related("user").afirst()
-    if not google_user:
-        return None
-    return google_user.user
-
-
 async def aget_user_by_phone_number(phone_number: str) -> KhojUser:
     if is_none_or_empty(phone_number):
         return None
@@ -532,9 +549,9 @@ async def aget_user_name(user: KhojUser):
     full_name = user.get_full_name()
     if not is_none_or_empty(full_name):
         return full_name
-    google_profile: GoogleUser = await GoogleUser.objects.filter(user=user).afirst()
-    if google_profile:
-        return google_profile.given_name
+    oauth_account = await OAuthAccount.objects.filter(user=user).afirst()
+    if oauth_account and oauth_account.given_name:
+        return oauth_account.given_name
 
     return None
 
