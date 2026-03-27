@@ -23,7 +23,7 @@ from fastapi.websockets import WebSocketState
 from starlette.authentication import has_required_scope, requires
 from starlette.requests import URL, Headers
 
-from khoj.app.settings import ALLOWED_HOSTS
+from khoj.app.settings import ALLOWED_HOSTS, DISABLE_HTTPS, KHOJ_DOMAIN
 from khoj.database.adapters import (
     AgentAdapters,
     ConversationAdapters,
@@ -34,7 +34,6 @@ from khoj.database.adapters import (
 )
 from khoj.database.models import Agent, KhojUser
 from khoj.processor.conversation import prompts
-from khoj.processor.conversation.openai.utils import is_local_api
 from khoj.processor.conversation.prompts import no_entries_found
 from khoj.processor.conversation.utils import (
     OperatorRun,
@@ -440,16 +439,11 @@ def duplicate_chat_history_public_conversation(
     conversation_id: str,
 ):
     user = request.user.object
-    domain = request.headers.get("host")
-    scheme = request.url.scheme
-    # Force https upgrade if not explicitly disabled and not local host
-    if scheme == "http" and not is_env_var_true("KHOJ_NO_HTTPS") and not is_local_api(f"{request.base_url}"):
-        scheme = "https"
 
-    # Throw unauthorized exception if domain not in ALLOWED_HOSTS
-    host_domain = domain.split(":")[0]
-    if host_domain not in ALLOWED_HOSTS:
-        raise HTTPException(status_code=401, detail="Unauthorized domain")
+    # Use server-configured domain instead of user-controlled Host header to prevent
+    # Host header injection (e.g. "khoj.dev:x@evil.com" bypasses the old split(':') check)
+    domain = KHOJ_DOMAIN
+    scheme = "http" if DISABLE_HTTPS else "https"
 
     # Duplicate Conversation History to Public Conversation
     conversation = ConversationAdapters.get_conversation_by_user(user, request.user.client_app, conversation_id)
