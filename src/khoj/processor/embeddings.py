@@ -46,14 +46,20 @@ class EmbeddingsModel:
         self.inference_endpoint = embeddings_inference_endpoint
         self.api_key = embeddings_inference_endpoint_api_key
         self.inference_endpoint_type = embeddings_inference_endpoint_type
-        if self.inference_endpoint_type == SearchModelConfig.ApiType.LOCAL:
+        # Only load model locally if no inference endpoint is configured
+        if self.inference_endpoint_type == SearchModelConfig.ApiType.LOCAL and not self.inference_endpoint:
             with timer(f"Loaded embedding model {self.model_name}", logger):
                 self.embeddings_model = SentenceTransformer(self.model_name, **self.model_kwargs)
+        else:
+            self.embeddings_model = None
 
     def embed_query(self, query):
         if self.inference_endpoint_type == SearchModelConfig.ApiType.HUGGINGFACE:
             return self.embed_with_hf([query])[0]
         elif self.inference_endpoint_type == SearchModelConfig.ApiType.OPENAI:
+            return self.embed_with_openai([query])[0]
+        elif self.inference_endpoint_type == SearchModelConfig.ApiType.LOCAL and self.inference_endpoint:
+            # Use OpenAI-compatible API for local inference endpoints (e.g., llama.cpp, vLLM)
             return self.embed_with_openai([query])[0]
         return self.embeddings_model.encode([query], **self.query_encode_kwargs)[0]
 
@@ -87,13 +93,21 @@ class EmbeddingsModel:
         before_sleep=before_sleep_log(logger, logging.DEBUG),
     )
     def embed_with_openai(self, docs):
-        client = get_openai_client(self.api_key, self.inference_endpoint)
+        # Use empty string for API key if not provided (local servers may not require auth)
+        client = get_openai_client(self.api_key or "", self.inference_endpoint)
         response = client.embeddings.create(input=docs, model=self.model_name, encoding_format="float")
         return [item.embedding for item in response.data]
 
     def embed_documents(self, docs):
         if self.inference_endpoint_type == SearchModelConfig.ApiType.LOCAL:
-            return self.embeddings_model.encode(docs, **self.docs_encode_kwargs).tolist() if docs else []
+            # If inference endpoint is configured, use OpenAI-compatible API
+            if self.inference_endpoint:
+                embed_with_api = self.embed_with_openai
+            elif self.embeddings_model:
+                return self.embeddings_model.encode(docs, **self.docs_encode_kwargs).tolist() if docs else []
+            else:
+                logger.warning("No local embedding model or endpoint configured")
+                return []
         elif self.inference_endpoint_type == SearchModelConfig.ApiType.HUGGINGFACE:
             embed_with_api = self.embed_with_hf
         elif self.inference_endpoint_type == SearchModelConfig.ApiType.OPENAI:
@@ -102,7 +116,7 @@ class EmbeddingsModel:
             logger.warning(
                 f"Unsupported inference endpoint: {self.inference_endpoint_type}. Generating embeddings locally instead."
             )
-            return self.embeddings_model.encode(docs, **self.docs_encode_kwargs).tolist()
+            return self.embeddings_model.encode(docs, **self.docs_encode_kwargs).tolist() if docs else []
         # break up the docs payload in chunks of 1000 to avoid hitting rate limits
         embeddings = []
         with tqdm.tqdm(total=len(docs)) as pbar:
