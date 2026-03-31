@@ -253,7 +253,7 @@ def clean_connections(func):
 def initialize_server():
     if ConversationAdapters.has_valid_ai_model_api():
         ai_model_api = ConversationAdapters.get_ai_model_api()
-        state.openai_client = openai.OpenAI(api_key=ai_model_api.api_key, base_url=ai_model_api.api_base_url)
+        state.openai_client = openai.OpenAI(api_key=ai_model_api.api_key, base_url=ai_model_api.api_base_url, timeout=60.0, max_retries=3)
 
     # Initialize Search Models from Config and initialize content
     try:
