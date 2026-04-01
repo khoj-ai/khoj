@@ -46,6 +46,8 @@ FIRECRAWL_API_KEY = os.getenv("FIRECRAWL_API_KEY")
 SEARXNG_URL = os.getenv("KHOJ_SEARXNG_URL")
 # Exa API credentials
 EXA_API_KEY = os.getenv("EXA_API_KEY")
+# Tavily API credentials
+TAVILY_API_KEY = os.getenv("TAVILY_API_KEY")
 
 # Whether to automatically read web pages from search results
 AUTO_READ_WEBPAGE = is_env_var_true("KHOJ_AUTO_READ_WEBPAGE")
@@ -114,6 +116,9 @@ async def search_online(
     if SEARXNG_URL:
         search_engine = "Searxng"
         search_engines.append((search_engine, search_with_searxng))
+    if TAVILY_API_KEY:
+        search_engine = "Tavily"
+        search_engines.append((search_engine, search_with_tavily))
 
     if send_status_func:
         subqueries_str = "\n- " + "\n- ".join(subqueries)
@@ -406,6 +411,50 @@ async def search_with_google(query: str, location: LocationData) -> Tuple[str, D
                 extracted_search_result["knowledgeGraph"] = knowledge_graph
 
             return query, extracted_search_result
+
+
+async def search_with_tavily(query: str, location: LocationData) -> Tuple[str, Dict[str, List[Dict]]]:
+    """
+    Search using Tavily API.
+
+    Args:
+        query: The search query string
+        location: Location data for geolocation-based search
+
+    Returns:
+        Tuple containing the original query and a dictionary of search results
+    """
+    from tavily import AsyncTavilyClient
+
+    try:
+        client = AsyncTavilyClient(api_key=TAVILY_API_KEY)
+        response = await client.search(
+            query=query,
+            max_results=10,
+            search_depth="basic",
+            topic="general",
+        )
+
+        results = response.get("results", [])
+        if is_none_or_empty(results):
+            return query, {}
+
+        organic_results = []
+        for item in results:
+            organic_results.append(
+                {
+                    "title": item.get("title", ""),
+                    "link": item.get("url", ""),
+                    "snippet": item.get("content", ""),
+                    "content": item.get("raw_content", None),
+                }
+            )
+
+        return query, {"organic": organic_results}
+
+    except Exception as e:
+        logger.error(f"Error searching with Tavily: {str(e)}")
+        return query, {}
 
 
 async def search_with_serper(query: str, location: LocationData) -> Tuple[str, Dict[str, List[Dict]]]:

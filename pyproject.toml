@@ -95,6 +95,7 @@ dependencies = [
     "e2b-code-interpreter ~= 1.0.0",
     "mcp >= 1.23.0",
     "pyasn1>=0.6.3",
+    "tavily-python >= 0.5.0",
 ]
 dynamic = ["version"]
 
