@@ -512,6 +512,8 @@ async def scrape_webpage(url, scraper_type=None, api_key=None, api_url=None) -> 
         return await read_webpage_with_olostep(url, api_key, api_url)
     elif scraper_type == WebScraper.WebScraperType.EXA:
         return await read_webpage_with_exa(url, api_key, api_url)
+    elif scraper_type == WebScraper.WebScraperType.TAVILY:
+        return await read_webpage_with_tavily(url, api_key, api_url)
     else:
         return await read_webpage_at_url(url)
 
@@ -646,6 +648,26 @@ async def read_webpage_with_firecrawl(web_url: str, api_key: str, api_url: str) 
             response.raise_for_status()
             response_json = await response.json()
             return response_json["data"]["markdown"]
+
+
+async def read_webpage_with_tavily(web_url: str, api_key: str, api_url: str) -> str:
+    """Extract content from a web page using Tavily Extract API."""
+    tavily_extract_url = f"{api_url}/extract"
+    headers = {"Content-Type": "application/json", "Authorization": f"Bearer {api_key}"}
+    payload = {
+        "urls": [web_url],
+    }
+
+    async with aiohttp.ClientSession() as session:
+        async with session.post(
+            tavily_extract_url, json=payload, headers=headers, timeout=WEBPAGE_REQUEST_TIMEOUT
+        ) as response:
+            response.raise_for_status()
+            response_json = await response.json()
+            results = response_json.get("results", [])
+            if results:
+                return results[0].get("raw_content") or results[0].get("text", "")
+            return ""
 
 
 def deduplicate_organic_results(online_results: dict) -> dict:
