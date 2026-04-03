@@ -1400,6 +1400,7 @@ async def event_generator(
         generated_asset_results,
         is_subscribed,
         tracer,
+        chat_model_id=body.chat_model_id,
     )
 
     full_response = ""

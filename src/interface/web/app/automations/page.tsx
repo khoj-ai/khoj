@@ -21,6 +21,7 @@ interface AutomationsData {
     schedule: string;
     crontime: string;
     next: string;
+    chat_model_id?: number | null;
 }
 
 import cronstrue from "cronstrue";
@@ -49,6 +50,7 @@ import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import {
+    Brain,
     CalendarCheck,
     CalendarDot,
     CalendarDots,
@@ -62,7 +64,7 @@ import {
     Plus,
     Trash,
 } from "@phosphor-icons/react";
-import { useAuthenticatedData, UserProfile } from "../common/auth";
+import { ModelOptions, useAuthenticatedData, useChatModelOptions, UserProfile } from "../common/auth";
 import LoginPrompt from "../components/loginPrompt/loginPrompt";
 import { useToast } from "@/components/ui/use-toast";
 import { ToastAction } from "@/components/ui/toast";
@@ -271,6 +273,7 @@ interface AutomationsCardProps {
     setShowLoginPrompt: (showLoginPrompt: boolean) => void;
     authenticatedData: UserProfile | null;
     setToastMessage: (toastMessage: string) => void;
+    chatModelOptions?: ModelOptions[];
 }
 
 function AutomationsCard(props: AutomationsCardProps) {
@@ -335,6 +338,7 @@ function AutomationsCard(props: AutomationsCardProps) {
                                     automation={updatedAutomationData || automation}
                                     ipLocationData={props.locationData}
                                     setToastMessage={props.setToastMessage}
+                                    chatModelOptions={props.chatModelOptions}
                                 />
                             )}
                             <ShareLink
@@ -386,7 +390,7 @@ function AutomationsCard(props: AutomationsCardProps) {
                 {updatedAutomationData?.scheduling_request || automation.scheduling_request}
             </CardContent>
             <CardFooter className="flex flex-col items-start md:flex-row md:justify-between md:items-center gap-2">
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
                     <div className="flex items-center rounded-lg p-1.5 border-blue-200 border dark:border-blue-500">
                         <CalendarCheck className="h-4 w-4 mr-2 text-blue-700 dark:text-blue-300" />
                         <div className="text-s text-blue-700 dark:text-blue-300">
@@ -399,6 +403,21 @@ function AutomationsCard(props: AutomationsCardProps) {
                             {intervalString}
                         </div>
                     </div>
+                    {(() => {
+                        const modelId =
+                            updatedAutomationData?.chat_model_id ?? automation.chat_model_id;
+                        const modelName = props.chatModelOptions?.find(
+                            (m) => m.id === modelId,
+                        )?.name;
+                        return modelName ? (
+                            <div className="flex items-center rounded-lg p-1.5 border-green-200 border dark:border-green-500">
+                                <Brain className="h-4 w-4 mr-2 text-green-700 dark:text-green-300" />
+                                <div className="text-s text-green-700 dark:text-green-300">
+                                    {modelName}
+                                </div>
+                            </div>
+                        ) : null;
+                    })()}
                 </div>
                 {props.suggestedCard && props.setNewAutomationData && (
                     <AutomationComponentWrapper
@@ -413,6 +432,7 @@ function AutomationsCard(props: AutomationsCardProps) {
                         automation={automation}
                         ipLocationData={props.locationData}
                         setToastMessage={props.setToastMessage}
+                        chatModelOptions={props.chatModelOptions}
                     />
                 )}
             </CardFooter>
@@ -428,6 +448,7 @@ interface SharedAutomationCardProps {
     authenticatedData: UserProfile | null;
     isMobileWidth: boolean;
     setToastMessage: (toastMessage: string) => void;
+    chatModelOptions?: ModelOptions[];
 }
 
 function SharedAutomationCard(props: SharedAutomationCardProps) {
@@ -465,6 +486,7 @@ function SharedAutomationCard(props: SharedAutomationCardProps) {
             automation={automation}
             ipLocationData={props.locationData}
             setToastMessage={props.setToastMessage}
+            chatModelOptions={props.chatModelOptions}
         />
     ) : null;
 }
@@ -476,6 +498,7 @@ const EditAutomationSchema = z.object({
     dayOfMonth: z.optional(z.string()),
     timeRecurrence: z.string({ required_error: "Time Recurrence is required" }),
     schedulingRequest: z.string({ required_error: "Query to Run is required" }),
+    chatModelId: z.optional(z.number().nullable()),
 });
 
 interface EditCardProps {
@@ -488,6 +511,7 @@ interface EditCardProps {
     setShowLoginPrompt: (showLoginPrompt: boolean) => void;
     authenticatedData: UserProfile | null;
     setToastMessage: (toastMessage: string) => void;
+    chatModelOptions?: ModelOptions[];
 }
 
 function EditCard(props: EditCardProps) {
@@ -504,6 +528,7 @@ function EditCard(props: EditCardProps) {
                 : "12:00 PM",
             dayOfMonth: automation?.crontime ? getDayOfMonthFromCron(automation.crontime) : "1",
             schedulingRequest: automation?.scheduling_request,
+            chatModelId: automation?.chat_model_id ?? undefined,
         },
     });
 
@@ -532,6 +557,8 @@ function EditCard(props: EditCardProps) {
             updateQueryUrl += `&country=${encodeURIComponent(props.locationData.country)}`;
         if (props.locationData && props.locationData.timezone)
             updateQueryUrl += `&timezone=${encodeURIComponent(props.locationData.timezone)}`;
+        if (values.chatModelId != null)
+            updateQueryUrl += `&chat_model_id=${encodeURIComponent(values.chatModelId)}`;
 
         let method = props.createNew ? "POST" : "PUT";
 
@@ -547,6 +574,7 @@ function EditCard(props: EditCardProps) {
                     schedule: cronToHumanReadableString(data.crontime),
                     crontime: data.crontime,
                     next: data.next,
+                    chat_model_id: data.chat_model_id,
                 });
             })
             .catch((error) => {
@@ -603,6 +631,7 @@ function EditCard(props: EditCardProps) {
             create={props.createNew}
             isLoggedIn={props.isLoggedIn}
             setShowLoginPrompt={props.setShowLoginPrompt}
+            chatModelOptions={props.chatModelOptions}
         />
     );
 }
@@ -615,6 +644,7 @@ interface AutomationModificationFormProps {
     setShowLoginPrompt: (showLoginPrompt: boolean) => void;
     authenticatedData: UserProfile | null;
     locationData: LocationData | null;
+    chatModelOptions?: ModelOptions[];
 }
 
 function AutomationModificationForm(props: AutomationModificationFormProps) {
@@ -860,6 +890,51 @@ function AutomationModificationForm(props: AutomationModificationFormProps) {
                         </FormItem>
                     )}
                 />
+                {props.chatModelOptions && props.chatModelOptions.length > 0 && (
+                    <FormField
+                        control={props.form.control}
+                        name="chatModelId"
+                        render={({ field }) => (
+                            <FormItem className="w-full space-y-1">
+                                <FormLabel>Model</FormLabel>
+                                <FormDescription>
+                                    Which AI model should this automation use?
+                                </FormDescription>
+                                <Select
+                                    onValueChange={(value) =>
+                                        field.onChange(
+                                            value === "default" ? undefined : Number(value),
+                                        )
+                                    }
+                                    defaultValue={
+                                        field.value != null ? String(field.value) : "default"
+                                    }
+                                >
+                                    <FormControl>
+                                        <SelectTrigger className="w-[280px]">
+                                            <div className="flex items-center">
+                                                <Brain className="h-4 w-4 mr-2 inline" />
+                                            </div>
+                                            <SelectValue placeholder="Default model" />
+                                        </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                        <SelectItem value="default">Default model</SelectItem>
+                                        {props.chatModelOptions.map((model) => (
+                                            <SelectItem
+                                                key={model.id}
+                                                value={String(model.id)}
+                                            >
+                                                {model.name}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                )}
                 <fieldset disabled={isSaving}>
                     {props.isLoggedIn ? (
                         isSaving ? (
@@ -925,6 +1000,7 @@ interface AutomationComponentWrapperProps {
     ipLocationData: LocationData | null | undefined;
     automation?: AutomationsData;
     setToastMessage: (toastMessage: string) => void;
+    chatModelOptions?: ModelOptions[];
 }
 
 function AutomationComponentWrapper(props: AutomationComponentWrapperProps) {
@@ -953,6 +1029,7 @@ function AutomationComponentWrapper(props: AutomationComponentWrapperProps) {
                     setUpdatedAutomationData={props.setNewAutomationData}
                     locationData={props.ipLocationData}
                     setToastMessage={props.setToastMessage}
+                    chatModelOptions={props.chatModelOptions}
                 />
             </DrawerContent>
         </Drawer>
@@ -981,6 +1058,7 @@ function AutomationComponentWrapper(props: AutomationComponentWrapperProps) {
                     setUpdatedAutomationData={props.setNewAutomationData}
                     locationData={props.ipLocationData}
                     setToastMessage={props.setToastMessage}
+                    chatModelOptions={props.chatModelOptions}
                 />
             </DialogContent>
         </Dialog>
@@ -1000,6 +1078,8 @@ export default function Automations() {
     } = useSWR<AutomationsData[]>(authenticatedData ? "automations" : null, automationsFetcher, {
         revalidateOnFocus: false,
     });
+
+    const { models: chatModelOptions } = useChatModelOptions();
 
     const [isCreating, setIsCreating] = useState(false);
     const [newAutomationData, setNewAutomationData] = useState<AutomationsData | null>(null);
@@ -1126,6 +1206,7 @@ export default function Automations() {
                                         isCreating={isCreating}
                                         ipLocationData={locationData}
                                         setToastMessage={setToastMessage}
+                                        chatModelOptions={chatModelOptions}
                                     />
                                 ) : (
                                     <Button
@@ -1147,6 +1228,7 @@ export default function Automations() {
                                     setShowLoginPrompt={setShowLoginPrompt}
                                     setNewAutomationData={setNewAutomationData}
                                     setToastMessage={setToastMessage}
+                                    chatModelOptions={chatModelOptions}
                                 />
                             </Suspense>
                             {isLoading && <InlineLoading message="booting up your automations" />}
@@ -1163,6 +1245,7 @@ export default function Automations() {
                                             isLoggedIn={authenticatedData ? true : false}
                                             setShowLoginPrompt={setShowLoginPrompt}
                                             setToastMessage={setToastMessage}
+                                            chatModelOptions={chatModelOptions}
                                         />
                                     ))}
                                 {authenticatedData &&
@@ -1176,6 +1259,7 @@ export default function Automations() {
                                             isLoggedIn={authenticatedData ? true : false}
                                             setShowLoginPrompt={setShowLoginPrompt}
                                             setToastMessage={setToastMessage}
+                                            chatModelOptions={chatModelOptions}
                                         />
                                     ))}
                             </div>
@@ -1193,6 +1277,7 @@ export default function Automations() {
                                         setShowLoginPrompt={setShowLoginPrompt}
                                         suggestedCard={true}
                                         setToastMessage={setToastMessage}
+                                        chatModelOptions={chatModelOptions}
                                     />
                                 ))}
                             </div>

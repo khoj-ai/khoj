@@ -1716,11 +1716,22 @@ class ConversationAdapters:
         return random.sample(all_questions, max_results)
 
     @staticmethod
-    async def aget_valid_chat_model(user: KhojUser, conversation: Conversation, is_subscribed: bool):
+    async def aget_valid_chat_model(
+        user: KhojUser, conversation: Conversation, is_subscribed: bool, chat_model_id: int = None
+    ):
         """
         For paid users: Prefer any custom agent chat model > user default chat model > server default chat model.
         For free users: Prefer conversation specific agent's chat model > user default chat model > server default chat model.
+        An explicit chat_model_id override (e.g. from automations) takes highest priority.
         """
+        if chat_model_id:
+            try:
+                chat_model = await ChatModel.objects.select_related("ai_model_api").aget(pk=chat_model_id)
+                if chat_model and chat_model.ai_model_api:
+                    return chat_model
+            except ChatModel.DoesNotExist:
+                pass
+
         agent: Agent = conversation.agent if await AgentAdapters.aget_default_agent() != conversation.agent else None
         if agent and agent.chat_model and (agent.is_hidden or is_subscribed):
             chat_model = await ChatModel.objects.select_related("ai_model_api").aget(
@@ -2209,6 +2220,7 @@ class AutomationAdapters:
             "schedule": schedule,
             "crontime": crontime,
             "next": automation.next_run_time.strftime("%Y-%m-%d %I:%M %p %Z"),
+            "chat_model_id": automation_metadata.get("chat_model_id"),
         }
 
     @staticmethod
