@@ -3,6 +3,7 @@ import json
 import logging
 import math
 from concurrent.futures import ThreadPoolExecutor
+from pathlib import Path
 from typing import Dict, List, Optional, Union
 
 from asgiref.sync import sync_to_async
@@ -48,6 +49,11 @@ api_content = APIRouter()
 
 executor = ThreadPoolExecutor()
 
+SUPPORTED_TEXT_UPLOAD_EXTENSIONS = {".org", ".md", ".markdown", ".txt", ".html", ".htm", ".xml"}
+SUPPORTED_BINARY_UPLOAD_EXTENSIONS = {".pdf", ".docx", ".jpg", ".jpeg", ".png", ".webp"}
+SUPPORTED_CONVERT_UPLOAD_EXTENSIONS = SUPPORTED_TEXT_UPLOAD_EXTENSIONS | {".pdf", ".docx"}
+SUPPORTED_INDEX_UPLOAD_EXTENSIONS = SUPPORTED_TEXT_UPLOAD_EXTENSIONS | SUPPORTED_BINARY_UPLOAD_EXTENSIONS
+
 
 class File(BaseModel):
     path: str
@@ -70,6 +76,21 @@ class IndexerInput(BaseModel):
 async def run_in_executor(func, *args):
     loop = asyncio.get_event_loop()
     return await loop.run_in_executor(executor, func, *args)
+
+
+def _get_upload_extension(file: UploadFile) -> str:
+    filename = file.filename or ""
+    return Path(filename).suffix.lower()
+
+
+def _is_supported_upload_extension(file: UploadFile, *, include_images: bool) -> bool:
+    extension = _get_upload_extension(file)
+    if not extension:
+        return False
+    allowed_extensions = (
+        SUPPORTED_INDEX_UPLOAD_EXTENSIONS if include_images else SUPPORTED_CONVERT_UPLOAD_EXTENSIONS
+    )
+    return extension in allowed_extensions
 
 
 @api_content.put("")
@@ -476,6 +497,10 @@ async def convert_documents(
     supported_files = ["org", "markdown", "pdf", "plaintext", "docx"]
 
     for file in files:
+        if not _is_supported_upload_extension(file, include_images=False):
+            logger.warning(f"Skipped converting unsupported file extension sent by {client} client: {file.filename}")
+            continue
+
         # Check file size first
         file_size = 0
         content = await file.read()
@@ -564,6 +589,10 @@ async def indexer(
     try:
         logger.info(f"📬 Updating content index via API call by {client} client")
         for file in files:
+            if not _is_supported_upload_extension(file, include_images=True):
+                logger.debug(f"Skipped indexing unsupported file extension sent by {client} client: {file.filename}")
+                continue
+
             file_data = get_file_content(file)
             if file_data.file_type in index_files:
                 index_files[file_data.file_type][file_data.name] = (

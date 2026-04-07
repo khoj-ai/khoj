@@ -56,6 +56,13 @@ COPY --from=web-app /app/src/interface/web/out ./src/khoj/interface/built
 COPY . .
 RUN cd src && python3 khoj/manage.py collectstatic --noinput
 
+# Run as a non-root user with ownership over writable paths.
+RUN groupadd -r khoj && useradd -r -g khoj -d /app khoj && \
+    chown -R khoj:khoj /app/src/khoj/pgserver_data 2>/dev/null || true && \
+    chown -R khoj:khoj /app
+
+USER khoj
+
 # Run the Application
 # There are more arguments required for the application to run,
 # but those should be passed in through the docker-compose.yml file.

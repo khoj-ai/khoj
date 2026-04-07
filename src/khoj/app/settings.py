@@ -14,6 +14,9 @@ import atexit
 import logging
 import os
 from pathlib import Path
+import re as _re
+
+from django.core.exceptions import ImproperlyConfigured
 
 from django.templatetags.static import static
 
@@ -23,7 +26,9 @@ from khoj.utils.helpers import is_env_var_true
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.getenv("KHOJ_DJANGO_SECRET_KEY", "!secret")
+SECRET_KEY = os.getenv("KHOJ_DJANGO_SECRET_KEY")
+if not SECRET_KEY:
+    raise ImproperlyConfigured("KHOJ_DJANGO_SECRET_KEY environment variable must be set")
 
 # Set KHOJ_DOMAIN to custom domain for production deployments.
 KHOJ_DOMAIN = os.getenv("KHOJ_DOMAIN") or "khoj.dev"
@@ -64,8 +69,8 @@ if DISABLE_HTTPS:
 else:
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
-    COOKIE_SAMESITE = "None"
-    SESSION_COOKIE_SAMESITE = "None"
+    COOKIE_SAMESITE = "Lax"
+    SESSION_COOKIE_SAMESITE = "Lax"
 
 # Application definition
 
@@ -120,6 +125,8 @@ DATA_UPLOAD_MAX_NUMBER_FIELDS = 20000
 
 # Default PostgreSQL configuration
 DB_NAME = os.getenv("POSTGRES_DB", "khoj")
+if not _re.match(r"^[A-Za-z_][A-Za-z0-9_]*$", DB_NAME):
+    raise ValueError(f"Invalid database name from POSTGRES_DB: {DB_NAME!r}")
 DB_HOST = os.getenv("POSTGRES_HOST", "localhost")
 DB_PORT = os.getenv("POSTGRES_PORT", "5432")
 

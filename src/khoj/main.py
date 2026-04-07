@@ -69,22 +69,22 @@ django_app = get_asgi_application()
 # Add CORS middleware
 KHOJ_DOMAIN = os.getenv("KHOJ_DOMAIN") or "app.khoj.dev"
 scheme = "https" if not is_env_var_true("KHOJ_NO_HTTPS") else "http"
-custom_origins = [f"{scheme}://{KHOJ_DOMAIN.strip()}", f"{scheme}://{KHOJ_DOMAIN.strip()}:*"]
-default_origins = [
+CORS_EXACT_ORIGINS = [
     "app://obsidian.md",  # To allow access from Obsidian desktop app
     "capacitor://localhost",  # To allow access from Obsidian iOS app using Capacitor.JS
     "http://localhost",  # To allow access from Obsidian Android app
-    "http://localhost:*",  # To allow access from localhost
-    "http://127.0.0.1:*",  # To allow access from localhost
     "app://khoj.dev",  # To allow access from Khoj desktop app
+    f"{scheme}://{KHOJ_DOMAIN.strip()}",
 ]
+CORS_ORIGIN_REGEX = r"^https?://(localhost|127\.0\.0\.1)(:\d+)?$"
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=default_origins + custom_origins,
+    allow_origins=CORS_EXACT_ORIGINS,
+    allow_origin_regex=CORS_ORIGIN_REGEX,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type", "Accept", "X-Requested-With", "X-CSRFToken", "X-Khoj-Client"],
 )
 
 # Set Locale

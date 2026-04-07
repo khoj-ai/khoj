@@ -497,6 +497,8 @@ class ComputerEnvironment(Environment):
         """Execute a shell command and return the result."""
         try:
             if self.provider == "docker":
+                # Intentionally shell-backed: supports terminal commands, pipes,
+                # redirections, and Docker bash -c execution. Not a Python-code path.
                 # Execute command in Docker container
                 docker_args = [
                     "docker",
@@ -620,39 +622,48 @@ class ComputerEnvironment(Environment):
         return "; ".join(script_lines)
 
     async def docker_execute(self, python_command_str: str) -> Optional[str]:
+        """Execute a Python command inside the Docker container.
+
+        This and _execute() are the only allowed Python-code execution paths.
+        """
         if not self.docker_container_name or not self.docker_display:
             logger.error("Container name or Docker display not set for Docker execution.")
             return None
 
-        safe_python_cmd = python_command_str.replace('"', '\\"')
-        docker_full_cmd = (
-            f'docker exec -e DISPLAY={self.docker_display} "{self.docker_container_name}" '
-            f'python3 -c "{safe_python_cmd}"'
-        )
+        cmd = [
+            "docker",
+            "exec",
+            "-e",
+            f"DISPLAY={self.docker_display}",
+            self.docker_container_name,
+            "python3",
+            "-c",
+            python_command_str,
+        ]
 
         try:
             process = await asyncio.to_thread(
                 subprocess.run,
-                docker_full_cmd,
-                shell=True,
+                cmd,
+                shell=False,
                 capture_output=True,
                 text=True,
-                check=False,  # We check returncode manually
+                check=False,
+                timeout=120,
             )
             if process.returncode != 0:
                 if "FailSafeException" in process.stderr or "FailSafeException" in process.stdout:
                     raise KeyboardInterrupt(process.stderr or process.stdout)
                 else:
-                    error_msg = (
-                        f"Docker command failed:\nCmd: {docker_full_cmd}\n"
-                        f"Return Code: {process.returncode}\nStderr: {process.stderr}\nStdout: {process.stdout}"
+                    logger.error(
+                        "Docker command failed. Return Code: %s. Stderr: %s",
+                        process.returncode,
+                        process.stderr[:500],
                     )
-                    logger.error(error_msg)
                     raise RuntimeError(f"Docker exec error: {process.stderr or process.stdout}")
             return process.stdout.strip()
-        except KeyboardInterrupt:  # Re-raise if caught from above
+        except KeyboardInterrupt:
             raise
         except Exception as e:
-            logger.error(f"Unexpected error running command in Docker '{docker_full_cmd}': {e}")
-            # Encapsulate as RuntimeError to avoid leaking subprocess errors directly
+            logger.error(f"Unexpected error running command in Docker: {type(e).__name__}")
             raise RuntimeError(f"Unexpected Docker error: {e}") from e

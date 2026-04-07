@@ -40,6 +40,14 @@ from khoj.utils.helpers import get_chat_usage_metrics
 logger = logging.getLogger(__name__)
 
 
+def _parse_box_literal(raw: str) -> tuple[float, ...]:
+    """Parse an LLM-produced coordinate literal safely."""
+    value = ast.literal_eval(raw)
+    if not isinstance(value, (list, tuple)) or len(value) not in (2, 4):
+        raise ValueError(f"Invalid box literal (expected 2 or 4 elements): {raw!r}")
+    return tuple(float(v) for v in value)
+
+
 class GroundingAgentUitars:
     FINISH_WORD = "finished"
     WAIT_WORD = "wait"
@@ -679,10 +687,10 @@ class GroundingAgentUitars:
                 start_box = action_inputs.get("start_box")
                 end_box = action_inputs.get("end_box")
                 if start_box and end_box:
-                    x1, y1, x2, y2 = eval(start_box)  # Assuming box is in [x1, y1, x2, y2]
+                    x1, y1, x2, y2 = _parse_box_literal(start_box)
                     sx = round(float((x1 + x2) / 2) * image_width, 3)
                     sy = round(float((y1 + y2) / 2) * image_height, 3)
-                    x1, y1, x2, y2 = eval(end_box)  # Assuming box is in [x1, y1, x2, y2]
+                    x1, y1, x2, y2 = _parse_box_literal(end_box)
                     ex = round(float((x1 + x2) / 2) * image_width, 3)
                     ey = round(float((y1 + y2) / 2) * image_height, 3)
                     actions.append(MoveAction(x=sx, y=sy))
@@ -692,7 +700,7 @@ class GroundingAgentUitars:
                 # Parsing scroll action
                 start_box = action_inputs.get("start_box")
                 if start_box:
-                    x1, y1, x2, y2 = eval(start_box)  # Assuming box is in [x1, y1, x2, y2]
+                    x1, y1, x2, y2 = _parse_box_literal(start_box)
                     x = round(float((x1 + x2) / 2) * image_width, 3)
                     y = round(float((y1 + y2) / 2) * image_height, 3)
 
@@ -717,7 +725,7 @@ class GroundingAgentUitars:
                 start_box = action_inputs.get("start_box")
                 start_box = str(start_box)
                 if start_box:
-                    start_box = eval(start_box)
+                    start_box = _parse_box_literal(start_box)
                     if len(start_box) == 4:
                         x1, y1, x2, y2 = start_box  # Assuming box is in [x1, y1, x2, y2]
                     elif len(start_box) == 2:
@@ -876,10 +884,10 @@ class GroundingAgentUitars:
                 start_box = action_inputs.get("start_box")
                 end_box = action_inputs.get("end_box")
                 if start_box and end_box:
-                    x1, y1, x2, y2 = eval(start_box)  # Assuming box is in [x1, y1, x2, y2]
+                    x1, y1, x2, y2 = _parse_box_literal(start_box)
                     sx = round(float((x1 + x2) / 2) * image_width, 3)
                     sy = round(float((y1 + y2) / 2) * image_height, 3)
-                    x1, y1, x2, y2 = eval(end_box)  # Assuming box is in [x1, y1, x2, y2]
+                    x1, y1, x2, y2 = _parse_box_literal(end_box)
                     ex = round(float((x1 + x2) / 2) * image_width, 3)
                     ey = round(float((y1 + y2) / 2) * image_height, 3)
                     pyautogui_code += f"\npyautogui.moveTo({sx}, {sy})\n\npyautogui.dragTo({ex}, {ey}, duration=1.0)\n"
@@ -888,7 +896,7 @@ class GroundingAgentUitars:
                 # Parsing scroll action
                 start_box = action_inputs.get("start_box")
                 if start_box:
-                    x1, y1, x2, y2 = eval(start_box)  # Assuming box is in [x1, y1, x2, y2]
+                    x1, y1, x2, y2 = _parse_box_literal(start_box)
                     x = round(float((x1 + x2) / 2) * image_width, 3)
                     y = round(float((y1 + y2) / 2) * image_height, 3)
 
@@ -915,7 +923,7 @@ class GroundingAgentUitars:
                 start_box = action_inputs.get("start_box")
                 start_box = str(start_box)
                 if start_box:
-                    start_box = eval(start_box)
+                    start_box = _parse_box_literal(start_box)
                     if len(start_box) == 4:
                         x1, y1, x2, y2 = start_box  # Assuming box is in [x1, y1, x2, y2]
                     elif len(start_box) == 2:

@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import secrets
 from datetime import datetime
 from enum import Enum
 from functools import wraps
@@ -111,7 +112,7 @@ class UserAuthenticationBackend(AuthenticationBackend):
             default_user = self.khojuser_manager.create_user(
                 username="default",
                 email="default@example.com",
-                password="default",
+                password=secrets.token_urlsafe(16),
             )
             renewal_date = make_aware(datetime.strptime("2100-04-01", "%Y-%m-%d"))
             Subscription.objects.create(user=default_user, type=Subscription.Type.STANDARD, renewal_date=renewal_date)
@@ -403,7 +404,7 @@ def configure_middleware(app, ssl_enabled: bool = False):
     app.add_middleware(AuthenticationMiddleware, backend=UserAuthenticationBackend())
     app.add_middleware(ServerErrorMiddleware)  # Add after AuthenticationMiddleware to catch its exceptions
     app.add_middleware(NextJsMiddleware)
-    app.add_middleware(SessionMiddleware, secret_key=os.environ.get("KHOJ_DJANGO_SECRET_KEY", "!secret"))
+    app.add_middleware(SessionMiddleware, secret_key=settings.SECRET_KEY)
 
 
 def update_content_index():

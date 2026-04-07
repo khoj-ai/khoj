@@ -136,13 +136,15 @@ jobs:
           UV_INDEX: "https://download.pytorch.org/whl/cpu"
           UV_INDEX_STRATEGY: "unsafe-best-match"
           CUDA_VISIBLE_DEVICES: ""
+          HATCH_VERSION: ${{ steps.hatch.outputs.version }}
         run: |
-          sed -i 's/dynamic = \["version"\]/version = "${{ steps.hatch.outputs.version }}"/' pyproject.toml
+          sed -i "s/dynamic = \[\"version\"\]/version = \"$HATCH_VERSION\"/" pyproject.toml
           uv sync --all-extras
 
       - name: 📝 Run Eval
         env:
           KHOJ_MODE: ${{ matrix.khoj_mode }}
+          DATASET: ${{ matrix.dataset }}
           SAMPLE_SIZE: ${{ github.event_name == 'workflow_dispatch' && inputs.sample_size || 200 }}
           BATCH_SIZE: "20"
           RANDOMIZE: ${{ github.event_name == 'workflow_dispatch' && inputs.randomize || 'true' }}
@@ -203,7 +205,7 @@ jobs:
           echo "Khoj server is healthy"
 
           # Run evals
-          uv run python tests/evals/eval.py -d ${{ matrix.dataset }}
+          uv run python tests/evals/eval.py -d "$DATASET"
 
       - name: Upload Results
         if: always()  # Upload results even if tests fail
@@ -217,13 +219,19 @@ jobs:
 
       - name: Display Results
         if: always()
+        env:
+          DATASET: ${{ matrix.dataset }}
+          KHOJ_MODE: ${{ matrix.khoj_mode }}
+          HATCH_VERSION: ${{ steps.hatch.outputs.version }}
+          CHAT_MODEL: ${{ inputs.chat_model || 'gemini-2.5-flash' }}
+          CODE_SANDBOX: ${{ inputs.sandbox || 'terrarium' }}
         run: |
           # Read and display summary
-          echo "## Evaluation Summary of Khoj on ${{ matrix.dataset }} in ${{ matrix.khoj_mode }} mode" >> $GITHUB_STEP_SUMMARY
+          echo "## Evaluation Summary of Khoj on $DATASET in $KHOJ_MODE mode" >> $GITHUB_STEP_SUMMARY
           echo "**$(head -n 1 *_evaluation_summary_*.txt)**" >> $GITHUB_STEP_SUMMARY
-          echo "- Khoj Version: ${{ steps.hatch.outputs.version }}" >> $GITHUB_STEP_SUMMARY
-          echo "- Chat Model: ${{ inputs.chat_model || 'gemini-2.5-flash' }}" >> $GITHUB_STEP_SUMMARY
-          echo "- Code Sandbox: ${{ inputs.sandbox || 'terrarium' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Khoj Version: $HATCH_VERSION" >> $GITHUB_STEP_SUMMARY
+          echo "- Chat Model: $CHAT_MODEL" >> $GITHUB_STEP_SUMMARY
+          echo "- Code Sandbox: $CODE_SANDBOX" >> $GITHUB_STEP_SUMMARY
           echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
           tail -n +2 *_evaluation_summary_*.txt >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
