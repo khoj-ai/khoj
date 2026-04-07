@@ -5,7 +5,8 @@ from urllib.parse import quote
 import markdown_it
 import resend
 from django.conf import settings
-from jinja2 import Environment, FileSystemLoader
+from jinja2 import Environment, FileSystemLoader, select_autoescape
+from markupsafe import Markup
 
 from khoj.utils.helpers import is_none_or_empty
 
@@ -17,7 +18,7 @@ RESEND_AUDIENCE_ID = os.getenv("RESEND_AUDIENCE_ID")
 
 static_files = os.path.join(settings.BASE_DIR, "static")
 
-env = Environment(loader=FileSystemLoader(static_files))
+env = Environment(loader=FileSystemLoader(static_files), autoescape=select_autoescape(["html", "xml"]))
 
 if not RESEND_API_KEY:
     logger.warning("RESEND_API_KEY not set - email sending disabled")
@@ -123,7 +124,7 @@ def send_task_email(name, email, query, result, subject, is_image=False):
         result = f"![{subject}]({image})"
 
     html_result = markdown_it.MarkdownIt().render(result)
-    html_content = template.render(name=name, subject=subject, query=query, result=html_result)
+    html_content = template.render(name=name, subject=subject, query=query, result=Markup(html_result))
 
     r = resend.Emails.send(
         {
