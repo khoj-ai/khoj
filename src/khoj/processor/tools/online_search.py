@@ -46,6 +46,8 @@ FIRECRAWL_API_KEY = os.getenv("FIRECRAWL_API_KEY")
 SEARXNG_URL = os.getenv("KHOJ_SEARXNG_URL")
 # Exa API credentials
 EXA_API_KEY = os.getenv("EXA_API_KEY")
+# Xquik API credentials (X/Twitter search)
+XQUIK_API_KEY = os.getenv("XQUIK_API_KEY")
 
 # Whether to automatically read web pages from search results
 AUTO_READ_WEBPAGE = is_env_var_true("KHOJ_AUTO_READ_WEBPAGE")
@@ -114,6 +116,9 @@ async def search_online(
     if SEARXNG_URL:
         search_engine = "Searxng"
         search_engines.append((search_engine, search_with_searxng))
+    if XQUIK_API_KEY:
+        search_engine = "Xquik"
+        search_engines.append((search_engine, search_with_xquik))
 
     if send_status_func:
         subqueries_str = "\n- " + "\n- ".join(subqueries)
@@ -355,6 +360,70 @@ async def search_with_searxng(query: str, location: LocationData) -> Tuple[str, 
 
         except Exception as e:
             logger.error(f"Error searching with SearXNG: {str(e)}")
+            return query, {}
+
+
+async def search_with_xquik(query: str, location: LocationData) -> Tuple[str, Dict[str, List[Dict]]]:
+    """
+    Search X/Twitter using Xquik API.
+    Returns real-time social media perspectives, expert opinions, and community sentiment.
+
+    Args:
+        query: The search query string
+        location: Location data (unused — X/Twitter search is global)
+
+    Returns:
+        Tuple containing the original query and a dictionary of search results
+    """
+    xquik_api_url = "https://xquik.com/api/v1/x/tweets/search"
+    headers = {"X-API-Key": XQUIK_API_KEY, "Accept": "application/json"}
+    params = {"q": query, "limit": "10", "queryType": "Top"}
+
+    async with aiohttp.ClientSession() as session:
+        try:
+            async with session.get(
+                xquik_api_url, headers=headers, params=params, timeout=WEBPAGE_REQUEST_TIMEOUT
+            ) as response:
+                if response.status != 200:
+                    error_text = await response.text()
+                    logger.error(f"Xquik search failed: {error_text[:200]}")
+                    return query, {}
+
+                response_json = await response.json()
+                tweets = response_json.get("tweets", [])
+
+                if is_none_or_empty(tweets):
+                    return query, {}
+
+                organic_results = []
+                for tweet in tweets:
+                    author = tweet.get("author", {})
+                    username = author.get("username", "unknown")
+                    text = tweet.get("text", "")
+                    tweet_id = tweet.get("id", "")
+
+                    likes = tweet.get("likeCount", 0)
+                    retweets = tweet.get("retweetCount", 0)
+                    views = tweet.get("viewCount", 0)
+
+                    engagement = f"{likes} likes, {retweets} RTs"
+                    if views:
+                        engagement += f", {views} views"
+
+                    organic_results.append(
+                        {
+                            "title": f"@{username}: {text[:120]}",
+                            "link": f"https://x.com/{username}/status/{tweet_id}",
+                            "snippet": text,
+                            "content": f"Tweet by @{username}:\n\n{text}\n\nEngagement: {engagement}\n\n"
+                            f"Source: X/Twitter (social media post, represents real-time opinion)",
+                        }
+                    )
+
+                return query, {"organic": organic_results}
+
+        except Exception as e:
+            logger.error(f"Error searching with Xquik: {str(e)}")
             return query, {}
 
 
