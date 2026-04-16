@@ -9,3 +9,4 @@ scripts/
 src/interface/
 src/telemetry/
 !src/interface/web
+data/
