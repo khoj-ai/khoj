@@ -7,7 +7,13 @@ import "intl-tel-input/styles";
 import { Suspense, useEffect, useState } from "react";
 import { useToast } from "@/components/ui/use-toast";
 
-import { useUserConfig, ModelOptions, UserConfig, SubscriptionStates, isUserSubscribed } from "../common/auth";
+import {
+    useUserConfig,
+    ModelOptions,
+    UserConfig,
+    SubscriptionStates,
+    isUserSubscribed,
+} from "../common/auth";
 import { toTitleCase, useIsMobileWidth } from "../common/utils";
 
 import { isValidPhoneNumber } from "libphonenumber-js";
@@ -42,7 +48,7 @@ import {
     DialogContent,
     DialogHeader,
     DialogTitle,
-    DialogTrigger
+    DialogTrigger,
 } from "@/components/ui/dialog";
 
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
@@ -572,7 +578,7 @@ export default function SettingsView() {
 
             // Fetch all conversations in batches of 10
             for (let page = 0; page * 10 < total; page++) {
-                const response = await fetch(`/api/chat/export?page=${page}`);
+                const response = await fetch(`/api/chat/export?offset=${page * 10}&limit=10`);
                 const data = await response.json();
                 conversations.push(...data);
 
@@ -643,16 +649,16 @@ export default function SettingsView() {
     const fetchMemories = async () => {
         try {
             console.log("Fetching memories...");
-            const response = await fetch('/api/memories');
-            if (!response.ok) throw new Error('Failed to fetch memories');
+            const response = await fetch("/api/memories");
+            if (!response.ok) throw new Error("Failed to fetch memories");
             const data = await response.json();
             setMemories(data);
         } catch (error) {
-            console.error('Error fetching memories:', error);
+            console.error("Error fetching memories:", error);
             toast({
                 title: "Error",
                 description: "Failed to fetch memories. Please try again.",
-                variant: "destructive"
+                variant: "destructive",
             });
         }
     };
@@ -660,16 +666,16 @@ export default function SettingsView() {
     const handleDeleteMemory = async (id: number) => {
         try {
             const response = await fetch(`/api/memories/${id}`, {
-                method: 'DELETE'
+                method: "DELETE",
             });
-            if (!response.ok) throw new Error('Failed to delete memory');
-            setMemories(memories.filter(memory => memory.id !== id));
+            if (!response.ok) throw new Error("Failed to delete memory");
+            setMemories(memories.filter((memory) => memory.id !== id));
         } catch (error) {
-            console.error('Error deleting memory:', error);
+            console.error("Error deleting memory:", error);
             toast({
                 title: "Error",
                 description: "Failed to delete memory. Please try again.",
-                variant: "destructive"
+                variant: "destructive",
             });
         }
     };
@@ -677,23 +683,21 @@ export default function SettingsView() {
     const handleUpdateMemory = async (id: number, raw: string) => {
         try {
             const response = await fetch(`/api/memories/${id}`, {
-                method: 'PUT',
+                method: "PUT",
                 headers: {
-                    'Content-Type': 'application/json',
+                    "Content-Type": "application/json",
                 },
                 body: JSON.stringify({ raw, memory_id: id }),
             });
-            if (!response.ok) throw new Error('Failed to update memory');
+            if (!response.ok) throw new Error("Failed to update memory");
             const updatedMemory: UserMemorySchema = await response.json();
-            setMemories(memories.map(memory =>
-                memory.id === id ? updatedMemory : memory
-            ));
+            setMemories(memories.map((memory) => (memory.id === id ? updatedMemory : memory)));
         } catch (error) {
-            console.error('Error updating memory:', error);
+            console.error("Error updating memory:", error);
             toast({
                 title: "Error",
                 description: "Failed to update memory. Please try again.",
-                variant: "destructive"
+                variant: "destructive",
             });
         }
     };
@@ -701,9 +705,9 @@ export default function SettingsView() {
     const handleToggleMemory = async (enabled: boolean) => {
         try {
             const response = await fetch(`/api/user/memory?enable_memory=${enabled}`, {
-                method: 'PATCH',
+                method: "PATCH",
             });
-            if (!response.ok) throw new Error('Failed to update memory setting');
+            if (!response.ok) throw new Error("Failed to update memory setting");
             setEnableMemory(enabled);
             toast({
                 title: enabled ? "Memory enabled" : "Memory disabled",
@@ -712,15 +716,14 @@ export default function SettingsView() {
                     : "Khoj will no longer learn or remember from your conversations.",
             });
         } catch (error) {
-            console.error('Error toggling memory:', error);
+            console.error("Error toggling memory:", error);
             toast({
                 title: "Error",
                 description: "Failed to update memory setting. Please try again.",
-                variant: "destructive"
+                variant: "destructive",
             });
         }
     };
-
 
     const syncContent = async (type: string) => {
         try {
@@ -850,119 +853,128 @@ export default function SettingsView() {
                                                 </CardFooter>
                                             </Card>
                                             {isUserSubscribed(userConfig) && (
-                                            <Card id="subscription" className={cardClassName}>
-                                                <CardHeader className="text-xl flex flex-row">
-                                                    <CreditCard className="h-7 w-7 mr-2" />
-                                                    Subscription
-                                                </CardHeader>
-                                                <CardContent className="grid gap-2 overflow-hidden">
-                                                    <p className="text-gray-400">Current Plan</p>
-                                                    {(userConfig.subscription_state === "trial" && (
-                                                        <>
-                                                            <p className="text-xl text-primary/80">
-                                                                Futurist (Trial)
-                                                            </p>
-                                                            <p className="text-gray-400">
-                                                                You are on a{" "}
-                                                                {userConfig.length_of_free_trial}{" "}
-                                                                day trial of the Khoj Futurist plan.
-                                                                Your trial ends on{" "}
-                                                                {
-                                                                    userConfig.subscription_renewal_date
-                                                                }
-                                                                . Check{" "}
-                                                                <a
-                                                                    href="https://khoj.dev/#pricing"
-                                                                    target="_blank"
-                                                                >
-                                                                    pricing page
-                                                                </a>{" "}
-                                                                to compare plans.
-                                                            </p>
-                                                        </>
-                                                    )) ||
-                                                        (userConfig.subscription_state ===
-                                                            "subscribed" && (
+                                                <Card id="subscription" className={cardClassName}>
+                                                    <CardHeader className="text-xl flex flex-row">
+                                                        <CreditCard className="h-7 w-7 mr-2" />
+                                                        Subscription
+                                                    </CardHeader>
+                                                    <CardContent className="grid gap-2 overflow-hidden">
+                                                        <p className="text-gray-400">
+                                                            Current Plan
+                                                        </p>
+                                                        {(userConfig.subscription_state ===
+                                                            "trial" && (
                                                             <>
                                                                 <p className="text-xl text-primary/80">
-                                                                    Futurist
+                                                                    Futurist (Trial)
                                                                 </p>
                                                                 <p className="text-gray-400">
-                                                                    Subscription <b>renews</b> on{" "}
-                                                                    <b>
-                                                                        {
-                                                                            userConfig.subscription_renewal_date
-                                                                        }
-                                                                    </b>
+                                                                    You are on a{" "}
+                                                                    {
+                                                                        userConfig.length_of_free_trial
+                                                                    }{" "}
+                                                                    day trial of the Khoj Futurist
+                                                                    plan. Your trial ends on{" "}
+                                                                    {
+                                                                        userConfig.subscription_renewal_date
+                                                                    }
+                                                                    . Check{" "}
+                                                                    <a
+                                                                        href="https://khoj.dev/#pricing"
+                                                                        target="_blank"
+                                                                    >
+                                                                        pricing page
+                                                                    </a>{" "}
+                                                                    to compare plans.
                                                                 </p>
                                                             </>
                                                         )) ||
-                                                        (userConfig.subscription_state ===
-                                                            "unsubscribed" && (
-                                                            <>
-                                                                <p className="text-xl">Futurist</p>
-                                                                <p className="text-gray-400">
-                                                                    Subscription <b>ends</b> on{" "}
-                                                                    <b>
-                                                                        {
-                                                                            userConfig.subscription_renewal_date
-                                                                        }
-                                                                    </b>
-                                                                </p>
-                                                            </>
-                                                        ))}
-                                                </CardContent>
-                                                <CardFooter className="flex flex-wrap gap-4">
-                                                    {(userConfig.subscription_state ==
-                                                        "subscribed" && (
-                                                        <Button
-                                                            variant="outline"
-                                                            className="hover:text-red-400"
-                                                            onClick={() =>
-                                                                setSubscription("cancel")
-                                                            }
-                                                        >
-                                                            <ArrowCircleDown className="h-5 w-5 mr-2" />
-                                                            Unsubscribe
-                                                        </Button>
-                                                    )) ||
-                                                        (userConfig.subscription_state ==
-                                                            "unsubscribed" && (
+                                                            (userConfig.subscription_state ===
+                                                                "subscribed" && (
+                                                                <>
+                                                                    <p className="text-xl text-primary/80">
+                                                                        Futurist
+                                                                    </p>
+                                                                    <p className="text-gray-400">
+                                                                        Subscription <b>renews</b>{" "}
+                                                                        on{" "}
+                                                                        <b>
+                                                                            {
+                                                                                userConfig.subscription_renewal_date
+                                                                            }
+                                                                        </b>
+                                                                    </p>
+                                                                </>
+                                                            )) ||
+                                                            (userConfig.subscription_state ===
+                                                                "unsubscribed" && (
+                                                                <>
+                                                                    <p className="text-xl">
+                                                                        Futurist
+                                                                    </p>
+                                                                    <p className="text-gray-400">
+                                                                        Subscription <b>ends</b> on{" "}
+                                                                        <b>
+                                                                            {
+                                                                                userConfig.subscription_renewal_date
+                                                                            }
+                                                                        </b>
+                                                                    </p>
+                                                                </>
+                                                            ))}
+                                                    </CardContent>
+                                                    <CardFooter className="flex flex-wrap gap-4">
+                                                        {(userConfig.subscription_state ==
+                                                            "subscribed" && (
                                                             <Button
                                                                 variant="outline"
-                                                                className="text-primary/80 hover:text-primary"
+                                                                className="hover:text-red-400"
                                                                 onClick={() =>
-                                                                    setSubscription("resubscribe")
+                                                                    setSubscription("cancel")
                                                                 }
                                                             >
-                                                                <ArrowCircleUp
-                                                                    weight="bold"
-                                                                    className="h-5 w-5 mr-2"
-                                                                />
-                                                                Resubscribe
+                                                                <ArrowCircleDown className="h-5 w-5 mr-2" />
+                                                                Unsubscribe
                                                             </Button>
                                                         )) ||
-                                                        (
-                                                            <Button
-                                                                variant="outline"
-                                                                className="text-primary/80 hover:text-primary"
-                                                                onClick={() =>
-                                                                    window.open(
-                                                                        `${userConfig.khoj_cloud_subscription_url}?prefilled_email=${userConfig.username}`,
-                                                                        "_blank",
-                                                                        "noopener,noreferrer",
-                                                                    )
-                                                                }
-                                                            >
-                                                                <ArrowCircleUp
-                                                                    weight="bold"
-                                                                    className="h-5 w-5 mr-2"
-                                                                />
-                                                                Subscribe
-                                                            </Button>
-                                                        )}
-                                                </CardFooter>
-                                            </Card>
+                                                            (userConfig.subscription_state ==
+                                                                "unsubscribed" && (
+                                                                <Button
+                                                                    variant="outline"
+                                                                    className="text-primary/80 hover:text-primary"
+                                                                    onClick={() =>
+                                                                        setSubscription(
+                                                                            "resubscribe",
+                                                                        )
+                                                                    }
+                                                                >
+                                                                    <ArrowCircleUp
+                                                                        weight="bold"
+                                                                        className="h-5 w-5 mr-2"
+                                                                    />
+                                                                    Resubscribe
+                                                                </Button>
+                                                            )) || (
+                                                                <Button
+                                                                    variant="outline"
+                                                                    className="text-primary/80 hover:text-primary"
+                                                                    onClick={() =>
+                                                                        window.open(
+                                                                            `${userConfig.khoj_cloud_subscription_url}?prefilled_email=${userConfig.username}`,
+                                                                            "_blank",
+                                                                            "noopener,noreferrer",
+                                                                        )
+                                                                    }
+                                                                >
+                                                                    <ArrowCircleUp
+                                                                        weight="bold"
+                                                                        className="h-5 w-5 mr-2"
+                                                                    />
+                                                                    Subscribe
+                                                                </Button>
+                                                            )}
+                                                    </CardFooter>
+                                                </Card>
                                             )}
                                         </div>
                                     </div>
@@ -1307,18 +1319,27 @@ export default function SettingsView() {
                                                         <Switch
                                                             id="enable-memory"
                                                             checked={enableMemory}
-                                                            onCheckedChange={(checked) => handleToggleMemory(checked)}
-                                                            disabled={serverMemoryMode === "disabled"}
+                                                            onCheckedChange={(checked) =>
+                                                                handleToggleMemory(checked)
+                                                            }
+                                                            disabled={
+                                                                serverMemoryMode === "disabled"
+                                                            }
                                                         />
                                                     </div>
                                                     {serverMemoryMode === "disabled" && (
                                                         <p className="text-xs text-gray-400 mt-2">
-                                                            Memory has been disabled by the server administrator.
+                                                            Memory has been disabled by the server
+                                                            administrator.
                                                         </p>
                                                     )}
                                                 </CardContent>
                                                 <CardFooter className="flex flex-wrap gap-4">
-                                                    <Dialog onOpenChange={(open) => open && fetchMemories()}>
+                                                    <Dialog
+                                                        onOpenChange={(open) =>
+                                                            open && fetchMemories()
+                                                        }
+                                                    >
                                                         <DialogTrigger asChild>
                                                             <Button variant="outline">
                                                                 <Brain className="h-5 w-5 mr-2" />
@@ -1327,19 +1348,27 @@ export default function SettingsView() {
                                                         </DialogTrigger>
                                                         <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
                                                             <DialogHeader>
-                                                                <DialogTitle>Your Memories</DialogTitle>
+                                                                <DialogTitle>
+                                                                    Your Memories
+                                                                </DialogTitle>
                                                             </DialogHeader>
                                                             <div className="grid gap-4 py-4">
                                                                 {memories.map((memory) => (
                                                                     <UserMemory
                                                                         key={memory.id}
                                                                         memory={memory}
-                                                                        onDelete={handleDeleteMemory}
-                                                                        onUpdate={handleUpdateMemory}
+                                                                        onDelete={
+                                                                            handleDeleteMemory
+                                                                        }
+                                                                        onUpdate={
+                                                                            handleUpdateMemory
+                                                                        }
                                                                     />
                                                                 ))}
                                                                 {memories.length === 0 && (
-                                                                    <p className="text-center text-gray-500">No memories found</p>
+                                                                    <p className="text-center text-gray-500">
+                                                                        No memories found
+                                                                    </p>
                                                                 )}
                                                             </div>
                                                         </DialogContent>
