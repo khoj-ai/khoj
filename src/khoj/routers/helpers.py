@@ -91,6 +91,10 @@ from khoj.processor.conversation.google.gemini_chat import (
     converse_gemini,
     gemini_send_message_to_model,
 )
+from khoj.processor.conversation.litellm.litellm_chat import (
+    converse_litellm,
+    litellm_send_message_to_model,
+)
 from khoj.processor.conversation.openai.gpt import (
     converse_openai,
     openai_send_message_to_model,
@@ -179,6 +183,7 @@ async def is_ready_to_chat(user: KhojUser):
                 ChatModel.ModelType.OPENAI,
                 ChatModel.ModelType.ANTHROPIC,
                 ChatModel.ModelType.GOOGLE,
+                ChatModel.ModelType.LITELLM,
             ]
         )
         and user_chat_model.ai_model_api
@@ -1620,6 +1625,18 @@ def send_message_to_model(
             api_base_url=api_base_url,
             tracer=tracer,
         )
+    elif model_type == ChatModel.ModelType.LITELLM:
+        return litellm_send_message_to_model(
+            messages=truncated_messages,
+            api_key=api_key,
+            model=chat_model_name,
+            response_type=response_type,
+            response_schema=response_schema,
+            tools=tools,
+            deepthought=deepthought,
+            api_base_url=api_base_url,
+            tracer=tracer,
+        )
     else:
         raise HTTPException(status_code=500, detail=f"Invalid model type: {model_type}")
 
@@ -1784,6 +1801,16 @@ def send_message_to_model_wrapper_sync(
             model=chat_model_name,
             response_type=response_type,
             response_schema=response_schema,
+            tracer=tracer,
+        )
+    elif model_type == ChatModel.ModelType.LITELLM:
+        return litellm_send_message_to_model(
+            messages=truncated_messages,
+            api_key=api_key,
+            model=chat_model_name,
+            response_type=response_type,
+            response_schema=response_schema,
+            api_base_url=api_base_url,
             tracer=tracer,
         )
     else:
@@ -1994,6 +2021,19 @@ async def agenerate_chat_response(
             api_key = chat_model.ai_model_api.api_key
             api_base_url = chat_model.ai_model_api.api_base_url
             chat_response_generator = converse_gemini(
+                # Query + Context Messages
+                messages,
+                # Model
+                model=chat_model.name,
+                api_key=api_key,
+                api_base_url=api_base_url,
+                deepthought=deepthought,
+                tracer=tracer,
+            )
+        elif chat_model.model_type == ChatModel.ModelType.LITELLM:
+            api_key = chat_model.ai_model_api.api_key
+            api_base_url = chat_model.ai_model_api.api_base_url
+            chat_response_generator = converse_litellm(
                 # Query + Context Messages
                 messages,
                 # Model

@@ -116,6 +116,9 @@ prod = [
 local = [
     "pgserver == 0.1.4",
 ]
+litellm = [
+    "litellm >= 1.30.0",
+]
 dev = [
     "khoj[prod,local]",
     "pytest >= 7.1.2",
