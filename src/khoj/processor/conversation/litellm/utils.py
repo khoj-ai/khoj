@@ -7,7 +7,7 @@ from langchain_core.messages.chat import ChatMessage
 from tenacity import (
     before_sleep_log,
     retry,
-    retry_if_exception_type,
+    retry_if_exception,
     stop_after_attempt,
     wait_random_exponential,
 )
@@ -27,6 +27,27 @@ from khoj.utils.helpers import (
 logger = logging.getLogger(__name__)
 
 MAX_COMPLETION_TOKENS = 16000
+
+
+def _is_transient_litellm_error(exc: BaseException) -> bool:
+    """Matches the OpenAI provider's retry policy: retry only on transient /
+    server-side failures. Avoids retrying on user errors (bad API key, malformed
+    request) which would just waste time and confuse debugging.
+
+    Checked by string name to keep the module importable when ``litellm`` is
+    not installed (litellm is an optional extra).
+    """
+    if isinstance(exc, ValueError):
+        # Covers our own "Empty response" ValueError raised below.
+        return True
+    qualname = f"{type(exc).__module__}.{type(exc).__name__}"
+    return qualname in {
+        "litellm.exceptions.APIConnectionError",
+        "litellm.exceptions.Timeout",
+        "litellm.exceptions.RateLimitError",
+        "litellm.exceptions.InternalServerError",
+        "litellm.exceptions.ServiceUnavailableError",
+    }
 
 
 def format_messages_for_litellm(raw_messages: List[ChatMessage]) -> List[dict]:
@@ -91,7 +112,7 @@ def to_litellm_tools(tools: List[ToolDefinition]) -> List[Dict] | None:
 
 
 @retry(
-    retry=(retry_if_exception_type(Exception)),
+    retry=retry_if_exception(_is_transient_litellm_error),
     wait=wait_random_exponential(min=1, max=10),
     stop=stop_after_attempt(2),
     before_sleep=before_sleep_log(logger, logging.DEBUG),
@@ -160,7 +181,7 @@ def litellm_completion_with_backoff(
 
 
 @retry(
-    retry=(retry_if_exception_type(Exception)),
+    retry=retry_if_exception(_is_transient_litellm_error),
     wait=wait_random_exponential(min=1, max=10),
     stop=stop_after_attempt(3),
     before_sleep=before_sleep_log(logger, logging.WARNING),

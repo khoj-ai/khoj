@@ -61,6 +61,7 @@ async def converse_litellm(
     model: str = "gpt-4o-mini",
     api_key: Optional[str] = None,
     api_base_url: Optional[str] = None,
+    temperature: float = 0.6,
     deepthought: Optional[bool] = False,
     tracer: dict = {},
 ) -> AsyncGenerator[ResponseWithThought, None]:
@@ -70,7 +71,7 @@ async def converse_litellm(
     async for chunk in litellm_chat_completion_with_backoff(
         messages=messages,
         model_name=model,
-        temperature=0.6,
+        temperature=temperature,
         api_key=api_key,
         api_base_url=api_base_url,
         deepthought=deepthought,
