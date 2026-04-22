@@ -1738,6 +1738,7 @@ class ConversationAdapters:
                 ChatModel.ModelType.ANTHROPIC,
                 ChatModel.ModelType.OPENAI,
                 ChatModel.ModelType.GOOGLE,
+                ChatModel.ModelType.LITELLM,
             ]
         ) and chat_model.ai_model_api:
             return chat_model

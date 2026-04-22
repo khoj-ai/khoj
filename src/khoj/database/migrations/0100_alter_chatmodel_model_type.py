@@ -1,0 +1,25 @@
+from django.db import migrations, models
+
+
+class Migration(migrations.Migration):
+
+    dependencies = [
+        ("database", "0099_usermemory"),
+    ]
+
+    operations = [
+        migrations.AlterField(
+            model_name="chatmodel",
+            name="model_type",
+            field=models.CharField(
+                choices=[
+                    ("openai", "Openai"),
+                    ("anthropic", "Anthropic"),
+                    ("google", "Google"),
+                    ("litellm", "Litellm"),
+                ],
+                default="google",
+                max_length=200,
+            ),
+        ),
+    ]
