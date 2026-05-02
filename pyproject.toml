@@ -55,7 +55,7 @@ dependencies = [
     "sentence-transformers == 3.4.1",
     "einops == 0.8.0",
     "transformers >= 4.53.0",
-    "torch == 2.6.0",
+    "torch==2.8.0",
     "uvicorn >= 0.31.1",
     "aiohttp ~= 3.13.0",
     "langchain-text-splitters==1.1.2",
