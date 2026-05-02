@@ -58,7 +58,7 @@ dependencies = [
     "torch == 2.6.0",
     "uvicorn >= 0.31.1",
     "aiohttp ~= 3.13.0",
-    "langchain-text-splitters == 0.3.11",
+    "langchain-text-splitters==1.1.2",
     "langchain-community == 0.3.31",
     "requests >= 2.33.0",
     "anyio ~= 4.8.0",
