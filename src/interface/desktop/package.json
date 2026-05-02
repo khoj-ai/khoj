@@ -10,14 +10,14 @@
   "main": "main.js",
   "private": false,
   "devDependencies": {
-    "electron": "35.7.5"
+    "electron": "39.8.5"
   },
   "scripts": {
     "start": "yarn electron ."
   },
   "dependencies": {
     "@todesktop/runtime": "^2.0.0",
-    "axios": "^1.13.5",
+    "axios": "^1.15.0",
     "cron": "^2.4.3",
     "electron-store": "^8.1.0"
   },
