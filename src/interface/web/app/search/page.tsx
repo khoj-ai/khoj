@@ -315,19 +315,19 @@ const UploadFiles: React.FC<{
             if (!warning && !error) {
                 // Force close the dialog by simulating a click on the escape key
                 const event = new KeyboardEvent("keydown", { key: "Escape" });
-                document.dispatchEvent(event);
+                activeDocument.dispatchEvent(event);
             }
         }
 
         if (uploading) {
-            const interval = setInterval(() => {
+            const interval = activeWindow.setInterval(() => {
                 setProgressValue((prev) => {
                     const increment = Math.floor(Math.random() * 5) + 1; // Generates a random number between 1 and 5
                     const nextValue = prev + increment;
                     return nextValue < 100 ? nextValue : 100; // Ensures progress does not exceed 100
                 });
             }, 800);
-            return () => clearInterval(interval);
+            return () => activeWindow.clearInterval(interval);
         }
     }, [uploading]);
 
@@ -630,12 +630,12 @@ export default function Search() {
 
         // Clear previous search timeout
         if (searchTimeoutRef.current) {
-            clearTimeout(searchTimeoutRef.current);
+            activeWindow.clearTimeout(searchTimeoutRef.current);
         }
 
         // Debounce search
         if (value.trim()) {
-            searchTimeoutRef.current = setTimeout(() => {
+            searchTimeoutRef.current = activeWindow.setTimeout(() => {
                 search();
             }, 750);
         }
@@ -718,12 +718,12 @@ export default function Search() {
     const handleDownload = (fileName: string, content: string) => {
         const blob = new Blob([content], { type: "text/plain" });
         const url = window.URL.createObjectURL(blob);
-        const a = document.createElement("a");
+        const a = activeDocument.createEl("a");
         a.href = url;
         a.download = `${fileName.split("/").pop()}.txt`;
-        document.body.appendChild(a);
+        activeDocument.body.appendChild(a);
         a.click();
-        document.body.removeChild(a);
+        activeDocument.body.removeChild(a);
         window.URL.revokeObjectURL(url);
     };
 

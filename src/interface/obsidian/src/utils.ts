@@ -213,7 +213,7 @@ export async function updateContentIndex(
             if (onProgress) {
                 onProgress({ processed: processedFiles, total: totalFiles });
             }
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error('Khoj: Failed to upload batch:', err);
             if (err.message?.includes('429')) {
                 error_message = `❗️Requests were throttled. Upgrade your subscription or try again later.`;
@@ -270,7 +270,7 @@ export async function createNote(name: string, newLeaf = false): Promise<void> {
         }
         await this.app.workspace.openLinkText(`${pathPrefix}${name}.md`, '', newLeaf)
     } catch (e) {
-        console.error('Khoj: Could not create note.\n' + (e as any).message);
+        console.error('Khoj: Could not create note.\n' + (e as unknown).message);
         throw e
     }
 }
@@ -294,8 +294,8 @@ export async function canConnectToBackend(
     let connectedToBackend = false;
     let userInfo: UserInfo | null = null;
 
-    if (!!khojUrl) {
-        let headers = !!khojApiKey ? { "Authorization": `Bearer ${khojApiKey}` } : undefined;
+    if (khojUrl) {
+        let headers = khojApiKey ? { "Authorization": `Bearer ${khojApiKey}` } : undefined;
         try {
             let response = await request({ url: `${khojUrl}/api/v1/user`, method: "GET", headers: headers })
             connectedToBackend = true;
@@ -364,12 +364,12 @@ export async function populateHeaderPane(headerEl: Element, setting: KhojSetting
     chatLink.dataset.view = KhojView.CHAT;
 
     // Create the chat icon
-    const chatIcon = chatLink.createEl('span');
+    const chatIcon = chatLink.createSpan();
     chatIcon.className = 'khoj-nav-icon khoj-nav-icon-chat';
     setIcon(chatIcon, 'khoj-chat');
 
     // Create the chat text
-    const chatText = chatLink.createEl('span');
+    const chatText = chatLink.createSpan();
     chatText.className = 'khoj-nav-item-text';
     chatText.textContent = 'Chat';
 
@@ -383,12 +383,12 @@ export async function populateHeaderPane(headerEl: Element, setting: KhojSetting
     searchLink.className = 'khoj-nav search-nav';
 
     // Create the search icon
-    const searchIcon = searchLink.createEl('span');
+    const searchIcon = searchLink.createSpan();
     searchIcon.className = 'khoj-nav-icon khoj-nav-icon-search';
     setIcon(searchIcon, 'khoj-search');
 
     // Create the search text
-    const searchText = searchLink.createEl('span');
+    const searchText = searchLink.createSpan();
     searchText.className = 'khoj-nav-item-text';
     searchText.textContent = 'Search';
 
@@ -403,13 +403,13 @@ export async function populateHeaderPane(headerEl: Element, setting: KhojSetting
     similarLink.dataset.view = KhojView.SIMILAR;
 
     // Create the similar icon
-    const similarIcon = similarLink.createEl('span');
+    const similarIcon = similarLink.createSpan();
     similarIcon.id = 'similar-nav-icon';
     similarIcon.className = 'khoj-nav-icon khoj-nav-icon-similar';
     setIcon(similarIcon, 'webhook');
 
     // Create the similar text
-    const similarText = similarLink.createEl('span');
+    const similarText = similarLink.createSpan();
     similarText.className = 'khoj-nav-item-text';
     similarText.textContent = 'Similar';
 
@@ -485,7 +485,7 @@ export async function populateHeaderPane(headerEl: Element, setting: KhojSetting
                 // First activate the chat view
                 khojPlugin.activateView(KhojView.CHAT).then(() => {
                     // Then create a new conversation
-                    setTimeout(() => {
+                    activeWindow.setTimeout(() => {
                         // Access the chat view directly from the leaf after activation
                         const leaves = this.app.workspace.getLeavesOfType(KhojView.CHAT);
                         if (leaves.length > 0) {
@@ -537,18 +537,18 @@ export enum KhojView {
 function copyParentText(event: MouseEvent, message: string, originalButton: string) {
     const button = event.currentTarget as HTMLElement;
     if (!button || !button?.parentNode?.textContent) return;
-    if (!!button.firstChild) button.removeChild(button.firstChild as HTMLImageElement);
+    if (button.firstChild) button.removeChild(button.firstChild as HTMLImageElement);
     const textContent = message ?? button.parentNode.textContent.trim();
     navigator.clipboard.writeText(textContent).then(() => {
         setIcon((button as HTMLElement), 'copy-check');
-        setTimeout(() => {
+        activeWindow.setTimeout(() => {
             setIcon((button as HTMLElement), originalButton);
         }, 1000);
     }).catch((error) => {
         console.error("Error copying text to clipboard:", error);
         const originalButtonText = button.innerHTML;
         setIcon((button as HTMLElement), 'x-circle');
-        setTimeout(() => {
+        activeWindow.setTimeout(() => {
             button.innerHTML = originalButtonText;
             setIcon((button as HTMLElement), originalButton);
         }, 2000);
@@ -664,7 +664,7 @@ export async function fetchChatModels(settings: KhojSetting): Promise<ModelOptio
         if (response.ok) {
             const modelsData = await response.json();
             if (Array.isArray(modelsData)) {
-                return modelsData.map((model: any) => ({
+                return modelsData.map((model: unknown) => ({
                     id: model.id.toString(),
                     name: model.name,
                 }));

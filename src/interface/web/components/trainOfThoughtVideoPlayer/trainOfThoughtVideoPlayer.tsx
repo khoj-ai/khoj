@@ -36,7 +36,7 @@ export default function TrainOfThoughtVideoPlayer({
     // Handle playback
     useEffect(() => {
         if (isPlaying && frames.length > 1) {
-            intervalRef.current = setInterval(() => {
+            intervalRef.current = activeWindow.setInterval(() => {
                 setCurrentFrameIndex((prev) => {
                     const next = prev + 1;
                     if (next >= frames.length) {
@@ -48,14 +48,14 @@ export default function TrainOfThoughtVideoPlayer({
             }, playbackSpeed);
         } else {
             if (intervalRef.current) {
-                clearInterval(intervalRef.current);
+                activeWindow.clearInterval(intervalRef.current);
                 intervalRef.current = null;
             }
         }
 
         return () => {
             if (intervalRef.current) {
-                clearInterval(intervalRef.current);
+                activeWindow.clearInterval(intervalRef.current);
             }
         };
     }, [isPlaying, frames.length, playbackSpeed]);

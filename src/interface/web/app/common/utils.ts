@@ -95,15 +95,15 @@ export function useIsDarkMode() {
 
     useEffect(() => {
         if (localStorage.getItem("theme") === "dark") {
-            document.documentElement.classList.add("dark");
+            activeDocument.documentElement.classList.add("dark");
             setDarkMode(true);
         } else if (localStorage.getItem("theme") === "light") {
-            document.documentElement.classList.remove("dark");
+            activeDocument.documentElement.classList.remove("dark");
             setDarkMode(false);
         } else {
             const mq = window.matchMedia("(prefers-color-scheme: dark)");
             if (mq.matches) {
-                document.documentElement.classList.add("dark");
+                activeDocument.documentElement.classList.add("dark");
                 setDarkMode(true);
             }
         }
@@ -113,9 +113,9 @@ export function useIsDarkMode() {
     useEffect(() => {
         if (!initialLoadDone) return;
         if (darkMode) {
-            document.documentElement.classList.add("dark");
+            activeDocument.documentElement.classList.add("dark");
         } else {
-            document.documentElement.classList.remove("dark");
+            activeDocument.documentElement.classList.remove("dark");
         }
         localStorage.setItem("theme", darkMode ? "dark" : "light");
     }, [darkMode, initialLoadDone]);
@@ -137,12 +137,12 @@ export function useDebounce<T>(value: T, delay: number): T {
     const [debouncedValue, setDebouncedValue] = useState<T>(value);
 
     useEffect(() => {
-        const handler = setTimeout(() => {
+        const handler = activeWindow.setTimeout(() => {
             setDebouncedValue(value);
         }, delay);
 
         return () => {
-            clearTimeout(handler);
+            activeWindow.clearTimeout(handler);
         };
     }, [value, delay]);
 

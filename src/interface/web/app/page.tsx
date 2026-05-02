@@ -289,7 +289,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
     // Close the agent detail hover card when scroll on agent pane
     useEffect(() => {
         const scrollAreaSelector = "[data-radix-scroll-area-viewport]";
-        const scrollAreaEl = document.querySelector<HTMLElement>(scrollAreaSelector);
+        const scrollAreaEl = activeDocument.querySelector<HTMLElement>(scrollAreaSelector);
         const handleScroll = () => {
             setHoveredAgent(null);
             setIsPopoverOpen(false);

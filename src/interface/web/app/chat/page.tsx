@@ -234,7 +234,7 @@ export default function Chat() {
 
     const disconnectFromServer = useCallback(() => {
         if (idleTimerRef.current) {
-            clearTimeout(idleTimerRef.current);
+            activeWindow.clearTimeout(idleTimerRef.current);
         }
         // Mark as intentional so onClose does not show transient network error banner
         intentionalCloseRef.current = true;
@@ -245,9 +245,9 @@ export default function Chat() {
     const resetIdleTimer = useCallback(() => {
         const idleTimeout = 10 * 60 * 1000; // 10 minutes
         if (idleTimerRef.current) {
-            clearTimeout(idleTimerRef.current);
+            activeWindow.clearTimeout(idleTimerRef.current);
         }
-        idleTimerRef.current = setTimeout(disconnectFromServer, idleTimeout);
+        idleTimerRef.current = activeWindow.setTimeout(disconnectFromServer, idleTimeout);
     }, [disconnectFromServer]);
 
     const { toast } = useToast();
@@ -272,7 +272,7 @@ export default function Chat() {
         onClose: (event) => {
             console.log("WebSocket connection closed.");
             if (idleTimerRef.current) {
-                clearTimeout(idleTimerRef.current);
+                activeWindow.clearTimeout(idleTimerRef.current);
             }
             // Suppress notice if:
             //  - Intentional close (page refresh/navigation or idle management)
@@ -498,7 +498,7 @@ export default function Chat() {
 
         return () => {
             if (idleTimerRef.current) {
-                clearTimeout(idleTimerRef.current);
+                activeWindow.clearTimeout(idleTimerRef.current);
             }
         };
     }, [conversationId]);

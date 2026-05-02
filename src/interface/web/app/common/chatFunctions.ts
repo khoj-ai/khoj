@@ -64,8 +64,8 @@ export function convertMessageChunkToJson(chunk: string): MessageChunk {
     }
 }
 
-function handleJsonResponse(chunkData: any) {
-    const jsonData = chunkData as any;
+function handleJsonResponse(chunkData: unknown) {
+    const jsonData = chunkData as unknown;
     if (jsonData.image || jsonData.detail) {
         let responseWithIntent = handleImageResponse(chunkData, true);
         return responseWithIntent;
@@ -179,7 +179,7 @@ export function processMessageChunk(
     return { context, onlineContext, codeContext };
 }
 
-export function handleImageResponse(imageJson: any, liveStream: boolean): ResponseWithIntent {
+export function handleImageResponse(imageJson: unknown, liveStream: boolean): ResponseWithIntent {
     let rawResponse = "";
 
     if (imageJson.image) {

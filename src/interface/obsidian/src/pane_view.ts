@@ -35,7 +35,7 @@ export abstract class KhojPaneView extends ItemView {
         }
         // The similar-nav event listener is already set in utils.ts
         let similarNavSvgEl = headerEl.getElementsByClassName("khoj-nav-icon-similar")[0]?.firstElementChild;
-        if (!!similarNavSvgEl) similarNavSvgEl.id = "similar-nav-icon-svg";
+        if (similarNavSvgEl) similarNavSvgEl.id = "similar-nav-icon-svg";
     }
 
     async activateView(viewType: string) {

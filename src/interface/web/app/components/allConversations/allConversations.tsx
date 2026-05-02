@@ -691,7 +691,7 @@ export function ChatSessionActionMenu(props: ChatSessionActionMenuProps) {
 function ChatSession(props: ChatHistory) {
     const [isHovered, setIsHovered] = useState(false);
     const [title, setTitle] = useState(props.slug || "New Conversation 🌱");
-    var currConversationId =
+    let currConversationId =
         new URLSearchParams(window.location.search).get("conversationId") || "-1";
     return (
         <SidebarMenuItem

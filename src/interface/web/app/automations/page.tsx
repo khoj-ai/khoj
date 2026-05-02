@@ -152,9 +152,9 @@ const timeOptions: string[] = [];
 const timePeriods = ["AM", "PM"];
 
 // Populate the time selector with options for each hour of the day
-for (var i = 0; i < timePeriods.length; i++) {
-    for (var hour = 0; hour < 12; hour++) {
-        for (var minute = 0; minute < 60; minute += 15) {
+for (let i = 0; i < timePeriods.length; i++) {
+    for (let hour = 0; hour < 12; hour++) {
+        for (let minute = 0; minute < 60; minute += 15) {
             // Ensure all minutes are two digits
             const paddedMinute = String(minute).padStart(2, "0");
             const friendlyHour = hour === 0 ? 12 : hour;
@@ -623,7 +623,7 @@ function AutomationModificationForm(props: AutomationModificationFormProps) {
 
     function recommendationPill(
         recommendationText: string,
-        onChange: (value: any, event: React.MouseEvent<HTMLButtonElement>) => void,
+        onChange: (value: unknown, event: React.MouseEvent<HTMLButtonElement>) => void,
     ) {
         return (
             <Button

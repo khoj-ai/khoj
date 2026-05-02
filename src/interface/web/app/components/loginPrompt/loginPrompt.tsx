@@ -53,7 +53,7 @@ export default function LoginPrompt(props: LoginPromptProps) {
     const [useEmailSignIn, setUseEmailSignIn] = useState(false);
 
     useEffect(() => {
-        const google = (window as any).google;
+        const google = (window as unknown).google;
 
         if (!google) return;
 
@@ -66,7 +66,7 @@ export default function LoginPrompt(props: LoginPromptProps) {
         });
 
         // Render the button
-        google.accounts.id.renderButton(document.getElementById("g_id_signin")!, {
+        google.accounts.id.renderButton(activeDocument.getElementById("g_id_signin")!, {
             theme: "outline",
             size: "large",
             width: "100%",
@@ -94,7 +94,7 @@ export default function LoginPrompt(props: LoginPromptProps) {
     };
 
     const handleGoogleScriptLoad = () => {
-        const google = (window as any).google;
+        const google = (window as unknown).google;
 
         if (!data?.google?.client_id || !data?.google?.redirect_uri) return;
 
@@ -107,7 +107,7 @@ export default function LoginPrompt(props: LoginPromptProps) {
         });
 
         // Render the button
-        google.accounts.id.renderButton(document.getElementById("g_id_signin")!, {
+        google.accounts.id.renderButton(activeDocument.getElementById("g_id_signin")!, {
             theme: "outline",
             size: "large",
             width: "100%",
@@ -307,7 +307,7 @@ function EmailSignInContext({
                         onChange={setOTP}
                         disabled={numFailures >= ALLOWED_OTP_ATTEMPTS}
                         onComplete={() =>
-                            setTimeout(() => {
+                            activeWindow.setTimeout(() => {
                                 checkOTPAndRedirect();
                             }, 1000)
                         }

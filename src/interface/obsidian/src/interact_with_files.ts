@@ -72,7 +72,7 @@ export class FileInteractions {
     private getRecentActiveMarkdownFiles(N: number): TFile[] {
         const seen = new Set<string>();
         const recentActiveFiles = this.app.workspace.getLeavesOfType('markdown')
-            .sort((a, b) => (b as any).activeTime - (a as any).activeTime) // Sort by leaf activeTime (note: undocumented prop)
+            .sort((a, b) => (b as unknown).activeTime - (a as unknown).activeTime) // Sort by leaf activeTime (note: undocumented prop)
             .map(leaf => (leaf.view as MarkdownView)?.file)
             // Dedupe by file path
             .filter((file): file is TFile => {
@@ -885,7 +885,7 @@ For context, the user is currently working on the following files:
     public transformEditBlocks(message: string): string {
         // Get all open markdown files
         const files = this.app.workspace.getLeavesOfType('markdown')
-            .map(leaf => (leaf.view as any)?.file)
+            .map(leaf => (leaf.view as unknown)?.file)
             .filter(file => file && file.extension === 'md');
 
         // Detect all edit blocks, including partial ones

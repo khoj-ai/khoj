@@ -90,7 +90,7 @@ export class KhojSettingTab extends PluginSettingTab {
             this.plugin.settings.khojApiKey
         );
 
-        const connectHeaderEl = containerEl.createEl('h3', { title: backendStatusMessage });
+        const connectHeaderEl = new Setting(containerEl).setName("").setHeading();
         const connectHeaderContentEl = connectHeaderEl.createSpan({ cls: 'khoj-connect-settings-header' });
         const connectTitleEl = connectHeaderContentEl.createSpan({ text: 'Connect' });
         const backendStatusEl = connectTitleEl.createSpan({ text: this.connectStatusIcon(), cls: 'khoj-connect-settings-header-status' });
@@ -140,7 +140,7 @@ export class KhojSettingTab extends PluginSettingTab {
                 }));
 
         // Add API key setting description with link to get API key
-        apiKeySetting.descEl.createEl('span', {
+        apiKeySetting.descEl.createSpan({
             text: 'Connect your Khoj Cloud account. ',
         });
         apiKeySetting.descEl.createEl('a', {
@@ -173,7 +173,7 @@ export class KhojSettingTab extends PluginSettingTab {
                 }));
 
         // Interact section
-        containerEl.createEl('h3', { text: 'Interact' });
+        new Setting(containerEl).setName("Interact").setHeading();
 
         // Chat Model Dropdown
         this.renderChatModelDropdown();
@@ -181,7 +181,7 @@ export class KhojSettingTab extends PluginSettingTab {
         // Initial fetch of models and server preference if connected
         if (this.plugin.settings.connectedToBackend) {
             // Defer slightly to ensure UI is ready and avoid race conditions
-            setTimeout(async () => {
+            activeWindow.setTimeout(async () => {
                 await this.refreshModelsAndServerPreference();
             }, 1000);
         }
@@ -210,7 +210,7 @@ export class KhojSettingTab extends PluginSettingTab {
                 }));
 
         // Add new "Sync" heading
-        containerEl.createEl('h3', { text: 'Sync' });
+        new Setting(containerEl).setName("Sync").setHeading();
 
         new Setting(containerEl)
             .setName('Auto Sync')
@@ -367,8 +367,8 @@ export class KhojSettingTab extends PluginSettingTab {
                     this.plugin.registerInterval(progress_indicator);
 
                     // Obtain sync progress elements by id (created below)
-                    const syncProgressEl = document.getElementById('khoj-sync-progress') as HTMLProgressElement | null;
-                    const syncProgressText = document.getElementById('khoj-sync-progress-text') as HTMLElement | null;
+                    const syncProgressEl = activeDocument.getElementById('khoj-sync-progress') as HTMLProgressElement | null;
+                    const syncProgressText = activeDocument.getElementById('khoj-sync-progress-text') as HTMLElement | null;
 
                     if (syncProgressEl && syncProgressText) {
                         syncProgressEl.style.display = '';
@@ -379,8 +379,8 @@ export class KhojSettingTab extends PluginSettingTab {
                     }
 
                     const onProgress = (progress: { processed: number, total: number }) => {
-                        const el = document.getElementById('khoj-sync-progress') as HTMLProgressElement | null;
-                        const txt = document.getElementById('khoj-sync-progress-text') as HTMLElement | null;
+                        const el = activeDocument.getElementById('khoj-sync-progress') as HTMLProgressElement | null;
+                        const txt = activeDocument.getElementById('khoj-sync-progress-text') as HTMLElement | null;
                         if (!el || !txt) return;
                         el.max = Math.max(progress.total, 1);
                         el.value = Math.min(progress.processed, el.max);
@@ -393,8 +393,8 @@ export class KhojSettingTab extends PluginSettingTab {
                         );
                     } finally {
                         // Cleanup: hide sync progress UI
-                        const el = document.getElementById('khoj-sync-progress') as HTMLProgressElement | null;
-                        const txt = document.getElementById('khoj-sync-progress-text') as HTMLElement | null;
+                        const el = activeDocument.getElementById('khoj-sync-progress') as HTMLProgressElement | null;
+                        const txt = activeDocument.getElementById('khoj-sync-progress-text') as HTMLElement | null;
                         if (el) el.style.display = 'none';
                         if (txt) txt.style.display = 'none';
                         this.refreshStorageDisplay();
@@ -414,23 +414,23 @@ export class KhojSettingTab extends PluginSettingTab {
             .then(() => { });
 
         // Create custom elements: progress and text for storage estimation
-        this.storageProgressEl = document.createElement('progress');
+        this.storageProgressEl = activeDocument.createEl('progress');
         this.storageProgressEl.value = 0;
         this.storageProgressEl.max = 1;
         this.storageProgressEl.style.width = '100%';
-        this.storageProgressText = document.createElement('span');
+        this.storageProgressText = activeDocument.createSpan();
         this.storageProgressText.textContent = 'Calculating...';
         storageSetting.descEl.appendChild(this.storageProgressEl);
         storageSetting.descEl.appendChild(this.storageProgressText);
 
         // Create progress bar for Force Sync operation (hidden by default)
-        const syncProgressEl = document.createElement('progress');
+        const syncProgressEl = activeDocument.createEl('progress');
         syncProgressEl.id = 'khoj-sync-progress';
         syncProgressEl.value = 0;
         syncProgressEl.max = 1;
         syncProgressEl.style.width = '100%';
         syncProgressEl.style.display = 'none';
-        const syncProgressText = document.createElement('span');
+        const syncProgressText = activeDocument.createSpan();
         syncProgressText.id = 'khoj-sync-progress-text';
         syncProgressText.textContent = '';
         syncProgressText.style.display = 'none';
@@ -600,7 +600,7 @@ export class KhojSettingTab extends PluginSettingTab {
     ) {
         containerEl.empty();
         if (folders.length === 0) {
-            containerEl.createEl('div', {
+            containerEl.createDiv({
                 text: emptyText,
                 cls: 'folder-list-empty'
             });

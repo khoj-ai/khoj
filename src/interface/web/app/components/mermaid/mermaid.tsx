@@ -57,7 +57,7 @@ const Mermaid: React.FC<MermaidProps> = ({ chart }) => {
             const [, , viewBoxWidth, viewBoxHeight] = viewBox;
 
             // Create canvas with viewBox dimensions
-            const canvas = document.createElement("canvas");
+            const canvas = activeDocument.createEl("canvas");
             const scale = 2; // For better resolution
             canvas.width = viewBoxWidth * scale;
             canvas.height = viewBoxHeight * scale;
@@ -86,7 +86,7 @@ const Mermaid: React.FC<MermaidProps> = ({ chart }) => {
                         }
 
                         const url = URL.createObjectURL(blob);
-                        const a = document.createElement("a");
+                        const a = activeDocument.createEl("a");
                         a.href = url;
                         a.download = `mermaid-diagram-${Date.now()}.png`;
                         a.click();

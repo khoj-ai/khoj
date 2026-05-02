@@ -15,14 +15,14 @@ export interface ChatJsonResult {
 
 interface MessageChunk {
     type: string;
-    data: any;
+    data: unknown;
 }
 
 interface ChatMessageState {
     newResponseTextEl: HTMLDivElement | null;
     newResponseEl: HTMLDivElement | null;
     loadingEllipsis: HTMLDivElement | null;
-    references: { [key: string]: any };
+    references: { [key: string]: unknown };
     rawResponse: string;
     rawQuery: string;
     isVoice: boolean;
@@ -383,11 +383,11 @@ export class KhojChatView extends KhojPaneView {
 
     startSpeechToText(event: KeyboardEvent | MouseEvent | TouchEvent, timeout = 200) {
         if (!this.keyPressTimeout) {
-            this.keyPressTimeout = setTimeout(async () => {
+            this.keyPressTimeout = activeWindow.setTimeout(async () => {
                 // Reset auto send voice message timer, UI if running
                 if (this.sendMessageTimeout) {
                     // Stop the auto send voice message countdown timer UI
-                    clearTimeout(this.sendMessageTimeout);
+                    activeWindow.clearTimeout(this.sendMessageTimeout);
                     const sendButton = <HTMLButtonElement>this.contentEl.getElementsByClassName("khoj-chat-send")[0]
                     setIcon(sendButton, "arrow-up-circle")
                     let sendImg = <SVGElement>sendButton.getElementsByClassName("lucide-arrow-up-circle")[0]
@@ -406,7 +406,7 @@ export class KhojChatView extends KhojPaneView {
             await this.speechToText(event);
         }
         if (this.keyPressTimeout) {
-            clearTimeout(this.keyPressTimeout);
+            activeWindow.clearTimeout(this.keyPressTimeout);
             this.keyPressTimeout = null;
         }
     }
@@ -421,7 +421,7 @@ export class KhojChatView extends KhojPaneView {
         if (event.key === 's' && event.getModifierState('Control')) await this.stopSpeechToText(event);
     }
 
-    processOnlineReferences(referenceSection: HTMLElement, onlineContext: any) {
+    processOnlineReferences(referenceSection: HTMLElement, onlineContext: unknown) {
         let numOnlineReferences = 0;
         for (let subquery in onlineContext) {
             let onlineReference = onlineContext[subquery];
@@ -465,7 +465,7 @@ export class KhojChatView extends KhojPaneView {
         return numOnlineReferences;
     }
 
-    generateOnlineReference(messageEl: Element, reference: any, index: string) {
+    generateOnlineReference(messageEl: Element, reference: unknown, index: string) {
         // Generate HTML for Chat Reference
         let title = reference.title || reference.link;
         let link = reference.link;
@@ -502,7 +502,7 @@ export class KhojChatView extends KhojPaneView {
         return referenceButton;
     }
 
-    generateReference(messageEl: Element, referenceJson: any, index: number) {
+    generateReference(messageEl: Element, referenceJson: unknown, index: number) {
         let reference: string = referenceJson.hasOwnProperty("compiled") ? referenceJson.compiled : referenceJson;
         let referenceFile = referenceJson.hasOwnProperty("file") ? referenceJson.file : null;
 
@@ -521,7 +521,7 @@ export class KhojChatView extends KhojPaneView {
             // Find vault file associated with current reference
             const linkToEntry = getLinkToEntry(mdFiles.concat(pdfFiles), referenceFile, reference);
 
-            const linkElement: Element = referenceButton.createEl('span');
+            const linkElement: Element = referenceButton.createSpan();
             linkElement.setAttribute('title', escaped_ref);
             linkElement.textContent = referenceFile;
             if (linkElement && linkToEntry) {
@@ -557,7 +557,7 @@ export class KhojChatView extends KhojPaneView {
 
     textToSpeech(message: string, event: MouseEvent | null = null): void {
         // Replace the speaker with a loading icon.
-        let loader = document.createElement("span");
+        let loader = activeDocument.createSpan();
         loader.classList.add("loader");
 
         let speechButton: HTMLButtonElement;
@@ -565,10 +565,10 @@ export class KhojChatView extends KhojPaneView {
 
         if (event === null) {
             // Pick the last speech button if none is provided
-            let speechButtons = document.getElementsByClassName("speech-button");
+            let speechButtons = activeDocument.getElementsByClassName("speech-button");
             speechButton = speechButtons[speechButtons.length - 1] as HTMLButtonElement;
 
-            let speechIcons = document.getElementsByClassName("speech-icon");
+            let speechIcons = activeDocument.getElementsByClassName("speech-icon");
             speechIcon = speechIcons[speechIcons.length - 1];
         } else {
             speechButton = event.currentTarget as HTMLButtonElement;
@@ -636,7 +636,7 @@ export class KhojChatView extends KhojPaneView {
 
     markdownTextToSanitizedHtml(markdownText: string, component: ItemView): string {
         // Render markdown to an unlinked DOM element
-        let virtualChatMessageBodyTextEl = document.createElement("div");
+        let virtualChatMessageBodyTextEl = activeDocument.createDiv();
 
         // Convert the message to html
         MarkdownRenderer.render(this.app, markdownText, virtualChatMessageBodyTextEl, '', component);
@@ -728,9 +728,9 @@ export class KhojChatView extends KhojPaneView {
         }
 
         // If document or online context is provided, render the message with its references
-        let references: any = {};
-        if (!!context) references["notes"] = context;
-        if (!!onlineContext) references["online"] = onlineContext;
+        let references: unknown = {};
+        if (context) references["notes"] = context;
+        if (onlineContext) references["online"] = onlineContext;
         let chatMessageBodyEl = chatMessageEl.getElementsByClassName("khoj-chat-message-text")[0];
         chatMessageBodyEl.appendChild(this.createReferenceSection(references));
     }
@@ -837,7 +837,7 @@ export class KhojChatView extends KhojPaneView {
         const transformedResponse = this.transformEditBlocks(sanitizedResponse);
 
         // Create a temporary element to get the rendered HTML
-        const tempElement = document.createElement('div');
+        const tempElement = activeDocument.createDiv();
         tempElement.innerHTML = this.markdownTextToSanitizedHtml(transformedResponse, this);
 
         // Update the content in separate step for a smoother transition
@@ -1046,14 +1046,14 @@ export class KhojChatView extends KhojPaneView {
         const headers = { 'Authorization': `Bearer ${this.setting.khojApiKey}` };
         try {
             let response = await fetch(chatSessionsUrl, { method: "GET", headers: headers });
-            let responseJson: any = await response.json();
+            let responseJson: unknown = await response.json();
             let conversationId = chatBodyEl.dataset.conversationId;
 
             if (responseJson.length > 0) {
                 conversationListBodyHeaderEl.style.display = "block";
                 for (let key in responseJson) {
                     let conversation = responseJson[key];
-                    let conversationSessionEl = this.contentEl.createEl('div');
+                    let conversationSessionEl = this.contentEl.createDiv();
                     let incomingConversationId = conversation["conversation_id"];
                     conversationSessionEl.classList.add("conversation-session");
                     if (incomingConversationId == conversationId) {
@@ -1069,7 +1069,7 @@ export class KhojChatView extends KhojPaneView {
                         this.getChatHistory(chatBodyEl);
                     });
 
-                    let conversationMenuEl = this.contentEl.createEl('div');
+                    let conversationMenuEl = this.contentEl.createDiv();
                     conversationMenuEl = this.addConversationMenu(
                         conversationMenuEl,
                         conversationSessionEl,
@@ -1158,7 +1158,7 @@ export class KhojChatView extends KhojPaneView {
                         this.getChatHistory(chatBodyEl);
                     });
 
-                    let newConversationMenuEl = this.contentEl.createEl('div');
+                    let newConversationMenuEl = this.contentEl.createDiv();
                     newConversationMenuEl = this.addConversationMenu(
                         newConversationMenuEl,
                         conversationSessionEl,
@@ -1220,7 +1220,7 @@ export class KhojChatView extends KhojPaneView {
                 headers: { "Authorization": `Bearer ${this.setting.khojApiKey}` },
             });
 
-            let responseJson: any = await response.json();
+            let responseJson: unknown = await response.json();
             console.debug("Chat history response:", responseJson);
 
             chatBodyEl.dataset.conversationId = responseJson.conversation_id;
@@ -1254,7 +1254,7 @@ export class KhojChatView extends KhojPaneView {
                 }
 
                 let chatLogs = responseJson.response?.conversation_id ? responseJson.response.chat ?? [] : responseJson.response;
-                chatLogs.forEach((chatLog: any) => {
+                chatLogs.forEach((chatLog: unknown) => {
                     // Convert commands to emojis for user messages
                     if (chatLog.by === "you") {
                         chatLog.message = this.convertCommandsToEmojis(chatLog.message);
@@ -1448,7 +1448,7 @@ export class KhojChatView extends KhojPaneView {
         }
     }
 
-    handleJsonResponse(jsonData: any): void {
+    handleJsonResponse(jsonData: unknown): void {
         if (jsonData.image || jsonData.detail || jsonData.images || jsonData.mermaidjsDiagram) {
             this.chatMessageState.rawResponse = this.handleImageResponse(jsonData, this.chatMessageState.rawResponse);
         } else if (jsonData.response) {
@@ -1617,7 +1617,7 @@ export class KhojChatView extends KhojPaneView {
         // Set placeholder to message
         chatInput.placeholder = message;
         // Reset placeholder after 2 seconds
-        setTimeout(() => {
+        activeWindow.setTimeout(() => {
             chatInput.placeholder = originalPlaceholder;
         }, 2000);
     }
@@ -1717,7 +1717,7 @@ export class KhojChatView extends KhojPaneView {
             stopSendButtonImg.getElementsByTagName("circle")[0].style.color = "var(--icon-color-active)";
 
             // Auto send message after 3 seconds
-            this.sendMessageTimeout = setTimeout(() => {
+            this.sendMessageTimeout = activeWindow.setTimeout(() => {
                 // Stop the countdown timer UI
                 setIcon(sendButton, "arrow-up-circle")
                 let sendImg = <SVGElement>sendButton.getElementsByClassName("lucide-arrow-up-circle")[0]
@@ -1768,7 +1768,7 @@ export class KhojChatView extends KhojPaneView {
 
     cancelSendMessage() {
         // Cancel the auto-send chat message timer if the stop-send-button is clicked
-        clearTimeout(this.sendMessageTimeout);
+        activeWindow.clearTimeout(this.sendMessageTimeout);
 
         // Revert to showing send-button and hide the stop-send-button
         let sendButton = <HTMLButtonElement>this.contentEl.getElementsByClassName("khoj-chat-send")[0];
@@ -1888,24 +1888,24 @@ export class KhojChatView extends KhojPaneView {
 
     scrollChatToBottom() {
         const chat_body_el = this.contentEl.getElementsByClassName("khoj-chat-body")[0];
-        if (!!chat_body_el) chat_body_el.scrollTop = chat_body_el.scrollHeight;
+        if (chat_body_el) chat_body_el.scrollTop = chat_body_el.scrollHeight;
     }
 
     createLoadingEllipse() {
         // Temporary status message to indicate that Khoj is thinking
-        let loadingEllipsis = this.contentEl.createEl("div");
+        let loadingEllipsis = this.contentEl.createDiv();
         loadingEllipsis.classList.add("lds-ellipsis");
 
-        let firstEllipsis = this.contentEl.createEl("div");
+        let firstEllipsis = this.contentEl.createDiv();
         firstEllipsis.classList.add("lds-ellipsis-item");
 
-        let secondEllipsis = this.contentEl.createEl("div");
+        let secondEllipsis = this.contentEl.createDiv();
         secondEllipsis.classList.add("lds-ellipsis-item");
 
-        let thirdEllipsis = this.contentEl.createEl("div");
+        let thirdEllipsis = this.contentEl.createDiv();
         thirdEllipsis.classList.add("lds-ellipsis-item");
 
-        let fourthEllipsis = this.contentEl.createEl("div");
+        let fourthEllipsis = this.contentEl.createDiv();
         fourthEllipsis.classList.add("lds-ellipsis-item");
 
         loadingEllipsis.appendChild(firstEllipsis);
@@ -1930,12 +1930,12 @@ export class KhojChatView extends KhojPaneView {
         newResponseElement.appendChild(messageEl);
 
         // Remove the animation class after the animation completes
-        setTimeout(() => {
+        activeWindow.setTimeout(() => {
             newResponseElement.classList.remove('khoj-message-new-content');
         }, 300);
     }
 
-    handleImageResponse(imageJson: any, rawResponse: string) {
+    handleImageResponse(imageJson: unknown, rawResponse: string) {
         if (imageJson.image) {
             const inferredQuery = imageJson.inferredQueries?.[0] ?? "generated image";
 
@@ -1956,7 +1956,7 @@ export class KhojChatView extends KhojPaneView {
             }
         } else if (imageJson.images) {
             // If response has images field, response is a list of generated images.
-            imageJson.images.forEach((image: any) => {
+            imageJson.images.forEach((image: unknown) => {
                 rawResponse += `![generated_image](${image})\n\n`;
             });
         } else if (imageJson.excalidrawDiagram) {
@@ -1987,8 +1987,8 @@ export class KhojChatView extends KhojPaneView {
         if (chatInput) chatInput.removeAttribute("disabled");
     }
 
-    createReferenceSection(references: any) {
-        let referenceSection = this.contentEl.createEl('div');
+    createReferenceSection(references: unknown) {
+        let referenceSection = this.contentEl.createDiv();
         referenceSection.classList.add("reference-section");
         referenceSection.classList.add("collapsed");
 
@@ -1997,7 +1997,7 @@ export class KhojChatView extends KhojPaneView {
         if (references.hasOwnProperty("notes")) {
             numReferences += references["notes"].length;
 
-            references["notes"].forEach((reference: any, index: number) => {
+            references["notes"].forEach((reference: unknown, index: number) => {
                 let polishedReference = this.generateReference(referenceSection, reference, index);
                 referenceSection.appendChild(polishedReference);
             });
@@ -2020,7 +2020,7 @@ export class KhojChatView extends KhojPaneView {
             }
         });
 
-        let referencesDiv = this.contentEl.createEl('div');
+        let referencesDiv = this.contentEl.createDiv();
         referencesDiv.classList.add("references");
         referencesDiv.appendChild(referenceExpandButton);
         referencesDiv.appendChild(referenceSection);
@@ -2125,7 +2125,7 @@ export class KhojChatView extends KhojPaneView {
         // Get paired message to delete if needed
         let pairedMessageContainer: Element | null = null;
         if (!skipPaired) {
-            const messages = Array.from(document.getElementsByClassName('khoj-chat-message'));
+            const messages = Array.from(activeDocument.getElementsByClassName('khoj-chat-message'));
             const currentIndex = messages.indexOf(messageContainer as HTMLElement);
 
             // If we're deleting a user message, also delete the subsequent khoj message (if any)
@@ -2145,7 +2145,7 @@ export class KhojChatView extends KhojPaneView {
         }
 
         // Wait for animation to complete
-        setTimeout(async () => {
+        activeWindow.setTimeout(async () => {
             // Get turn ID for message
             const turnId = messageContainer.getAttribute('data-turnid');
 
@@ -2317,12 +2317,12 @@ export class KhojChatView extends KhojPaneView {
 
                 const successMessage = lastMessage.createDiv({ cls: "edit-status-message success" });
                 successMessage.textContent = "Changes applied successfully";
-                setTimeout(() => successMessage.remove(), 3000);
+                activeWindow.setTimeout(() => successMessage.remove(), 3000);
             } catch (error) {
                 console.error("Error applying changes:", error);
                 const errorMessage = lastMessage.createDiv({ cls: "edit-status-message error" });
                 errorMessage.textContent = "Error applying changes";
-                setTimeout(() => errorMessage.remove(), 3000);
+                activeWindow.setTimeout(() => errorMessage.remove(), 3000);
             } finally {
                 buttonsContainer.remove();
             }
@@ -2338,12 +2338,12 @@ export class KhojChatView extends KhojPaneView {
                 }
                 const successMessage = lastMessage.createDiv({ cls: "edit-status-message success" });
                 successMessage.textContent = "Changes cancelled successfully";
-                setTimeout(() => successMessage.remove(), 3000);
+                activeWindow.setTimeout(() => successMessage.remove(), 3000);
             } catch (error) {
                 console.error("Error cancelling changes:", error);
                 const errorMessage = lastMessage.createDiv({ cls: "edit-status-message error" });
                 errorMessage.textContent = "Error cancelling changes";
-                setTimeout(() => errorMessage.remove(), 3000);
+                activeWindow.setTimeout(() => errorMessage.remove(), 3000);
             } finally {
                 buttonsContainer.remove();
             }
@@ -2509,7 +2509,7 @@ export class KhojChatView extends KhojPaneView {
             });
 
             // Close dropdown when clicking outside
-            document.addEventListener("click", (e) => {
+            activeDocument.addEventListener("click", (e) => {
                 if (this.modeDropdown && !this.modeDropdown.contains(e.target as Node) &&
                     e.target !== inputEl) {
                     this.hideModeDropdown();

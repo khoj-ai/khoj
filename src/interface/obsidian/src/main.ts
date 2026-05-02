@@ -54,7 +54,7 @@ export default class Khoj extends Plugin {
                 await this.activateView(KhojView.CHAT);
 
                 // Wait a short moment for the view to activate
-                setTimeout(() => {
+                activeWindow.setTimeout(() => {
                     // Try to get the active chat view
                     const chatView = this.app.workspace.getActiveViewOfType(KhojChatView);
                     if (chatView) {
@@ -156,11 +156,11 @@ export default class Khoj extends Plugin {
     private startSyncTimer() {
         // Clean up the old timer if it exists
         if (this.indexingTimer) {
-            clearInterval(this.indexingTimer);
+            activeWindow.clearInterval(this.indexingTimer);
         }
 
         // Start a new timer with the configured interval
-        this.indexingTimer = setInterval(async () => {
+        this.indexingTimer = activeWindow.setInterval(async () => {
             if (this.settings.autoConfigure) {
                 this.settings.lastSync = await updateContentIndex(
                     this.app.vault,
@@ -192,7 +192,7 @@ export default class Khoj extends Plugin {
     async onunload() {
         // Remove scheduled job to update index at regular cadence
         if (this.indexingTimer)
-            clearInterval(this.indexingTimer);
+            activeWindow.clearInterval(this.indexingTimer);
 
         this.unload();
     }

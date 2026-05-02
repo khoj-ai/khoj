@@ -249,7 +249,7 @@ export function AgentCard(props: AgentCardProps) {
         let agentsApiUrl = `/api/agents`;
         let method = props.editCard ? "PATCH" : "POST";
 
-        let valuesToSend: any = values;
+        let valuesToSend: unknown = values;
 
         if (props.editCard) {
             valuesToSend = { ...values, slug: props.data.slug };
@@ -574,14 +574,14 @@ export function AgentModificationForm(props: AgentModificationFormProps) {
         }
 
         if (uploading) {
-            const interval = setInterval(() => {
+            const interval = activeWindow.setInterval(() => {
                 setProgressValue((prev) => {
                     const increment = Math.floor(Math.random() * 5) + 1; // Generates a random number between 1 and 5
                     const nextValue = prev + increment;
                     return nextValue < 100 ? nextValue : 100; // Ensures progress does not exceed 100
                 });
             }, 800);
-            return () => clearInterval(interval);
+            return () => activeWindow.clearInterval(interval);
         }
     }, [uploading]);
 
@@ -656,7 +656,7 @@ export function AgentModificationForm(props: AgentModificationFormProps) {
         }
     };
 
-    const handleSubmit = (values: any) => {
+    const handleSubmit = (values: unknown) => {
         console.log("Submitting", values);
         props.onSubmit(values);
         setIsSaving(true);
@@ -680,7 +680,7 @@ export function AgentModificationForm(props: AgentModificationFormProps) {
             return true;
         } catch (error) {
             const errors: { [key: string]: string } = (error as ZodError).errors.reduce(
-                (acc: any, curr: any) => {
+                (acc: unknown, curr: unknown) => {
                     acc[curr.path[0]] = curr.message;
                     return acc;
                 },

@@ -228,7 +228,7 @@ function FeedbackButtons({ uquery, kquery }: { uquery: string; kquery: string })
 
     useEffect(() => {
         if (feedbackState !== null) {
-            setTimeout(() => {
+            activeWindow.setTimeout(() => {
                 setFeedbackState(null);
             }, 2000);
         }
@@ -598,7 +598,7 @@ const ChatMessage = forwardRef<HTMLDivElement, ChatMessageProps>((props, ref) =>
 
     useEffect(() => {
         if (copySuccess) {
-            setTimeout(() => {
+            activeWindow.setTimeout(() => {
                 setCopySuccess(false);
             }, 2000);
         }
@@ -609,7 +609,7 @@ const ChatMessage = forwardRef<HTMLDivElement, ChatMessageProps>((props, ref) =>
             const preElements = messageRef.current.querySelectorAll("pre > .hljs");
             preElements.forEach((preElement) => {
                 if (!preElement.querySelector(`${styles.codeCopyButton}`)) {
-                    const copyButton = document.createElement("button");
+                    const copyButton = activeDocument.createEl("button");
                     const copyIcon = <ClipboardText size={24} />;
                     createRoot(copyButton).render(copyIcon);
 
@@ -1066,7 +1066,7 @@ const ChatMessage = forwardRef<HTMLDivElement, ChatMessageProps>((props, ref) =>
                                 </ScrollArea>
                             </div>
                         </div>,
-                        document.body,
+                        activeDocument.body,
                     )}
                 {/* File preview popup dialog */}
                 <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>

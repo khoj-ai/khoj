@@ -17,8 +17,8 @@ export class KhojSimilarView extends KhojPaneView {
     resultsContainerEl: HTMLElement;
     searchInputEl: HTMLInputElement;
     currentFile: TFile | null = null;
-    fileWatcher: any;
-    component: any;
+    fileWatcher: unknown;
+    component: unknown;
 
     constructor(leaf: WorkspaceLeaf, plugin: Khoj) {
         super(leaf, plugin);
@@ -191,14 +191,14 @@ export class KhojSimilarView extends KhojPaneView {
 
             // Parse search results
             let results = data
-                .filter((result: any) => {
+                .filter((result: unknown) => {
                     // Filter out the current file if it's in the results
                     if (this.currentFile && result.additional.file.endsWith(this.currentFile.path)) {
                         return false;
                     }
                     return true;
                 })
-                .map((result: any) => {
+                .map((result: unknown) => {
                     return {
                         entry: result.entry,
                         file: result.additional.file,
@@ -259,27 +259,27 @@ export class KhojSimilarView extends KhojPaneView {
         }
 
         // Show results count
-        this.resultsContainerEl.createEl("div", {
+        this.resultsContainerEl.createDiv({
             cls: "khoj-results-count",
             text: `Found ${results.length} similar document${results.length > 1 ? 's' : ''}`
         });
 
         // Create results list
-        const resultsListEl = this.resultsContainerEl.createEl("div", { cls: "khoj-similar-results-list" });
+        const resultsListEl = this.resultsContainerEl.createDiv({ cls: "khoj-similar-results-list" });
 
         // Render each result
         results.forEach(async (result) => {
-            const resultEl = resultsListEl.createEl("div", { cls: "khoj-similar-result-item" });
+            const resultEl = resultsListEl.createDiv({ cls: "khoj-similar-result-item" });
 
             // Extract filename
             let os_path_separator = result.file.includes('\\') ? '\\' : '/';
             let filename = result.file.split(os_path_separator).pop();
 
             // Create header container for filename and more context button
-            const headerEl = resultEl.createEl("div", { cls: "khoj-similar-result-header" });
+            const headerEl = resultEl.createDiv({ cls: "khoj-similar-result-header" });
 
             // Show filename with appropriate color
-            const fileEl = headerEl.createEl("div", {
+            const fileEl = headerEl.createDiv({
                 cls: `khoj-result-file ${result.inVault ? 'in-vault' : 'not-in-vault'}`
             });
             fileEl.setText(filename ?? "");
@@ -300,7 +300,7 @@ export class KhojSimilarView extends KhojPaneView {
             setIcon(moreContextButton.createSpan(), "chevron-down");
 
             // Create content element (hidden by default)
-            const contentEl = resultEl.createEl("div", {
+            const contentEl = resultEl.createDiv({
                 cls: "khoj-result-entry khoj-similar-content-hidden"
             });
 
@@ -405,7 +405,7 @@ export class KhojSimilarView extends KhojPaneView {
         }
 
         // Create message element
-        const messageEl = this.resultsContainerEl.createEl("div", { cls: "khoj-similar-message" });
+        const messageEl = this.resultsContainerEl.createDiv({ cls: "khoj-similar-message" });
 
         // Set message based on state
         switch (state) {

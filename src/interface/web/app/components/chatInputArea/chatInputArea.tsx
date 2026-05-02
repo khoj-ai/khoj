@@ -124,14 +124,14 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
         }
 
         if (uploading) {
-            const interval = setInterval(() => {
+            const interval = activeWindow.setInterval(() => {
                 setProgressValue((prev) => {
                     const increment = Math.floor(Math.random() * 5) + 1; // Generates a random number between 1 and 5
                     const nextValue = prev + increment;
                     return nextValue < 100 ? nextValue : 100; // Ensures progress does not exceed 100
                 });
             }, 800);
-            return () => clearInterval(interval);
+            return () => activeWindow.clearInterval(interval);
         }
     }, [uploading]);
 

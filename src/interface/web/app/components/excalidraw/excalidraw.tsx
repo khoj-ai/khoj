@@ -12,7 +12,7 @@ const ExcalidrawWrapper = dynamic(() => import("./excalidrawWrapper").then((mod)
 });
 
 interface ExcalidrawComponentProps {
-    data: any;
+    data: unknown;
 }
 
 export default function ExcalidrawComponent(props: ExcalidrawComponentProps) {

@@ -145,12 +145,12 @@ function CodeContextReferenceCard(props: CodeContextReferenceCardProps) {
 
         const blob = new Blob([arrayBuffer], { type: mimeType });
         const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
+        const a = activeDocument.createEl("a");
         a.href = url;
         a.download = file.filename;
-        document.body.appendChild(a);
+        activeDocument.body.appendChild(a);
         a.click();
-        document.body.removeChild(a);
+        activeDocument.body.removeChild(a);
         URL.revokeObjectURL(url);
     };
 
@@ -610,7 +610,7 @@ export default function ReferencePanel(props: ReferencePanelDataProps) {
 
     useEffect(() => {
         if (copyReferencesSuccess) {
-            setTimeout(() => {
+            activeWindow.setTimeout(() => {
                 setCopyReferencesSuccess(false);
             }, 1000);
         }

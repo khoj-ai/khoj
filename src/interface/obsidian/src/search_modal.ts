@@ -207,10 +207,10 @@ export class KhojSearchModal extends SuggestModal<SearchResult> {
 
             // Parse search results and update allFiles with any new non-vault files
             let results = data
-                .filter((result: any) =>
+                .filter((result: unknown) =>
                     !this.find_similar_notes || !result.additional.file.endsWith(this.app.workspace.getActiveFile()?.path)
                 )
-                .map((result: any) => {
+                .map((result: unknown) => {
                     const isInVault = this.isFileInVault(result.additional.file);
 
                     // Add new non-vault files to allFiles if they don't exist
@@ -240,7 +240,7 @@ export class KhojSearchModal extends SuggestModal<SearchResult> {
             // Ignore cancellation errors and keep loading state
             if (error.name === 'AbortError') {
                 // When cancelling, we don't want to render anything
-                return undefined as any;
+                return undefined as unknown;
             }
 
             // For other errors, hide loading state
@@ -279,7 +279,7 @@ export class KhojSearchModal extends SuggestModal<SearchResult> {
     async renderSuggestion(result: SearchResult & { inVault: boolean }, el: HTMLElement) {
         if (this.isFileFilterMode) {
             // Render file suggestions
-            el.createEl("div", {
+            el.createDiv({
                 text: result.entry,
                 cls: "khoj-file-suggestion"
             });
@@ -294,7 +294,7 @@ export class KhojSearchModal extends SuggestModal<SearchResult> {
         let filename = result.file.split(os_path_separator).pop();
 
         // Show filename of each search result for context with appropriate color
-        const fileEl = el.createEl("div", {
+        const fileEl = el.createDiv({
             cls: `khoj-result-file ${result.inVault ? 'in-vault' : 'not-in-vault'}`
         });
         fileEl.setText(filename ?? "");
@@ -307,7 +307,7 @@ export class KhojSearchModal extends SuggestModal<SearchResult> {
             });
         }
 
-        let result_el = el.createEl("div", { cls: 'khoj-result-entry' })
+        let result_el = el.createDiv({ cls: 'khoj-result-entry' })
 
         let resultToRender = "";
         let fileExtension = filename?.split(".").pop() ?? "";
