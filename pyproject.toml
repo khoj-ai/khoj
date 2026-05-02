@@ -70,7 +70,7 @@ dependencies = [
     "httpx == 0.28.1",
     "pgvector == 0.2.4",
     "psycopg2-binary == 2.9.9",
-    "lxml == 4.9.3",
+    "lxml==6.1.0",
     "tzdata == 2023.3",
     "rapidocr-onnxruntime == 1.4.4",
     "openai-whisper >= 20231117",
