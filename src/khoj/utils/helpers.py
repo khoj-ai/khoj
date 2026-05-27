@@ -1053,6 +1053,7 @@ def get_chat_usage_metrics(
     thought_tokens: int = 0,
     usage: dict = {},
     cost: float = None,
+    requested_model: Optional[str] = None,
 ):
     """
     Get usage metrics for chat message based on input and output tokens and cost
@@ -1082,6 +1083,11 @@ def get_chat_usage_metrics(
             prev_cost=prev_usage["cost"],
         ),
     }
+    if requested_model and requested_model != model_name:
+        logger.warning(
+            f"Chat model fallback: requested {requested_model}, used {model_name}. "
+            "Cost calculated at the fallback model's rate."
+        )
     logger.debug(f"AI API usage by {model_name}: {current_usage}")
     return current_usage
 

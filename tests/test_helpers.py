@@ -1,3 +1,4 @@
+import logging
 import os
 import secrets
 
@@ -42,6 +43,51 @@ def test_merge_dicts():
 
     # do not override existing key in priority_dict with default dict
     assert helpers.merge_dicts(priority_dict={"a": 1}, default_dict={"a": 2}) == {"a": 1}
+
+
+def test_get_chat_usage_metrics_without_requested_model_does_not_warn(caplog):
+    with caplog.at_level(logging.WARNING, logger=helpers.logger.name):
+        usage = helpers.get_chat_usage_metrics(model_name="gpt-4o", input_tokens=1_000_000, output_tokens=1_000_000)
+
+    assert usage["cost"] == pytest.approx(12.5)
+    assert caplog.records == []
+
+
+def test_get_chat_usage_metrics_warns_on_model_fallback(caplog):
+    with caplog.at_level(logging.WARNING, logger=helpers.logger.name):
+        usage = helpers.get_chat_usage_metrics(
+            model_name="gpt-4o",
+            requested_model="minimax-m2",
+            input_tokens=1_000_000,
+            output_tokens=1_000_000,
+        )
+
+    assert usage["cost"] == pytest.approx(12.5)
+    assert [record.message for record in caplog.records] == [
+        "Chat model fallback: requested minimax-m2, used gpt-4o. "
+        "Cost calculated at the fallback model's rate."
+    ]
+
+
+def test_get_chat_usage_metrics_does_not_warn_when_requested_model_matches(caplog):
+    with caplog.at_level(logging.WARNING, logger=helpers.logger.name):
+        usage = helpers.get_chat_usage_metrics(
+            model_name="gpt-4o",
+            requested_model="gpt-4o",
+            input_tokens=1_000_000,
+            output_tokens=1_000_000,
+        )
+
+    assert usage["cost"] == pytest.approx(12.5)
+    assert caplog.records == []
+
+
+def test_get_chat_usage_metrics_unknown_model_preserves_zero_cost(caplog):
+    with caplog.at_level(logging.WARNING, logger=helpers.logger.name):
+        usage = helpers.get_chat_usage_metrics(model_name="brand-new-model", input_tokens=1_000_000)
+
+    assert usage["cost"] == 0
+    assert caplog.records == []
 
 
 def test_lru_cache():
