@@ -1915,6 +1915,11 @@ async def agenerate_chat_response(
     chat_response_generator: AsyncGenerator[ResponseWithThought, None] = None
 
     metadata = {}
+    authorized_agent = await ConversationAdapters.aget_agent_accessible_to_user_or_default(conversation.agent, user)
+    if conversation.agent != authorized_agent:
+        conversation.agent = authorized_agent
+        await conversation.asave()
+
     agent = await AgentAdapters.aget_conversation_agent_by_id(conversation.agent.id) if conversation.agent else None
 
     try:
