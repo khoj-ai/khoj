@@ -572,7 +572,7 @@ export default function SettingsView() {
 
             // Fetch all conversations in batches of 10
             for (let page = 0; page * 10 < total; page++) {
-                const response = await fetch(`/api/chat/export?page=${page}`);
+                const response = await fetch(`/api/chat/export?offset=${page * 10}&limit=10`);
                 const data = await response.json();
                 conversations.push(...data);
 
