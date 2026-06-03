@@ -3,9 +3,12 @@ import json
 import logging
 import os
 from collections import defaultdict
+from importlib.metadata import PackageNotFoundError, version
 from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Union
+from urllib.parse import urlparse
 
 import aiohttp
+import httpx
 from bs4 import BeautifulSoup
 from markdownify import markdownify
 
@@ -46,6 +49,12 @@ FIRECRAWL_API_KEY = os.getenv("FIRECRAWL_API_KEY")
 SEARXNG_URL = os.getenv("KHOJ_SEARXNG_URL")
 # Exa API credentials
 EXA_API_KEY = os.getenv("EXA_API_KEY")
+# Keenable API configurations
+KEENABLE_API_KEY = os.getenv("KEENABLE_API_KEY")
+try:
+    KEENABLE_USER_AGENT = f"keenable-khoj/{version('khoj')}"
+except PackageNotFoundError:
+    KEENABLE_USER_AGENT = "keenable-khoj/unknown"
 
 # Whether to automatically read web pages from search results
 AUTO_READ_WEBPAGE = is_env_var_true("KHOJ_AUTO_READ_WEBPAGE")
@@ -99,6 +108,9 @@ async def search_online(
         return
 
     search_engines = []
+    if KEENABLE_API_KEY:
+        search_engine = "Keenable"
+        search_engines.append((search_engine, search_with_keenable))
     if SERPER_DEV_API_KEY:
         search_engine = "Serper"
         search_engines.append((search_engine, search_with_serper))
@@ -121,6 +133,7 @@ async def search_online(
             yield {ChatEvent.STATUS: event}
 
     response_dict = {}
+    used_search_engine = None
     for search_engine, search_func in search_engines:
         logger.info(f"🌐 Searching the Internet with {search_engine} for {subqueries}")
         with timer(f"Internet searches with {search_engine} for {subqueries} took", logger):
@@ -129,10 +142,16 @@ async def search_online(
                 search_results = await asyncio.gather(*search_tasks)
                 response_dict = {subquery: search_result for subquery, search_result in search_results if search_result}
                 if not is_none_or_empty(response_dict):
+                    used_search_engine = search_engine
                     break
             except Exception as e:
                 logger.error(f"Error searching with {search_engine}: {e}")
                 response_dict = {}
+
+    # Attribute the results to the search provider that served them (shown in the chat).
+    if used_search_engine and send_status_func:
+        async for event in send_status_func(f"**Searched by {used_search_engine}**"):
+            yield {ChatEvent.STATUS: event}
 
     if not AUTO_READ_WEBPAGE:
         yield response_dict
@@ -182,6 +201,80 @@ async def search_online(
             response_dict[subqueries.pop()]["webpages"] = {"link": url, "snippet": webpage_extract}
 
     yield response_dict
+
+
+async def search_with_keenable(query: str, location: LocationData) -> Tuple[str, Dict[str, List[Dict]]]:
+    """
+    Search using the Keenable API (https://keenable.ai).
+
+    Uses the authenticated endpoint when KEENABLE_API_KEY is set, otherwise the keyless
+    public free tier. The base URL comes from the KEENABLE_API_URL env var (HTTPS enforced,
+    default https://api.keenable.ai). Location is accepted for interface parity; Keenable has
+    no geolocation parameter so it is not forwarded.
+
+    Args:
+        query: The search query string
+        location: Location data (unused by Keenable)
+
+    Returns:
+        Tuple containing the original query and a dictionary of search results
+    """
+    api_base = os.getenv("KEENABLE_API_URL", "https://api.keenable.ai").rstrip("/")
+    parsed = urlparse(api_base)
+    is_loopback = parsed.hostname in ("127.0.0.1", "localhost", "::1")
+    if not (parsed.scheme == "https" or (parsed.scheme == "http" and is_loopback)):
+        logger.error(f"Keenable search failed: KEENABLE_API_URL must use HTTPS (got '{api_base}')")
+        return query, {}
+
+    api_key = KEENABLE_API_KEY.strip() if isinstance(KEENABLE_API_KEY, str) else None
+    headers = {"Content-Type": "application/json", "User-Agent": KEENABLE_USER_AGENT}
+    if api_key:
+        search_api_endpoint = f"{api_base}/v1/search"
+        headers["X-API-Key"] = api_key
+    else:
+        search_api_endpoint = f"{api_base}/v1/search/public"
+
+    # The API has no max_results/limit parameter and returns a fixed-size result set.
+    # mode 'realtime' is rejected on the keyless public endpoint, so default to 'pro'.
+    payload = {"query": query, "mode": "pro"}
+
+    try:
+        async with httpx.AsyncClient(timeout=WEBPAGE_REQUEST_TIMEOUT) as client:
+            response = await client.post(search_api_endpoint, headers=headers, json=payload)
+            if response.status_code != 200:
+                try:
+                    detail = response.json().get("detail")
+                except Exception:
+                    detail = (response.text or "")[:200]
+                logger.error(f"Keenable search failed ({response.status_code}): {detail}")
+                return query, {}
+            try:
+                response_json = response.json()
+            except Exception:
+                logger.error("Keenable search failed: response body was not valid JSON")
+                return query, {}
+
+        results = response_json.get("results")
+        if not isinstance(results, list):
+            logger.error(f"Keenable search failed: unexpected response shape ({type(results).__name__})")
+            return query, {}
+
+        organic_results = [
+            {
+                "title": item.get("title", ""),
+                "link": item.get("url", ""),
+                "snippet": item.get("description"),
+                "content": None,  # Keenable search does not return page content; Khoj scrapes separately
+            }
+            for item in results
+            if isinstance(item, dict)
+        ]
+
+        return query, {"organic": organic_results}
+
+    except Exception as e:
+        logger.error(f"Error searching with Keenable: {str(e)}")
+        return query, {}
 
 
 async def search_with_exa(query: str, location: LocationData) -> Tuple[str, Dict[str, List[Dict]]]:
