@@ -3139,9 +3139,9 @@ def configure_content(
 
     try:
         # Initialize Image Search
-        if (search_type == state.SearchType.All.value or search_type == state.SearchType.Image.value) and files[
+        if (search_type == state.SearchType.All.value or search_type == state.SearchType.Image.value) and files.get(
             "image"
-        ]:
+        ):
             logger.info("🖼️ Setting up search for images")
             # Extract Entries, Generate Image Embeddings
             text_search.setup(
@@ -3154,7 +3154,9 @@ def configure_content(
         logger.error(f"🚨 Failed to setup images: {e}", exc_info=True)
         success = False
     try:
-        if (search_type == state.SearchType.All.value or search_type == state.SearchType.Docx.value) and files["docx"]:
+        if (search_type == state.SearchType.All.value or search_type == state.SearchType.Docx.value) and files.get(
+            "docx"
+        ):
             logger.info("📄 Setting up search for docx")
             text_search.setup(
                 DocxToEntries,
