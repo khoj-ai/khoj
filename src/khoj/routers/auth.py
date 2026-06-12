@@ -247,7 +247,8 @@ async def auth(request: Request):
     }
 
     # Request the token from Google
-    verified_data = requests.post(
+    verified_data = await asyncio.to_thread(
+        requests.post,
         "https://oauth2.googleapis.com/token",
         headers={"Content-Type": "application/x-www-form-urlencoded"},
         data=payload,
