@@ -101,6 +101,10 @@ services:
       # - OLOSTEP_API_KEY=your_olostep_api_key
       # Paid, Open API. Does both web search and webpage read. Get API key from https://firecrawl.dev/
       # - FIRECRAWL_API_KEY=your_firecrawl_api_key
+      # Open, Firecrawl-compatible API in a single binary. Does both web search and webpage read. Get API key from https://fastcrw.com/
+      # - CRW_API_KEY=your_crw_api_key
+      # Optional self-host override for fastCRW. Defaults to the managed cloud at https://fastcrw.com/api
+      # - CRW_API_URL=http://localhost:3000
       # Paid, Fast API. Does both web search and webpage read. Get API key from https://exa.ai/
       # - EXA_API_KEY=your_exa_api_key
       #

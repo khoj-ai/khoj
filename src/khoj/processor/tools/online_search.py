@@ -42,6 +42,8 @@ SERPER_DEV_API_KEY = os.getenv("SERPER_DEV_API_KEY")
 SERPER_DEV_URL = "https://google.serper.dev/search"
 # Firecrawl API configurations
 FIRECRAWL_API_KEY = os.getenv("FIRECRAWL_API_KEY")
+# fastCRW API configurations
+CRW_API_KEY = os.getenv("CRW_API_KEY")
 # SearXNG API configurations
 SEARXNG_URL = os.getenv("KHOJ_SEARXNG_URL")
 # Exa API credentials
@@ -108,6 +110,9 @@ async def search_online(
     if FIRECRAWL_API_KEY:
         search_engine = "Firecrawl"
         search_engines.append((search_engine, search_with_firecrawl))
+    if CRW_API_KEY:
+        search_engine = "Crw"
+        search_engines.append((search_engine, search_with_crw))
     if GOOGLE_SEARCH_API_KEY and GOOGLE_SEARCH_ENGINE_ID:
         search_engine = "Google"
         search_engines.append((search_engine, search_with_google))
@@ -318,6 +323,67 @@ async def search_with_firecrawl(query: str, location: LocationData) -> Tuple[str
             return query, {}
 
 
+async def search_with_crw(query: str, location: LocationData) -> Tuple[str, Dict[str, List[Dict]]]:
+    """
+    Search using fastCRW API.
+
+    fastCRW is a Firecrawl-compatible web data engine in a single binary that can be
+    self-hosted or used via the managed cloud at https://fastcrw.com.
+
+    Args:
+        query: The search query string
+        location: Location data for geolocation-based search
+
+    Returns:
+        Tuple containing the original query and a dictionary of search results
+    """
+    # Set up API endpoint and headers
+    crw_api_base = os.getenv("CRW_API_URL", "https://fastcrw.com/api")
+    crw_api_url = f"{crw_api_base}/v1/search"
+    headers = {"Content-Type": "application/json", "Authorization": f"Bearer {CRW_API_KEY}"}
+
+    # Prepare request payload
+    payload = {
+        "query": query,
+        "limit": 10,  # Maximum number of results
+        "sources": ["web"],
+    }
+
+    async with aiohttp.ClientSession() as session:
+        try:
+            async with session.post(
+                crw_api_url, headers=headers, json=payload, timeout=WEBPAGE_REQUEST_TIMEOUT
+            ) as response:
+                if response.status != 200:
+                    error_text = await response.text()
+                    logger.error(f"fastCRW search failed: {error_text}")
+                    return query, {}
+
+                response_json = await response.json()
+
+                if not response_json.get("success", False):
+                    logger.error(f"fastCRW search failed: {response_json.get('error', 'Unknown error')}")
+                    return query, {}
+
+                # Transform fastCRW response to match the expected format
+                organic_results = []
+                for item in response_json.get("data", []):
+                    organic_results.append(
+                        {
+                            "title": item["title"],
+                            "link": item["url"],
+                            "snippet": item["description"],
+                            "content": item.get("markdown", None),
+                        }
+                    )
+
+                return query, {"organic": organic_results}
+
+        except Exception as e:
+            logger.error(f"Error searching with fastCRW: {str(e)}")
+            return query, {}
+
+
 async def search_with_searxng(query: str, location: LocationData) -> Tuple[str, Dict[str, List[Dict]]]:
     """Search using local SearXNG instance."""
     # Use environment variable
@@ -508,6 +574,8 @@ async def read_webpages_content(
 async def scrape_webpage(url, scraper_type=None, api_key=None, api_url=None) -> str | None:
     if scraper_type == WebScraper.WebScraperType.FIRECRAWL:
         return await read_webpage_with_firecrawl(url, api_key, api_url)
+    elif scraper_type == WebScraper.WebScraperType.CRW:
+        return await read_webpage_with_crw(url, api_key, api_url)
     elif scraper_type == WebScraper.WebScraperType.OLOSTEP:
         return await read_webpage_with_olostep(url, api_key, api_url)
     elif scraper_type == WebScraper.WebScraperType.EXA:
@@ -642,6 +710,25 @@ async def read_webpage_with_firecrawl(web_url: str, api_key: str, api_url: str) 
     async with aiohttp.ClientSession() as session:
         async with session.post(
             firecrawl_api_url, json=params, headers=headers, timeout=WEBPAGE_REQUEST_TIMEOUT
+        ) as response:
+            response.raise_for_status()
+            response_json = await response.json()
+            return response_json["data"]["markdown"]
+
+
+async def read_webpage_with_crw(web_url: str, api_key: str, api_url: str) -> str:
+    crw_api_url = f"{api_url}/v1/scrape"
+    headers = {"Content-Type": "application/json", "Authorization": f"Bearer {api_key}"}
+    params = {
+        "url": web_url,
+        "formats": ["markdown"],
+        "excludeTags": ["script", ".ad"],
+        "onlyMainContent": True,
+    }
+
+    async with aiohttp.ClientSession() as session:
+        async with session.post(
+            crw_api_url, json=params, headers=headers, timeout=WEBPAGE_REQUEST_TIMEOUT
         ) as response:
             response.raise_for_status()
             response_json = await response.json()

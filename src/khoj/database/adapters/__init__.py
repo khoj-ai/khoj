@@ -1525,6 +1525,16 @@ class ConversationAdapters:
                         api_url=api_url,
                     )
                 )
+            if os.getenv("CRW_API_KEY"):
+                api_url = os.getenv("CRW_API_URL", "https://fastcrw.com/api")
+                enabled_scrapers.append(
+                    WebScraper(
+                        type=WebScraper.WebScraperType.CRW,
+                        name=WebScraper.WebScraperType.CRW.capitalize(),
+                        api_key=os.getenv("CRW_API_KEY"),
+                        api_url=api_url,
+                    )
+                )
             # Only enable the direct web page scraper by default in self-hosted single user setups.
             # Useful for reading webpages on your intranet.
             if state.anonymous_mode or in_debug_mode():

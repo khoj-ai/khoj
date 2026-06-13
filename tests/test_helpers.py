@@ -1,5 +1,6 @@
 import os
 import secrets
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import numpy as np
 import psutil
@@ -9,9 +10,26 @@ from scipy.stats import linregress
 from khoj.processor.embeddings import EmbeddingsModel
 from khoj.processor.tools.online_search import (
     read_webpage_at_url,
+    read_webpage_with_crw,
     read_webpage_with_olostep,
+    search_with_crw,
 )
 from khoj.utils import helpers
+
+
+def _mock_aiohttp_post(response_json, status=200):
+    """Build a patch for aiohttp.ClientSession.post returning the given JSON payload."""
+    response = MagicMock()
+    response.status = status
+    response.raise_for_status = MagicMock()
+    response.json = AsyncMock(return_value=response_json)
+    response.text = AsyncMock(return_value="")
+
+    post_context = MagicMock()
+    post_context.__aenter__ = AsyncMock(return_value=response)
+    post_context.__aexit__ = AsyncMock(return_value=False)
+
+    return patch("aiohttp.ClientSession.post", return_value=post_context)
 
 
 def test_get_from_null_dict():
@@ -116,3 +134,53 @@ async def test_reading_webpage_with_olostep():
         "An alarm sent from the area near the fire also failed to register at the courthouse where the fire watchmen were"
         in response
     )
+
+
+@pytest.mark.asyncio
+async def test_reading_webpage_with_crw():
+    # Arrange
+    website = "https://en.wikipedia.org/wiki/Great_Chicago_Fire"
+    crw_response = {"success": True, "data": {"markdown": "# Great Chicago Fire\n\nThe fire watchmen were alerted."}}
+
+    # Act
+    with _mock_aiohttp_post(crw_response) as mock_post:
+        response = await read_webpage_with_crw(website, "test-key", "https://fastcrw.com/api")
+
+    # Assert
+    assert response == "# Great Chicago Fire\n\nThe fire watchmen were alerted."
+    mock_post.assert_called_once()
+    assert mock_post.call_args.args[0] == "https://fastcrw.com/api/v1/scrape"
+    assert mock_post.call_args.kwargs["headers"]["Authorization"] == "Bearer test-key"
+    assert mock_post.call_args.kwargs["json"]["url"] == website
+
+
+@pytest.mark.asyncio
+async def test_search_with_crw():
+    # Arrange
+    query = "great chicago fire"
+    crw_response = {
+        "success": True,
+        "data": [
+            {
+                "title": "Great Chicago Fire",
+                "url": "https://en.wikipedia.org/wiki/Great_Chicago_Fire",
+                "description": "The Great Chicago Fire was a conflagration that burned in 1871.",
+                "markdown": "# Great Chicago Fire",
+            }
+        ],
+    }
+
+    # Act
+    with patch.dict(os.environ, {"CRW_API_KEY": "test-key"}), patch(
+        "khoj.processor.tools.online_search.CRW_API_KEY", "test-key"
+    ):
+        with _mock_aiohttp_post(crw_response) as mock_post:
+            returned_query, results = await search_with_crw(query, None)
+
+    # Assert
+    assert returned_query == query
+    assert results["organic"][0]["title"] == "Great Chicago Fire"
+    assert results["organic"][0]["link"] == "https://en.wikipedia.org/wiki/Great_Chicago_Fire"
+    assert results["organic"][0]["content"] == "# Great Chicago Fire"
+    assert mock_post.call_args.args[0] == "https://fastcrw.com/api/v1/search"
+    assert mock_post.call_args.kwargs["json"]["query"] == query

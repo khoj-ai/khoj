@@ -392,6 +392,7 @@ class GithubRepoConfig(DbBaseModel):
 class WebScraper(DbBaseModel):
     class WebScraperType(models.TextChoices):
         FIRECRAWL = "Firecrawl"
+        CRW = "Crw"
         OLOSTEP = "Olostep"
         EXA = "Exa"
         DIRECT = "Direct"
@@ -434,6 +435,8 @@ class WebScraper(DbBaseModel):
         if self.api_url is None:
             if self.type == self.WebScraperType.FIRECRAWL:
                 self.api_url = os.getenv("FIRECRAWL_API_URL", "https://api.firecrawl.dev")
+            elif self.type == self.WebScraperType.CRW:
+                self.api_url = os.getenv("CRW_API_URL", "https://fastcrw.com/api")
             elif self.type == self.WebScraperType.OLOSTEP:
                 self.api_url = os.getenv("OLOSTEP_API_URL", "https://agent.olostep.com/olostep-p2p-incomingAPI")
             elif self.type == self.WebScraperType.EXA:
@@ -443,6 +446,10 @@ class WebScraper(DbBaseModel):
                 self.api_key = os.getenv("FIRECRAWL_API_KEY")
                 if not self.api_key and self.api_url == "https://api.firecrawl.dev":
                     error["api_key"] = "Set API key to use default Firecrawl. Get API key from https://firecrawl.dev."
+            elif self.type == self.WebScraperType.CRW:
+                self.api_key = os.getenv("CRW_API_KEY")
+                if not self.api_key and self.api_url == "https://fastcrw.com/api":
+                    error["api_key"] = "Set API key to use cloud fastCRW. Get API key from https://fastcrw.com."
             elif self.type == self.WebScraperType.OLOSTEP:
                 self.api_key = os.getenv("OLOSTEP_API_KEY")
                 if self.api_key is None:
