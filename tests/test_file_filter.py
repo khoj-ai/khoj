@@ -132,6 +132,42 @@ def test_get_multiple_include_exclude_file_filter_terms():
     assert filter_terms == ["file 1.org", "/path/to/dir/.*.org", "-file 1.org", "-/path/to/dir/*.org"]
 
 
+def test_defilter_removes_include_file_filter():
+    # Arrange
+    file_filter = FileFilter()
+    q_with_filter = 'head file:"file 1.org" tail'
+
+    # Act
+    defiltered_query = file_filter.defilter(q_with_filter)
+
+    # Assert
+    assert defiltered_query == "head tail"
+
+
+def test_defilter_removes_exclude_file_filter():
+    # Arrange
+    file_filter = FileFilter()
+    q_with_filter = 'head -file:"file 1.org" tail'
+
+    # Act
+    defiltered_query = file_filter.defilter(q_with_filter)
+
+    # Assert
+    assert defiltered_query == "head tail"
+
+
+def test_defilter_removes_mixed_include_exclude_file_filters():
+    # Arrange
+    file_filter = FileFilter()
+    q_with_filter = 'head -file:"file 1.org" file:"/path/to/dir/*.org" tail'
+
+    # Act
+    defiltered_query = file_filter.defilter(q_with_filter)
+
+    # Assert
+    assert defiltered_query == "head tail"
+
+
 def arrange_content():
     entries = [
         Entry(compiled="", raw="First Entry", file="file 1.org"),
