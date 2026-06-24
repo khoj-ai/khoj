@@ -89,4 +89,6 @@ model_to_cost: Dict[str, Dict[str, float]] = {
     # Miscellaneous
     # Moonshot AI, Baseten pricing for Kimi-K2-Thinking
     "moonshotai/kimi-k2-thinking": {"input": 0.60, "output": 2.50},
+    # MiniMax Pricing: https://platform.minimax.io/docs/guides/pricing-paygo
+    "MiniMax-M3": {"input": 0.6, "output": 2.4, "cache_read": 0.12},
 }
