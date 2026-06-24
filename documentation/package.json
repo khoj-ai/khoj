@@ -22,7 +22,7 @@
     "prism-react-renderer": "^2.3.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
-    "webpack-dev-server": "^5.2.1"
+    "webpack-dev-server": "^5.2.4"
   },
   "devDependencies": {
     "@docusaurus/module-type-aliases": "^3.9.2",
@@ -44,8 +44,8 @@
     "node": ">=18.0"
   },
   "resolutions": {
-    "webpack-dev-server": "^5.2.1",
-    "serialize-javascript": "^7.0.3",
-    "picomatch": ">=2.3.2"
+    "picomatch": ">=2.3.2",
+    "serialize-javascript": "^7.0.5",
+    "webpack-dev-server": "^5.2.4"
   }
 }
