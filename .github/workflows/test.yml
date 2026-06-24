@@ -30,7 +30,7 @@ jobs:
   test:
     name: Run Tests
     runs-on: ubuntu-latest
-    container: ubuntu:latest
+    container: ubuntu:26.04
     strategy:
       fail-fast: false
       matrix:
@@ -41,7 +41,7 @@ jobs:
 
     services:
       postgres:
-        image: ankane/pgvector
+        image: pgvector/pgvector:pg18
         env:
           POSTGRES_PASSWORD: postgres
           POSTGRES_USER: postgres
@@ -66,13 +66,13 @@ jobs:
         env:
           DEBIAN_FRONTEND: noninteractive
         run: |
-          apt update && apt install -y git libegl1 sqlite3 libsqlite3-dev libsqlite3-0 ffmpeg libsm6 libxext6
+          apt update && apt install -y git libegl1 libgl1 sqlite3 libsqlite3-dev libsqlite3-0 ffmpeg libsm6 libxext6
 
       - name: ⬇️ Install Postgres
         env:
           DEBIAN_FRONTEND: noninteractive
         run : |
-          apt install -y postgresql postgresql-client && apt install -y postgresql-server-dev-16
+          apt install -y postgresql postgresql-client postgresql-server-dev-all
 
       - name: ⬇️ Install Application
         env:
