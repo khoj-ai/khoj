@@ -53,6 +53,7 @@ import {
     DialogTrigger,
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import FileFilterAutocomplete, { FileFilterAutocompleteHandle } from "./FileFilterAutocomplete";
 
 export interface ChatOptions {
     [key: string]: string;
@@ -69,6 +70,25 @@ export enum ChatInputFocus {
     MESSAGE = "message",
     FILE = "file",
     RESEARCH = "research",
+}
+
+interface ActiveFileFilter {
+    query: string;
+    tokenStart: number;
+}
+
+function getActiveFileFilter(inputText: string): ActiveFileFilter | null {
+    const fileFilterMatch = inputText.match(/(^|\s)file:([^"\s]*)$/i);
+
+    if (!fileFilterMatch) {
+        return null;
+    }
+
+    const tokenStart = inputText.length - fileFilterMatch[0].length + fileFilterMatch[1].length;
+    return {
+        query: fileFilterMatch[2] || "",
+        tokenStart,
+    };
 }
 
 interface ChatInputProps {
@@ -91,6 +111,7 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
     const [message, setMessage] = useState("");
     const fileInputRef = useRef<HTMLInputElement>(null);
     const fileInputButtonRef = useRef<HTMLButtonElement>(null);
+    const fileAutocompleteRef = useRef<FileFilterAutocompleteHandle>(null);
     const researchModeRef = useRef<HTMLButtonElement>(null);
 
     const [warning, setWarning] = useState<string | null>(null);
@@ -113,11 +134,19 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
     const [isDragAndDropping, setIsDragAndDropping] = useState(false);
 
     const [showCommandList, setShowCommandList] = useState(false);
+    const [showFileAutocomplete, setShowFileAutocomplete] = useState(false);
     const [useResearchMode, setUseResearchMode] = useState<boolean>(
         props.isResearchModeEnabled || false,
     );
 
     const chatInputRef = ref as React.MutableRefObject<HTMLTextAreaElement>;
+    const activeFileFilter = getActiveFileFilter(message);
+
+    function setMessageValue(nextMessage: string) {
+        setMessage(nextMessage);
+        setShowFileAutocomplete(Boolean(getActiveFileFilter(nextMessage)));
+    }
+
     useEffect(() => {
         if (!uploading) {
             setProgressValue(0);
@@ -137,7 +166,7 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
 
     useEffect(() => {
         if (props.prefillMessage === undefined) return;
-        setMessage(props.prefillMessage);
+        setMessageValue(props.prefillMessage);
         chatInputRef?.current?.focus();
     }, [props.prefillMessage]);
 
@@ -192,7 +221,7 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
         // If currently processing, handle interrupt first
         if (props.sendDisabled) {
             props.setTriggeredAbort(true, message.trim());
-            setMessage(""); // Clear the input
+            setMessageValue(""); // Clear the input
             return; // Don't continue with regular message sending
         }
 
@@ -215,11 +244,30 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
         props.sendMessage(messageToSend);
         setAttachedFiles(null);
         setConvertedAttachedFiles([]);
-        setMessage("");
+        setMessageValue("");
     }
 
     function handleSlashCommandClick(command: string) {
-        setMessage(`/${command} `);
+        setMessageValue(`/${command} `);
+    }
+
+    function handleFileFilterSelection(filePath: string) {
+        const currentFileFilter = getActiveFileFilter(message);
+        if (!currentFileFilter) {
+            return;
+        }
+
+        const nextMessage = `${message.slice(0, currentFileFilter.tokenStart)}file:"${filePath}"`;
+        setMessageValue(nextMessage);
+
+        requestAnimationFrame(() => {
+            if (!chatInputRef?.current) {
+                return;
+            }
+
+            chatInputRef.current.focus();
+            chatInputRef.current.setSelectionRange(nextMessage.length, nextMessage.length);
+        });
     }
 
     function handleFileButtonClick() {
@@ -355,7 +403,7 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
                     }
 
                     const transcription = await response.json();
-                    setMessage(transcription.text.trim());
+                    setMessageValue(transcription.text.trim());
                 } catch (error) {
                     console.error("Error sending audio to server:", error);
                 }
@@ -383,7 +431,7 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
                     const transcription = await response.json();
                     mediaRecorder.stream.getTracks().forEach((track) => track.stop());
                     setMediaRecorder(null);
-                    setMessage(transcription.text.trim());
+                    setMessageValue(transcription.text.trim());
                 } catch (error) {
                     console.error("Error sending audio to server:", error);
                 }
@@ -689,6 +737,10 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
                             autoFocus={true}
                             value={message}
                             onKeyDown={(e) => {
+                                if (fileAutocompleteRef.current?.handleKeyDown(e)) {
+                                    return;
+                                }
+
                                 if (
                                     e.key === "Enter" &&
                                     !e.shiftKey &&
@@ -702,9 +754,18 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
                                     onSendMessage();
                                 }
                             }}
-                            onChange={(e) => setMessage(e.target.value)}
+                            onChange={(e) => setMessageValue(e.target.value)}
                             disabled={recording}
                         />
+                        {props.isLoggedIn && activeFileFilter && (
+                            <FileFilterAutocomplete
+                                ref={fileAutocompleteRef}
+                                query={activeFileFilter.query}
+                                onSelect={handleFileFilterSelection}
+                                onClose={() => setShowFileAutocomplete(false)}
+                                isVisible={showFileAutocomplete}
+                            />
+                        )}
                     </div>
                     <div className="flex items-end pb-2">
                         {recording ? (
@@ -749,7 +810,7 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
                                                 className={`${!message || recording || "hidden"} ${props.agentColor ? convertToBGClass(props.agentColor) : "bg-orange-300 hover:bg-orange-500"} rounded-full p-1 m-2 h-auto text-3xl transition transform md:hover:-translate-y-1`}
                                                 disabled={props.sendDisabled || !props.isLoggedIn}
                                                 onClick={() => {
-                                                    setMessage("Listening...");
+                                                    setMessageValue("Listening...");
                                                     setRecording(!recording);
                                                 }}
                                             >
