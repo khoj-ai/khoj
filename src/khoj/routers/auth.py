@@ -13,7 +13,7 @@ from starlette.requests import Request
 from starlette.responses import HTMLResponse, RedirectResponse, Response
 from starlette.status import HTTP_302_FOUND
 
-from khoj.app.settings import DISABLE_HTTPS
+from khoj.app.settings import DISABLE_HTTPS, KHOJ_DOMAIN
 from khoj.database.adapters import (
     acreate_khoj_token,
     aget_or_create_user_by_email,
@@ -36,6 +36,16 @@ from khoj.utils.helpers import in_debug_mode
 logger = logging.getLogger(__name__)
 
 auth_router = APIRouter()
+
+
+def get_configured_base_url() -> str:
+    scheme = "http" if DISABLE_HTTPS else "https"
+    configured_domain = KHOJ_DOMAIN.strip().rstrip("/")
+    parsed_domain = urlparse(configured_domain)
+    if parsed_domain.scheme and parsed_domain.netloc:
+        scheme = parsed_domain.scheme
+        configured_domain = parsed_domain.netloc
+    return f"{scheme}://{configured_domain}/"
 
 
 if not state.anonymous_mode:
@@ -97,7 +107,7 @@ async def login_magic_link(
 
     # Send email with magic link
     unique_id = user.email_verification_code
-    await send_magic_link_email(user.email, unique_id, request.base_url)
+    await send_magic_link_email(user.email, unique_id, get_configured_base_url())
     if is_new:
         update_telemetry_state(
             request=request,
