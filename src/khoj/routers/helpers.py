@@ -235,13 +235,22 @@ def update_telemetry_state(
 def get_next_url(request: Request) -> str:
     "Construct next url relative to current domain from request"
     next_url_param = urlparse(request.query_params.get("next", "/"))
+    base_url = str(request.base_url).rstrip("/")
+    current_netloc = request.base_url.netloc.lower()
     next_path = "/"  # default next path
     # If relative path or absolute path to current domain
-    if is_none_or_empty(next_url_param.scheme) or next_url_param.netloc == request.base_url.netloc:
+    is_relative_path = is_none_or_empty(next_url_param.scheme) and is_none_or_empty(next_url_param.netloc)
+    is_same_domain = next_url_param.netloc.lower() == current_netloc
+    if is_relative_path or is_same_domain:
         # Use path in next query param
-        next_path = next_url_param.path
+        next_path = next_url_param.path or "/"
+    if not next_path.startswith("/") or next_path.startswith("//"):
+        next_path = "/"
     # Construct absolute url using current domain and next path from request
-    return urljoin(str(request.base_url).rstrip("/"), next_path)
+    next_url = urljoin(base_url, next_path)
+    if urlparse(next_url).netloc.lower() != current_netloc:
+        return urljoin(base_url, "/")
+    return next_url
 
 
 def get_conversation_command(query: str) -> ConversationCommand:
