@@ -198,7 +198,7 @@ async def search_with_exa(query: str, location: LocationData) -> Tuple[str, Dict
     # Set up API endpoint and headers
     exa_api_base = os.getenv("EXA_API_URL", "https://api.exa.ai")
     exa_search_api_endpoint = f"{exa_api_base}/search"
-    headers = {"Content-Type": "application/json", "x-api-key": EXA_API_KEY}
+    headers = {"Content-Type": "application/json", "x-api-key": EXA_API_KEY, "x-exa-integration": "khoj"}
 
     # Prepare request payload
     country_code = location.country_code.upper() if location and location.country_code else "US"
@@ -210,8 +210,7 @@ async def search_with_exa(query: str, location: LocationData) -> Tuple[str, Dict
         "contents": {
             "text": False,
             "highlights": {
-                "numSentences": 5,
-                "highlightsPerUrl": 1,
+                "maxCharacters": 500,
             },
         },
     }
@@ -613,11 +612,10 @@ async def read_webpage_with_olostep(web_url: str, api_key: str, api_url: str) ->
 
 async def read_webpage_with_exa(web_url: str, api_key: str, api_url: str) -> str:
     exa_api_url = f"{api_url}/contents"
-    headers = {"Content-Type": "application/json", "x-api-key": api_key}
+    headers = {"Content-Type": "application/json", "x-api-key": api_key, "x-exa-integration": "khoj"}
     params = {
         "urls": [web_url],
         "text": True,
-        "livecrawl": "fallback",
         "livecrawlTimeout": 15000,
     }
 
