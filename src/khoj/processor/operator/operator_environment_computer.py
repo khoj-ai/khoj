@@ -624,17 +624,21 @@ class ComputerEnvironment(Environment):
             logger.error("Container name or Docker display not set for Docker execution.")
             return None
 
-        safe_python_cmd = python_command_str.replace('"', '\\"')
-        docker_full_cmd = (
-            f'docker exec -e DISPLAY={self.docker_display} "{self.docker_container_name}" '
-            f'python3 -c "{safe_python_cmd}"'
-        )
+        docker_args = [
+            "docker",
+            "exec",
+            "-e",
+            f"DISPLAY={self.docker_display}",
+            self.docker_container_name,
+            "python3",
+            "-c",
+            python_command_str,
+        ]
 
         try:
             process = await asyncio.to_thread(
                 subprocess.run,
-                docker_full_cmd,
-                shell=True,
+                docker_args,
                 capture_output=True,
                 text=True,
                 check=False,  # We check returncode manually
@@ -644,7 +648,7 @@ class ComputerEnvironment(Environment):
                     raise KeyboardInterrupt(process.stderr or process.stdout)
                 else:
                     error_msg = (
-                        f"Docker command failed:\nCmd: {docker_full_cmd}\n"
+                        f"Docker command failed:\nCmd: {docker_args}\n"
                         f"Return Code: {process.returncode}\nStderr: {process.stderr}\nStdout: {process.stdout}"
                     )
                     logger.error(error_msg)
@@ -653,6 +657,6 @@ class ComputerEnvironment(Environment):
         except KeyboardInterrupt:  # Re-raise if caught from above
             raise
         except Exception as e:
-            logger.error(f"Unexpected error running command in Docker '{docker_full_cmd}': {e}")
+            logger.error(f"Unexpected error running command in Docker '{docker_args}': {e}")
             # Encapsulate as RuntimeError to avoid leaking subprocess errors directly
             raise RuntimeError(f"Unexpected Docker error: {e}") from e
