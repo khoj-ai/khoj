@@ -919,7 +919,7 @@ def is_instream_thinking_model(model_name: str) -> bool:
     """
     Check if the model uses in-stream thinking style, i.e., <think>...</think> in output
     """
-    instream_thinking_model = ["kimi-k2-thinking", "minimax-m2"]
+    instream_thinking_model = ["kimi-k2-thinking", "minimax-m2", "minimax-m3"]
     return any(prefix in model_name.lower() for prefix in instream_thinking_model)
 
 
