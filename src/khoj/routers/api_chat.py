@@ -1708,8 +1708,11 @@ async def process_chat_request(
                         await asyncio.sleep(BUFFER_FLUSH_INTERVAL)
                         # Check if there's still content to flush
                         chunks = "".join([chunk async for chunk in flush_message_buffer()])
-                        await websocket.send_text(chunks)
-                        await websocket.send_text(ChatEvent.END_EVENT.value)
+                        try:
+                            await websocket.send_text(chunks)
+                            await websocket.send_text(ChatEvent.END_EVENT.value)
+                        except RuntimeError:
+                            pass  # WebSocket already closed
 
                     # Flush buffer if no new messages arrive within debounce interval
                     message_buffer.timeout = asyncio.create_task(delayed_flush())
@@ -1717,8 +1720,11 @@ async def process_chat_request(
         logger.debug(f"Chat request cancelled for user {websocket.scope['user'].object.id}")
         raise
     except Exception as e:
-        await websocket.send_text(json.dumps({"error": "Internal server error"}))
         logger.error(f"Error processing chat request: {e}", exc_info=True)
+        try:
+            await websocket.send_text(json.dumps({"error": "Internal server error"}))
+        except RuntimeError:
+            pass  # WebSocket already closed
         raise
 
 

@@ -60,6 +60,22 @@ openai_async_clients: Dict[str, openai.AsyncOpenAI] = {}
 MAX_COMPLETION_TOKENS = 16000
 
 
+def get_llm_timeout() -> httpx.Timeout:
+    """
+    Get the httpx.Timeout configuration for LLM API calls.
+
+    Supports environment variables:
+    - KHOJ_LLM_TIMEOUT_READ: Read timeout (default: 60)
+    - KHOJ_LLM_TIMEOUT_CONNECT: Connection timeout (default: 30)
+
+    Returns:
+        httpx.Timeout configured with appropriate values
+    """
+    connect_timeout = float(os.getenv("KHOJ_LLM_TIMEOUT_CONNECT", "30"))
+    read_timeout = float(os.getenv("KHOJ_LLM_TIMEOUT_READ", "60"))
+    return httpx.Timeout(connect_timeout, read=read_timeout)
+
+
 def _extract_text_for_instructions(content: Union[str, List, Dict, None]) -> str:
     """Extract plain text from a message content suitable for Responses API instructions."""
     if content is None:
@@ -158,7 +174,6 @@ def completion_with_backoff(
     elif is_groq_api(api_base_url):
         model_kwargs["service_tier"] = "auto"
 
-    read_timeout = 300 if is_local_api(api_base_url) else 60
     if os.getenv("KHOJ_LLM_SEED"):
         model_kwargs["seed"] = int(os.getenv("KHOJ_LLM_SEED"))
 
@@ -171,7 +186,7 @@ def completion_with_backoff(
         with client.beta.chat.completions.stream(
             messages=formatted_messages,  # type: ignore
             model=model_name,
-            timeout=httpx.Timeout(30, read=read_timeout),
+            timeout=get_llm_timeout(),
             **model_kwargs,
         ) as chat:
             for chunk in stream_processor(chat):
@@ -215,7 +230,7 @@ def completion_with_backoff(
         chunk = client.beta.chat.completions.parse(
             messages=formatted_messages,  # type: ignore
             model=model_name,
-            timeout=httpx.Timeout(30, read=read_timeout),
+            timeout=get_llm_timeout(),
             **model_kwargs,
         )
         aggregated_response = chunk.choices[0].message.content
@@ -360,7 +375,6 @@ async def chat_completion_with_backoff(
     elif is_groq_api(api_base_url):
         model_kwargs["service_tier"] = "auto"
 
-    read_timeout = 300 if is_local_api(api_base_url) else 60
     if os.getenv("KHOJ_LLM_SEED"):
         model_kwargs["seed"] = int(os.getenv("KHOJ_LLM_SEED"))
 
@@ -373,7 +387,7 @@ async def chat_completion_with_backoff(
         model=model_name,
         stream=stream,
         temperature=temperature,
-        timeout=httpx.Timeout(30, read=read_timeout),
+        timeout=get_llm_timeout(),
         **model_kwargs,
     )
     if not stream:
@@ -494,15 +508,13 @@ def responses_completion_with_backoff(
         model_kwargs.pop("top_p", None)
         model_kwargs.pop("stop", None)
 
-    read_timeout = 300 if is_local_api(api_base_url) else 60
-
     # Stream and aggregate
     model_response: OpenAIResponse = client.responses.create(
         input=formatted_messages,
         instructions=instructions,
         model=model_name,
         temperature=temperature,
-        timeout=httpx.Timeout(30, read=read_timeout),  # type: ignore
+        timeout=get_llm_timeout(),  # type: ignore
         store=False,
         **model_kwargs,
     )
@@ -607,8 +619,6 @@ async def responses_chat_completion_with_backoff(
         model_kwargs.pop("top_p", None)
         model_kwargs.pop("stop", None)
 
-    read_timeout = 300 if is_local_api(api_base_url) else 60
-
     aggregated_text = ""
     last_final: Optional[OpenAIResponse] = None
     # Tool call assembly buffers
@@ -621,7 +631,7 @@ async def responses_chat_completion_with_backoff(
         instructions=instructions,
         model=model_name,
         temperature=temperature,
-        timeout=httpx.Timeout(30, read=read_timeout),
+        timeout=get_llm_timeout(),
         **model_kwargs,
     ) as stream:  # type: ignore
         async for event in stream:  # type: ignore
