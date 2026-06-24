@@ -64,7 +64,6 @@ def search_config():
     )
 
 
-@pytest.mark.django_db
 @pytest.fixture
 def default_user():
     user = UserFactory()
@@ -72,7 +71,6 @@ def default_user():
     return user
 
 
-@pytest.mark.django_db
 @pytest.fixture
 def default_user2():
     if KhojUser.objects.filter(username="default").exists():
@@ -87,7 +85,6 @@ def default_user2():
     return user
 
 
-@pytest.mark.django_db
 @pytest.fixture
 def default_user3():
     """
@@ -105,7 +102,6 @@ def default_user3():
     return user
 
 
-@pytest.mark.django_db
 @pytest.fixture
 def default_user4():
     """
@@ -123,7 +119,6 @@ def default_user4():
     return user
 
 
-@pytest.mark.django_db
 @pytest.fixture
 def api_user(default_user):
     if KhojApiUser.objects.filter(user=default_user).exists():
@@ -136,7 +131,6 @@ def api_user(default_user):
     )
 
 
-@pytest.mark.django_db
 @pytest.fixture
 def api_user2(default_user2):
     if KhojApiUser.objects.filter(user=default_user2).exists():
@@ -149,7 +143,6 @@ def api_user2(default_user2):
     )
 
 
-@pytest.mark.django_db
 @pytest.fixture
 def api_user3(default_user3):
     if KhojApiUser.objects.filter(user=default_user3).exists():
@@ -162,7 +155,6 @@ def api_user3(default_user3):
     )
 
 
-@pytest.mark.django_db
 @pytest.fixture
 def api_user4(default_user4):
     if KhojApiUser.objects.filter(user=default_user4).exists():
@@ -175,14 +167,12 @@ def api_user4(default_user4):
     )
 
 
-@pytest.mark.django_db
 @pytest.fixture
 def default_openai_chat_model_option():
     chat_model = ChatModelFactory(name="gpt-4o-mini", model_type="openai")
     return chat_model
 
 
-@pytest.mark.django_db
 @pytest.fixture
 def openai_agent():
     chat_model = ChatModelFactory(name="gpt-4o-mini", model_type="openai")
@@ -193,7 +183,6 @@ def openai_agent():
     )
 
 
-@pytest.mark.django_db
 @pytest.fixture
 def default_process_lock():
     return ProcessLockFactory()

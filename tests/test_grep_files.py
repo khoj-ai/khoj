@@ -10,10 +10,8 @@ logger = logging.getLogger(__name__)
 
 
 @pytest.fixture
-@pytest.mark.django_db
-@pytest.mark.asyncio
-async def default_user():
-    user, _ = await KhojUser.objects.aget_or_create(
+def default_user():
+    user, _ = KhojUser.objects.get_or_create(
         username="test_user",
         password="test_password",
         email="test@example.com",
@@ -21,10 +19,10 @@ async def default_user():
     return user
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db(transaction=True)
 @pytest.mark.asyncio
 async def test_grep_files_simple_match(default_user: KhojUser):
-    user = await default_user
+    user = default_user
     await FileObjectAdapters.adelete_all_file_objects(user=user)
     # Arrange
     await FileObjectAdapters.acreate_file_object(
@@ -50,10 +48,10 @@ async def test_grep_files_simple_match(default_user: KhojUser):
     assert "test.txt:3: hello again" in result["compiled"]
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db(transaction=True)
 @pytest.mark.asyncio
 async def test_grep_files_no_match(default_user: KhojUser):
-    user = await default_user
+    user = default_user
     await FileObjectAdapters.adelete_all_file_objects(user=user)
     # Arrange
     await FileObjectAdapters.acreate_file_object(
@@ -78,10 +76,10 @@ async def test_grep_files_no_match(default_user: KhojUser):
     assert "No matches found." in result["compiled"]
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db(transaction=True)
 @pytest.mark.asyncio
 async def test_grep_files_with_path_prefix(default_user: KhojUser):
-    user = await default_user
+    user = default_user
     await FileObjectAdapters.adelete_all_file_objects(user=user)
     # Arrange
     await FileObjectAdapters.acreate_file_object(
@@ -114,10 +112,10 @@ async def test_grep_files_with_path_prefix(default_user: KhojUser):
     assert "dir2/test2.txt" not in result["compiled"]
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db(transaction=True)
 @pytest.mark.asyncio
 async def test_grep_files_with_context(default_user: KhojUser):
-    user = await default_user
+    user = default_user
     await FileObjectAdapters.adelete_all_file_objects(user=user)
     # Arrange
     await FileObjectAdapters.acreate_file_object(
@@ -149,10 +147,10 @@ async def test_grep_files_with_context(default_user: KhojUser):
     assert "line 5" not in result["compiled"]
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db(transaction=True)
 @pytest.mark.asyncio
 async def test_grep_files_invalid_regex(default_user: KhojUser):
-    user = await default_user
+    user = default_user
     await FileObjectAdapters.adelete_all_file_objects(user=user)
     # Act
     results = [
@@ -169,10 +167,10 @@ async def test_grep_files_invalid_regex(default_user: KhojUser):
     assert "Invalid regex pattern" in result["compiled"]
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db(transaction=True)
 @pytest.mark.asyncio
 async def test_grep_files_multiple_files(default_user: KhojUser):
-    user = await default_user
+    user = default_user
     await FileObjectAdapters.adelete_all_file_objects(user=user)
     # Arrange
     await FileObjectAdapters.acreate_file_object(
@@ -222,12 +220,12 @@ async def test_grep_files_multiple_files(default_user: KhojUser):
         (r"\d{4}-\d{2}-\d{2}.*(sailing|sail|center for boats|captain sailor)", 1, "no flags or anchors"),
     ],
 )
-@pytest.mark.django_db
+@pytest.mark.django_db(transaction=True)
 @pytest.mark.asyncio
 async def test_grep_files_financial_entries_regex_patterns(
     default_user: KhojUser, regex_pattern: str, expected_matches: int, test_description: str
 ):
-    user = await default_user
+    user = default_user
     await FileObjectAdapters.adelete_all_file_objects(user=user)
 
     # Arrange - Create file with financial ledger content that has prefix text
