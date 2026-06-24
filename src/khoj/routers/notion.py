@@ -67,8 +67,6 @@ async def notion_auth_callback(request: Request, background_tasks: BackgroundTas
 
     final_response = response.json()
 
-    logger.info(f"Notion auth callback response: {final_response}")
-
     access_token = final_response.get("access_token")
     await NotionConfig.objects.acreate(token=access_token, user=user)
 
