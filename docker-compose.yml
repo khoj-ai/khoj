@@ -121,6 +121,11 @@ services:
       # Telemetry helps us prioritize feature development and understand how people are using Khoj
       # Read more at https://docs.khoj.dev/miscellaneous/telemetry
       # - KHOJ_TELEMETRY_DISABLE=True
+      #
+      # Uncomment the line below to add custom image domains to Content-Security-Policy.
+      # Useful when using custom image sources like CDN or external image hosts.
+      # Comma-separated list of domains (without https:// prefix).
+      # - KHOJ_CSP_IMG_DOMAINS=static.example.com,cdn.example.com
     # Comment out this line when you're using the official ghcr.io/khoj-ai/khoj-cloud:latest prod image.
     command: --host="0.0.0.0" --port=42110 -vv --anonymous-mode --non-interactive
 
