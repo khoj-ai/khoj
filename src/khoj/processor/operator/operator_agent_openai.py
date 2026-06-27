@@ -202,7 +202,9 @@ class OpenAIOperatorAgent(OperatorAgent):
             return "No actions to summarize."
         return self._compile_response(self.messages[-1].content)
 
-    async def _call_model(self, model: ChatModel, system_prompt, tools) -> Response:
+    async def _call_model(self, model: ChatModel, system_prompt, tools=None) -> Response:
+        if tools is None:
+            tools = []
         client = get_openai_async_client(model.ai_model_api.api_key, model.ai_model_api.api_base_url)
         if tools:
             model_name = "computer-use-preview"

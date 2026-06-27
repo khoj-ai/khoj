@@ -409,11 +409,15 @@ class AnthropicOperatorAgent(OperatorAgent):
         messages: list[AgentMessage],
         model: ChatModel,
         system_prompt: str,
-        tools: list[dict] = [],
-        headers: list[str] = [],
+        tools: Optional[list[dict]] = None,
+        headers: Optional[list[str]] = None,
         temperature: float = 1.0,
         max_tokens: int = 4096,
     ) -> list[BetaContentBlock]:
+        if tools is None:
+            tools = []
+        if headers is None:
+            headers = []
         client = get_anthropic_async_client(model.ai_model_api.api_key, model.ai_model_api.api_base_url)
         thinking: dict[str, str | int] = {"type": "disabled"}
         system = [{"type": "text", "text": system_prompt, "cache_control": {"type": "ephemeral"}}]

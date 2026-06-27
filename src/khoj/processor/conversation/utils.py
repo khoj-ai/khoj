@@ -497,11 +497,15 @@ class ChatEvent(Enum):
 def message_to_log(
     user_message,
     chat_response,
-    user_message_metadata={},
-    khoj_message_metadata={},
-    chat_history: List[ChatMessageModel] = [],
+    user_message_metadata=None,
+    khoj_message_metadata=None,
+    chat_history: Optional[List[ChatMessageModel]] = None,
 ) -> List[ChatMessageModel]:
     """Create json logs from messages, metadata for conversation log"""
+
+    if user_message_metadata is None: user_message_metadata = {}
+    if khoj_message_metadata is None: khoj_message_metadata = {}
+    if chat_history is None: chat_history = []
     default_khoj_message_metadata = {
         "intent": {"type": "remember", "memory-type": "notes", "query": user_message},
     }
@@ -543,24 +547,34 @@ async def save_to_conversation_log(
     chat_response: str,
     user: KhojUser,
     user_message_time: str = None,
-    compiled_references: List[Dict[str, Any]] = [],
-    online_results: Dict[str, Any] = {},
-    code_results: Dict[str, Any] = {},
+    compiled_references: Optional[List[Dict[str, Any]]] = None,
+    online_results: Optional[Dict[str, Any]] = None,
+    code_results: Optional[Dict[str, Any]] = None,
     operator_results: List[OperatorRun] = None,
-    inferred_queries: List[str] = [],
+    inferred_queries: Optional[List[str]] = None,
     intent_type: str = "remember",
     client_application: ClientApplication = None,
     conversation_id: str = None,
     automation_id: str = None,
-    relevant_memories: List[UserMemory] = [],
+    relevant_memories: Optional[List[UserMemory]] = None,
     query_images: List[str] = None,
-    raw_query_files: List[FileAttachment] = [],
-    generated_images: List[str] = [],
+    raw_query_files: Optional[List[FileAttachment]] = None,
+    generated_images: Optional[List[str]] = None,
     generated_mermaidjs_diagram: str = None,
     research_results: Optional[List[ResearchIteration]] = None,
-    train_of_thought: List[Any] = [],
-    tracer: Dict[str, Any] = {},
+    train_of_thought: Optional[List[Any]] = None,
+    tracer: Optional[Dict[str, Any]] = None,
 ):
+
+    if compiled_references is None: compiled_references = []
+    if online_results is None: online_results = {}
+    if code_results is None: code_results = {}
+    if inferred_queries is None: inferred_queries = []
+    if relevant_memories is None: relevant_memories = []
+    if raw_query_files is None: raw_query_files = []
+    if generated_images is None: generated_images = []
+    if train_of_thought is None: train_of_thought = []
+    if tracer is None: tracer = {}
     from khoj.routers.helpers import ai_update_memories
 
     user_message_time = user_message_time or datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -681,9 +695,9 @@ def generate_chatml_messages_with_context(
     query_images=None,
     context_message="",
     relevant_memories: List[UserMemory] = None,
-    generated_asset_results: Dict[str, Dict] = {},
-    program_execution_context: List[str] = [],
-    chat_history: list[ChatMessageModel] = [],
+    generated_asset_results: Optional[Dict[str, Dict]] = None,
+    program_execution_context: Optional[List[str]] = None,
+    chat_history: Optional[list[ChatMessageModel]] = None,
     system_message: str = None,
     # Model Config
     model_name="gpt-4o-mini",
@@ -693,6 +707,10 @@ def generate_chatml_messages_with_context(
     vision_enabled=False,
 ):
     """Generate chat messages with appropriate context from previous conversation to send to the chat model"""
+
+    if generated_asset_results is None: generated_asset_results = {}
+    if program_execution_context is None: program_execution_context = []
+    if chat_history is None: chat_history = []
     # Set max prompt size from user config or based on pre-configured for model and machine specs
     if not max_prompt_size:
         max_prompt_size = model_to_prompt_size.get(model_name, 10000)

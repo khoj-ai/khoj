@@ -62,8 +62,10 @@ async def run_code(
     relevant_memories: List[UserMemory] = None,
     agent: Agent = None,
     sandbox_url: str = SANDBOX_URL,
-    tracer: dict = {},
+    tracer: Optional[dict] = None,
 ):
+    if tracer is None:
+        tracer = {}
     # Generate Code
     if send_status_func:
         async for event in send_status_func(f"**Generate code snippet** for {instructions}"):
@@ -126,10 +128,12 @@ async def generate_python_code(
     user: KhojUser,
     query_images: list[str] = None,
     agent: Agent = None,
-    tracer: dict = {},
+    tracer: Optional[dict] = None,
     query_files: str = None,
     relevant_memories: List[UserMemory] = None,
 ) -> GeneratedCode:
+    if tracer is None:
+        tracer = {}
     location = f"{location_data}" if location_data else "Unknown"
     username = prompts.user_name.format(name=user.get_full_name()) if user.get_full_name() else ""
     chat_history_str = construct_chat_history(chat_history)

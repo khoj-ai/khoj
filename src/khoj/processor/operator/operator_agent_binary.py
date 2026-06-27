@@ -41,10 +41,14 @@ class BinaryOperatorAgent(OperatorAgent):
         environment_type: EnvironmentType,
         max_iterations: int,
         max_context: int,
-        chat_history: List[AgentMessage] = [],
+        chat_history: Optional[List[AgentMessage]] = None,
         previous_trajectory: Optional[OperatorRun] = None,
-        tracer: dict = {},
+        tracer: Optional[dict] = None,
     ):
+        if chat_history is None:
+            chat_history = []
+        if tracer is None:
+            tracer = {}
         super().__init__(
             query,
             reasoning_model,

@@ -46,8 +46,10 @@ async def operate_environment(
     cancellation_event: Optional[asyncio.Event] = None,
     interrupt_queue: Optional[asyncio.Queue] = None,
     abort_message: Optional[str] = ChatEvent.END_EVENT.value,
-    tracer: dict = {},
+    tracer: Optional[dict] = None,
 ):
+    if tracer is None:
+        tracer = {}
     response, user_input_message = None, None
 
     # Only use partial previous trajectories to continue existing task
