@@ -31,9 +31,9 @@ if [ "$DEVCONTAINER" = true ]; then
     uv sync --all-extras
 
     # Install Web App using cached dependencies
-    echo "Setup Web App with Bun. Use pre-installed dependencies in /opt/khoj_web."
+    echo "Setup Web App with Bun. Use pre-installed dependencies in /opt/alphamind_web."
     cd "$PROJECT_ROOT/src/interface/web"
-    ln -sf /opt/khoj_web/node_modules node_modules
+    ln -sf /opt/alphamind_web/node_modules node_modules
     bun install && bun run ciexport
 else
     # Standard setup

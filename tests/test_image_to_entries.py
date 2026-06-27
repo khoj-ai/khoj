@@ -1,4 +1,4 @@
-from khoj.processor.content.images.image_to_entries import ImageToEntries
+from alphamind.processor.content.images.image_to_entries import ImageToEntries
 
 
 def test_png_to_jsonl():

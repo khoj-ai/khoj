@@ -262,7 +262,7 @@ function EmailSignInContext({
                 <ArrowLeft className="h-6 w-6" />
             </Button>
             <div>
-                <div className="text-center font-bold text-xl">Get started with Khoj</div>
+                <div className="text-center font-bold text-xl">Get started with AlphaMind</div>
             </div>
             <div className="text-center text-sm text-muted-foreground">
                 {checkEmail
@@ -333,7 +333,7 @@ function EmailSignInContext({
                 <div className="flex items-center justify-center gap-4 text-muted-foreground flex-col md:flex-row">
                     <Button
                         variant="ghost"
-                        className="p-0 text-orange-500"
+                        className="p-0 text-emerald-600"
                         disabled={recheckEmail}
                         onClick={handleMagicLinkSignIn}
                     >
@@ -343,7 +343,7 @@ function EmailSignInContext({
                     <LineVertical className="h-6 w-6 hidden md:block opacity-50" />
                     <Button
                         variant="ghost"
-                        className="p-0 text-orange-500"
+                        className="p-0 text-emerald-600"
                         disabled={recheckEmail}
                         onClick={() => {
                             setEmail("");
@@ -379,17 +379,17 @@ function MainSignInContext({
 
     const tips = [
         {
-            src: "https://assets.khoj.dev/sign_in_demos/research_mode.gif",
+            src: "https://assets.alphamind.dev/sign_in_demos/research_mode.gif",
             alt: "Research tip",
             description: "Simplify Deep Work",
         },
         {
-            src: "https://assets.khoj.dev/sign_in_demos/custom_agents.gif",
+            src: "https://assets.alphamind.dev/sign_in_demos/custom_agents.gif",
             alt: "Personalize tip",
             description: "Personalize your AI",
         },
         {
-            src: "https://assets.khoj.dev/sign_in_demos/docment_questions.gif",
+            src: "https://assets.alphamind.dev/sign_in_demos/docment_questions.gif",
             alt: "Document tip",
             description: "Ask Anything",
         },
@@ -510,8 +510,8 @@ function MainSignInContext({
             </div>
             <div className="text-center text-muted-foreground text-sm mb-[20px]">
                 By logging in, you agree to our{" "}
-                <Link href="https://khoj.dev/terms-of-service">Terms of Service</Link>. See{" "}
-                <Link href="https://khoj.dev/privacy-policy">Privacy Policy</Link>.
+                <Link href="https://alphamind.dev/terms-of-service">Terms of Service</Link>. See{" "}
+                <Link href="https://alphamind.dev/privacy-policy">Privacy Policy</Link>.
             </div>
         </div>
     );

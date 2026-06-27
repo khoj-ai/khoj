@@ -32,7 +32,7 @@ import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/s
 import { DeprecationBanner } from "@/app/components/deprecationBanner";
 import { AppSidebar } from "../components/appSidebar/appSidebar";
 import { Separator } from "@/components/ui/separator";
-import { KhojLogoType } from "../components/logo/khojLogo";
+import { AlphaMindLogoType } from "../components/logo/alphamindLogo";
 import { Button } from "@/components/ui/button";
 import { Joystick } from "@phosphor-icons/react";
 import { useToast } from "@/components/ui/use-toast";
@@ -198,7 +198,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
 }
 
 export default function Chat() {
-    const defaultTitle = "Khoj AI - Chat";
+    const defaultTitle = "AlphaMind AI - Chat";
     const [chatOptionsData, setChatOptionsData] = useState<ChatOptions | null>(null);
     const [isLoading, setLoading] = useState(true);
     const [title, setTitle] = useState(defaultTitle);
@@ -588,7 +588,7 @@ export default function Chat() {
                         >
                             {isMobileWidth ? (
                                 <Link className="p-0 no-underline" href="/">
-                                    <KhojLogoType className="h-auto w-16" />
+                                    <AlphaMindLogoType className="h-auto w-16" />
                                 </Link>
                             ) : (
                                 title && (

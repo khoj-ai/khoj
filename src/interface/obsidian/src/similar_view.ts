@@ -1,7 +1,7 @@
 import { WorkspaceLeaf, TFile, MarkdownRenderer, Notice, setIcon } from 'obsidian';
-import { KhojPaneView } from 'src/pane_view';
-import { KhojView, getLinkToEntry, supportedBinaryFileTypes } from 'src/utils';
-import Khoj from 'src/main';
+import { AlphaMindPaneView } from 'src/pane_view';
+import { AlphaMindView, getLinkToEntry, supportedBinaryFileTypes } from 'src/utils';
+import AlphaMind from 'src/main';
 
 export interface SimilarResult {
     entry: string;
@@ -9,7 +9,7 @@ export interface SimilarResult {
     inVault: boolean;
 }
 
-export class KhojSimilarView extends KhojPaneView {
+export class AlphaMindSimilarView extends AlphaMindPaneView {
     static iconName: string = "search";
     currentController: AbortController | null = null;
     isLoading: boolean = false;
@@ -20,17 +20,17 @@ export class KhojSimilarView extends KhojPaneView {
     fileWatcher: any;
     component: any;
 
-    constructor(leaf: WorkspaceLeaf, plugin: Khoj) {
+    constructor(leaf: WorkspaceLeaf, plugin: AlphaMind) {
         super(leaf, plugin);
         this.component = this;
     }
 
     getViewType(): string {
-        return KhojView.SIMILAR;
+        return AlphaMindView.SIMILAR;
     }
 
     getDisplayText(): string {
-        return "Khoj Similar Documents";
+        return "AlphaMind Similar Documents";
     }
 
     getIcon(): string {
@@ -42,14 +42,14 @@ export class KhojSimilarView extends KhojPaneView {
         const { contentEl } = this;
 
         // Create main container
-        const mainContainerEl = contentEl.createDiv({ cls: "khoj-similar-container" });
+        const mainContainerEl = contentEl.createDiv({ cls: "alphamind-similar-container" });
 
         // Create search input container
-        const searchContainerEl = mainContainerEl.createDiv({ cls: "khoj-similar-search-container" });
+        const searchContainerEl = mainContainerEl.createDiv({ cls: "alphamind-similar-search-container" });
 
         // Create search input
         this.searchInputEl = searchContainerEl.createEl("input", {
-            cls: "khoj-similar-search-input",
+            cls: "alphamind-similar-search-input",
             attr: {
                 type: "text",
                 placeholder: "Search or use current file"
@@ -58,7 +58,7 @@ export class KhojSimilarView extends KhojPaneView {
 
         // Create refresh button
         const refreshButtonEl = searchContainerEl.createEl("button", {
-            cls: "khoj-similar-refresh-button"
+            cls: "alphamind-similar-refresh-button"
         });
         setIcon(refreshButtonEl, "refresh-cw");
         refreshButtonEl.createSpan({ text: "Refresh" });
@@ -67,7 +67,7 @@ export class KhojSimilarView extends KhojPaneView {
         });
 
         // Create results container
-        this.resultsContainerEl = mainContainerEl.createDiv({ cls: "khoj-similar-results" });
+        this.resultsContainerEl = mainContainerEl.createDiv({ cls: "alphamind-similar-results" });
 
         // Create loading element
         this.loadingEl = mainContainerEl.createDiv({ cls: "search-loading" });
@@ -143,7 +143,7 @@ export class KhojSimilarView extends KhojPaneView {
     }
 
     /**
-     * Get similar documents from Khoj API
+     * Get similar documents from AlphaMind API
      *
      * @param query - The query text to find similar documents
      */
@@ -170,14 +170,14 @@ export class KhojSimilarView extends KhojPaneView {
             // Create a new controller for this request
             this.currentController = new AbortController();
 
-            // Setup Query Khoj backend for search results
+            // Setup Query AlphaMind backend for search results
             let encodedQuery = encodeURIComponent(query);
-            let searchUrl = `${this.setting.khojUrl}/api/search?q=${encodedQuery}&n=${this.setting.resultsCount}&r=true&client=obsidian`;
+            let searchUrl = `${this.setting.alphamindUrl}/api/search?q=${encodedQuery}&n=${this.setting.resultsCount}&r=true&client=obsidian`;
             let headers = {
-                'Authorization': `Bearer ${this.setting.khojApiKey}`,
+                'Authorization': `Bearer ${this.setting.alphamindApiKey}`,
             }
 
-            // Get search results from Khoj backend
+            // Get search results from AlphaMind backend
             const response = await fetch(searchUrl, {
                 headers: headers,
                 signal: this.currentController.signal
@@ -260,27 +260,27 @@ export class KhojSimilarView extends KhojPaneView {
 
         // Show results count
         this.resultsContainerEl.createEl("div", {
-            cls: "khoj-results-count",
+            cls: "alphamind-results-count",
             text: `Found ${results.length} similar document${results.length > 1 ? 's' : ''}`
         });
 
         // Create results list
-        const resultsListEl = this.resultsContainerEl.createEl("div", { cls: "khoj-similar-results-list" });
+        const resultsListEl = this.resultsContainerEl.createEl("div", { cls: "alphamind-similar-results-list" });
 
         // Render each result
         results.forEach(async (result) => {
-            const resultEl = resultsListEl.createEl("div", { cls: "khoj-similar-result-item" });
+            const resultEl = resultsListEl.createEl("div", { cls: "alphamind-similar-result-item" });
 
             // Extract filename
             let os_path_separator = result.file.includes('\\') ? '\\' : '/';
             let filename = result.file.split(os_path_separator).pop();
 
             // Create header container for filename and more context button
-            const headerEl = resultEl.createEl("div", { cls: "khoj-similar-result-header" });
+            const headerEl = resultEl.createEl("div", { cls: "alphamind-similar-result-header" });
 
             // Show filename with appropriate color
             const fileEl = headerEl.createEl("div", {
-                cls: `khoj-result-file ${result.inVault ? 'in-vault' : 'not-in-vault'}`
+                cls: `alphamind-result-file ${result.inVault ? 'in-vault' : 'not-in-vault'}`
             });
             fileEl.setText(filename ?? "");
 
@@ -288,20 +288,20 @@ export class KhojSimilarView extends KhojPaneView {
             if (!result.inVault) {
                 fileEl.createSpan({
                     text: " (not in vault)",
-                    cls: "khoj-result-file-status"
+                    cls: "alphamind-result-file-status"
                 });
             }
 
             // Add "More context" button
             const moreContextButton = headerEl.createEl("button", {
-                cls: "khoj-more-context-button"
+                cls: "alphamind-more-context-button"
             });
             moreContextButton.createSpan({ text: "More context" });
             setIcon(moreContextButton.createSpan(), "chevron-down");
 
             // Create content element (hidden by default)
             const contentEl = resultEl.createEl("div", {
-                cls: "khoj-result-entry khoj-similar-content-hidden"
+                cls: "alphamind-result-entry alphamind-similar-content-hidden"
             });
 
             // Prepare content for rendering
@@ -329,15 +329,15 @@ export class KhojSimilarView extends KhojPaneView {
                 e.stopPropagation(); // Prevent opening the file
 
                 // Toggle content visibility
-                if (contentEl.classList.contains("khoj-similar-content-hidden")) {
-                    contentEl.classList.remove("khoj-similar-content-hidden");
-                    contentEl.classList.add("khoj-similar-content-visible");
+                if (contentEl.classList.contains("alphamind-similar-content-hidden")) {
+                    contentEl.classList.remove("alphamind-similar-content-hidden");
+                    contentEl.classList.add("alphamind-similar-content-visible");
                     moreContextButton.empty();
                     moreContextButton.createSpan({ text: "Less context" });
                     setIcon(moreContextButton.createSpan(), "chevron-up");
                 } else {
-                    contentEl.classList.remove("khoj-similar-content-visible");
-                    contentEl.classList.add("khoj-similar-content-hidden");
+                    contentEl.classList.remove("alphamind-similar-content-visible");
+                    contentEl.classList.add("alphamind-similar-content-hidden");
                     moreContextButton.empty();
                     moreContextButton.createSpan({ text: "More context" });
                     setIcon(moreContextButton.createSpan(), "chevron-down");
@@ -405,7 +405,7 @@ export class KhojSimilarView extends KhojPaneView {
         }
 
         // Create message element
-        const messageEl = this.resultsContainerEl.createEl("div", { cls: "khoj-similar-message" });
+        const messageEl = this.resultsContainerEl.createEl("div", { cls: "alphamind-similar-message" });
 
         // Set message based on state
         switch (state) {

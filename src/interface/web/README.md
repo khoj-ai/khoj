@@ -70,7 +70,7 @@ If you're using Windows:
 bun windowswatch
 ```
 
-Now you should be able to load your custom pages from the Khoj app at http://localhost:42110/. To server any of the built files, you should update the routes in the `web_client.py` like so, where `new_file` is the new page you've added in this repo:
+Now you should be able to load your custom pages from the AlphaMind app at http://localhost:42110/. To server any of the built files, you should update the routes in the `web_client.py` like so, where `new_file` is the new page you've added in this repo:
 
 ```python
 @web_client.post("/new_route", response_class=FileResponse)

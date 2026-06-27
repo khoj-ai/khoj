@@ -1,8 +1,8 @@
 # syntax=docker/dockerfile:1
 FROM ubuntu:jammy AS base
-LABEL homepage="https://khoj.dev"
-LABEL repository="https://github.com/khoj-ai/khoj"
-LABEL org.opencontainers.image.source="https://github.com/khoj-ai/khoj"
+LABEL homepage="https://alphamind.dev"
+LABEL repository="https://github.com/alphamind-ai/alphamind"
+LABEL org.opencontainers.image.source="https://github.com/alphamind-ai/alphamind"
 LABEL org.opencontainers.image.description="Your second brain, containerized for multi-user, cloud deployment"
 
 # Install System Dependencies
@@ -52,13 +52,13 @@ ENV PYTHONPATH=/app/src:$PYTHONPATH
 WORKDIR /app
 COPY --from=server-deps /usr/local/lib/python3.10/dist-packages /usr/local/lib/python3.10/dist-packages
 COPY --from=server-deps /usr/local/bin /usr/local/bin
-COPY --from=web-app /app/src/interface/web/out ./src/khoj/interface/built
+COPY --from=web-app /app/src/interface/web/out ./src/alphamind/interface/built
 COPY . .
-RUN cd src && python3 khoj/manage.py collectstatic --noinput
+RUN cd src && python3 alphamind/manage.py collectstatic --noinput
 
 # Run the Application
 # There are more arguments required for the application to run,
 # but those should be passed in through the docker-compose.yml file.
 ARG PORT
 EXPOSE ${PORT}
-ENTRYPOINT ["gunicorn", "-c", "gunicorn-config.py", "src.khoj.main:app"]
+ENTRYPOINT ["gunicorn", "-c", "gunicorn-config.py", "src.alphamind.main:app"]

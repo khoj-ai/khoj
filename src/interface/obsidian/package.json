@@ -1,8 +1,8 @@
 {
-    "name": "Khoj",
+    "name": "AlphaMind",
     "version": "2.0.0-beta.28",
     "description": "Your Second Brain",
-    "author": "Debanjum Singh Solanky, Saba Imran <team@khoj.dev>",
+    "author": "Debanjum Singh Solanky, Saba Imran <team@alphamind.dev>",
     "license": "GPL-3.0-or-later",
     "main": "src/main.js",
     "scripts": {

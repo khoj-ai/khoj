@@ -1,4 +1,4 @@
-from khoj.processor.content.docx.docx_to_entries import DocxToEntries
+from alphamind.processor.content.docx.docx_to_entries import DocxToEntries
 
 
 def test_single_page_docx_to_jsonl():

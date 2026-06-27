@@ -1,5 +1,5 @@
 import { App, SuggestModal, request, MarkdownRenderer, Instruction, Platform, Notice } from 'obsidian';
-import { KhojSetting } from 'src/settings';
+import { AlphaMindSetting } from 'src/settings';
 import { supportedBinaryFileTypes, createNoteAndCloseModal, getFileFromPath, getLinkToEntry, supportedImageFilesTypes } from 'src/utils';
 
 export interface SearchResult {
@@ -7,8 +7,8 @@ export interface SearchResult {
     file: string;
 }
 
-export class KhojSearchModal extends SuggestModal<SearchResult> {
-    setting: KhojSetting;
+export class AlphaMindSearchModal extends SuggestModal<SearchResult> {
+    setting: AlphaMindSetting;
     rerank: boolean = false;
     find_similar_notes: boolean;
     query: string = "";
@@ -21,7 +21,7 @@ export class KhojSearchModal extends SuggestModal<SearchResult> {
     private allFiles: Array<{path: string, inVault: boolean}> = [];
     private resultsTitle: HTMLDivElement;
 
-    constructor(app: App, setting: KhojSetting, find_similar_notes: boolean = false) {
+    constructor(app: App, setting: AlphaMindSetting, find_similar_notes: boolean = false) {
         super(app);
         this.app = app;
         this.setting = setting;
@@ -52,7 +52,7 @@ export class KhojSearchModal extends SuggestModal<SearchResult> {
         this.scope.register(['Mod'], 'Enter', async () => {
             // Re-rank when explicitly triggered by user
             this.rerank = true
-            // Trigger input event to get and render (reranked) results from khoj backend
+            // Trigger input event to get and render (reranked) results from alphamind backend
             this.inputEl.dispatchEvent(new Event('input'));
             // Rerank disabled by default to satisfy latency requirements for incremental search
             this.rerank = false
@@ -88,7 +88,7 @@ export class KhojSearchModal extends SuggestModal<SearchResult> {
         this.setInstructions(modalInstructions);
 
         // Set Placeholder Text for Modal
-        this.setPlaceholder('Search with Khoj...');
+        this.setPlaceholder('Search with AlphaMind...');
 
         // Initialize allFiles with files in vault
         this.allFiles = this.app.vault.getFiles().map(file => ({
@@ -186,14 +186,14 @@ export class KhojSearchModal extends SuggestModal<SearchResult> {
             // Create a new controller for this request
             this.currentController = new AbortController();
 
-            // Setup Query Khoj backend for search results
+            // Setup Query AlphaMind backend for search results
             let encodedQuery = encodeURIComponent(query);
-            let searchUrl = `${this.setting.khojUrl}/api/search?q=${encodedQuery}&n=${this.setting.resultsCount}&r=${this.rerank}&client=obsidian`;
+            let searchUrl = `${this.setting.alphamindUrl}/api/search?q=${encodedQuery}&n=${this.setting.resultsCount}&r=${this.rerank}&client=obsidian`;
             let headers = {
-                'Authorization': `Bearer ${this.setting.khojApiKey}`,
+                'Authorization': `Bearer ${this.setting.alphamindApiKey}`,
             }
 
-            // Get search results from Khoj backend
+            // Get search results from AlphaMind backend
             const response = await fetch(searchUrl, {
                 headers: headers,
                 signal: this.currentController.signal
@@ -266,7 +266,7 @@ export class KhojSearchModal extends SuggestModal<SearchResult> {
                 // Set input element to contents of active markdown file
                 // truncate to first 8,000 characters to avoid hitting query size limits
                 this.inputEl.value = await this.app.vault.read(file).then(file_str => file_str.slice(0, 42110));
-                // Trigger search to get and render similar notes from khoj backend
+                // Trigger search to get and render similar notes from alphamind backend
                 this.inputEl.dispatchEvent(new Event('input'));
                 this.rerank = false
             }
@@ -281,7 +281,7 @@ export class KhojSearchModal extends SuggestModal<SearchResult> {
             // Render file suggestions
             el.createEl("div", {
                 text: result.entry,
-                cls: "khoj-file-suggestion"
+                cls: "alphamind-file-suggestion"
             });
             return;
         }
@@ -295,7 +295,7 @@ export class KhojSearchModal extends SuggestModal<SearchResult> {
 
         // Show filename of each search result for context with appropriate color
         const fileEl = el.createEl("div", {
-            cls: `khoj-result-file ${result.inVault ? 'in-vault' : 'not-in-vault'}`
+            cls: `alphamind-result-file ${result.inVault ? 'in-vault' : 'not-in-vault'}`
         });
         fileEl.setText(filename ?? "");
 
@@ -303,11 +303,11 @@ export class KhojSearchModal extends SuggestModal<SearchResult> {
         if (!result.inVault) {
             fileEl.createSpan({
                 text: " (not in vault)",
-                cls: "khoj-result-file-status"
+                cls: "alphamind-result-file-status"
             });
         }
 
-        let result_el = el.createEl("div", { cls: 'khoj-result-entry' })
+        let result_el = el.createEl("div", { cls: 'alphamind-result-entry' })
 
         let resultToRender = "";
         let fileExtension = filename?.split(".").pop() ?? "";

@@ -18,7 +18,7 @@ export interface EditBlock {
 }
 
 /**
- * Interface representing the result of parsing a Khoj edit block
+ * Interface representing the result of parsing a AlphaMind edit block
  */
 export interface ParsedEditBlock {
     editData: EditBlock | null;
@@ -49,12 +49,12 @@ interface PartialEditBlockResult {
 }
 
 /**
- * Class that handles file operations for the Khoj plugin
+ * Class that handles file operations for the AlphaMind plugin
  */
 export class FileInteractions {
     private app: App;
-    private readonly EDIT_BLOCK_START = '<khoj_edit>';
-    private readonly EDIT_BLOCK_END = '</khoj_edit>';
+    private readonly EDIT_BLOCK_START = '<alphamind_edit>';
+    private readonly EDIT_BLOCK_END = '</alphamind_edit>';
     private readonly CONTEXT_FILES_LIMIT = 3;
 
     /**
@@ -551,8 +551,8 @@ For context, the user is currently working on the following files:
      */
     public createPreviewWithDiff(originalText: string, newText: string): string {
         // Define unique tokens to temporarily replace existing formatting markers
-        const HIGHLIGHT_TOKEN = "___KHOJ_HIGHLIGHT_MARKER___";
-        const STRIKETHROUGH_TOKEN = "___KHOJ_STRIKETHROUGH_MARKER___";
+        const HIGHLIGHT_TOKEN = "___ALPHAMIND_HIGHLIGHT_MARKER___";
+        const STRIKETHROUGH_TOKEN = "___ALPHAMIND_STRIKETHROUGH_MARKER___";
 
         // Function to preserve existing formatting markers by replacing them with tokens
         const preserveFormatting = (text: string): string => {
@@ -920,24 +920,24 @@ For context, the user is currently working on the following files:
             let htmlRender = '';
             if (error) {
                 // Error block
-                console.error("Error parsing khoj-edit block:", error);
+                console.error("Error parsing alphamind-edit block:", error);
                 console.error("Content causing error:", content);
 
                 const errorTitle = `Error: ${error?.message || 'Parse error'}`;
                 const errorDetails = `Failed to parse edit block. Please check the JSON format and ensure all required fields are present.`;
 
-                htmlRender = `<details class="khoj-edit-accordion error">
+                htmlRender = `<details class="alphamind-edit-accordion error">
                     <summary>${errorTitle}</summary>
-                    <div class="khoj-edit-content">
-                        <p class="khoj-edit-error-message">${errorDetails}</p>
+                    <div class="alphamind-edit-content">
+                        <p class="alphamind-edit-error-message">${errorDetails}</p>
                         <pre><code class="language-md error">${diffContent}</code></pre>
                     </div>
                 </details>`;
             } else if (editData && inProgress) {
                 // In-progress block
-                htmlRender = `<details class="khoj-edit-accordion in-progress">
-                    <summary>📄 ${editData.file} <span class="khoj-edit-status">In Progress</span></summary>
-                    <div class="khoj-edit-content">
+                htmlRender = `<details class="alphamind-edit-accordion in-progress">
+                    <summary>📄 ${editData.file} <span class="alphamind-edit-status">In Progress</span></summary>
+                    <div class="alphamind-edit-content">
                         <pre><code class="language-md">${diffContent}</code></pre>
                     </div>
                 </details>`;
@@ -947,9 +947,9 @@ For context, the user is currently working on the following files:
                 const targetFile = this.findBestMatchingFile(editData.file, files);
                 const displayFileName = targetFile ? `${targetFile.basename}.${targetFile.extension}` : editData.file;
 
-                htmlRender = `<details class="khoj-edit-accordion success">
+                htmlRender = `<details class="alphamind-edit-accordion success">
                     <summary>📄 ${displayFileName}</summary>
-                    <div class="khoj-edit-content">
+                    <div class="alphamind-edit-content">
                         <div>${diffContent}</div>
                     </div>
                 </details>`;

@@ -1,5 +1,5 @@
 # Application Packages
-from khoj.search_filter.word_filter import WordFilter
+from alphamind.search_filter.word_filter import WordFilter
 
 
 # Mock Entry class for testing

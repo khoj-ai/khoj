@@ -65,17 +65,17 @@ export default function FooterMenu({ sideBarIsOpen }: NavMenuProps) {
         {
             title: "Help",
             icon: <Question className="w-6 h-6" />,
-            link: "https://docs.khoj.dev",
+            link: "https://docs.alphamind.dev",
         },
         {
             title: "Releases",
             icon: <Code className="w-6 h-6" />,
-            link: "https://github.com/khoj-ai/khoj/releases",
+            link: "https://github.com/alphamind-ai/alphamind/releases",
         },
         {
             title: "Teams",
             icon: <BuildingOffice className="w-6 h-6" />,
-            link: "https://khoj.dev/teams",
+            link: "https://alphamind.dev/teams",
         },
     ];
 
@@ -118,8 +118,8 @@ export default function FooterMenu({ sideBarIsOpen }: NavMenuProps) {
                             <div className="flex flex-col">
                                 <p className="font-semibold">{userData?.email}</p>
                                 <SubscriptionBadge is_active={userData?.is_active ?? false} />
-                                {userData?.khoj_version && (
-                                    <VersionBadge version={userData?.khoj_version} />
+                                {userData?.alphamind_version && (
+                                    <VersionBadge version={userData?.alphamind_version} />
                                 )}
                             </div>
                         </DropdownMenuItem>

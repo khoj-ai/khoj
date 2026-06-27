@@ -74,7 +74,7 @@ div.chatMessageWrapper a span {
     background-color: hsl(var(--muted) / 0.5);
 }
 
-div.khojfullHistory {
+div.alphamindfullHistory {
     padding-left: 4px;
 }
 
@@ -92,13 +92,13 @@ div.you {
     border-radius: 16px;
 }
 
-div.khoj {
+div.alphamind {
     background-color: transparent;
     color: hsl(var(--accent-foreground));
     align-self: flex-start;
 }
 
-div.khojChatMessage {
+div.alphamindChatMessage {
     padding-top: 8px;
     padding-left: 16px;
 }
@@ -126,17 +126,17 @@ div.imageWrapper img {
     border-radius: 8px;
 }
 
-div.khoj div.imageWrapper img {
+div.alphamind div.imageWrapper img {
     max-height: 512px;
     height: auto;
     object-fit: contain;
 }
 
-div.khoj div.imageWrapper {
+div.alphamind div.imageWrapper {
     flex: 1 1 auto;
 }
 
-div.khoj div.imagesContainer {
+div.alphamind div.imagesContainer {
     display: flex;
     flex-wrap: wrap;
     flex-direction: row;
@@ -246,7 +246,7 @@ div.trainOfThoughtElement ul {
         max-width: 90%;
     }
 
-    div.khoj div.imageWrapper img {
+    div.alphamind div.imageWrapper img {
         width: 100%;
         height: auto;
     }
@@ -275,7 +275,7 @@ div.trainOfThoughtElement ul {
         border: none !important;
     }
 
-    div.chatMessageContainer.khoj {
+    div.chatMessageContainer.alphamind {
         margin: 0 !important;
     }
 
@@ -300,7 +300,7 @@ div.trainOfThoughtElement ul {
         text-align: left !important;
     }
 
-    div.khoj {
+    div.alphamind {
         background-color: transparent !important;
         color: #000 !important;
         width: 100% !important;
@@ -309,7 +309,7 @@ div.trainOfThoughtElement ul {
     }
 
     div.youfullHistory,
-    div.khojfullHistory {
+    div.alphamindfullHistory {
         width: 100% !important;
         max-width: none !important;
     }
@@ -353,7 +353,7 @@ div.trainOfThoughtElement ul {
     }
 
     div.imageWrapper img,
-    div.khoj div.imageWrapper img {
+    div.alphamind div.imageWrapper img {
         width: auto !important;
         height: auto !important;
         max-width: 100% !important;

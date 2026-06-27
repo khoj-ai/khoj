@@ -3,7 +3,7 @@ sidebar_position: 4
 ---
 
 # Credits
-Many Open Source projects are used to power Khoj. Here's a few of them:
+Many Open Source projects are used to power AlphaMind. Here's a few of them:
 
 - [Llama.cpp](https://github.com/ggerganov/llama.cpp) to chat with local LLM
 - [SentenceTransformer](https://www.sbert.net/examples/applications/retrieve_rerank/README.html) for Text Search

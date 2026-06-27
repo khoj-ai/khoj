@@ -1,8 +1,8 @@
 {
-  "packageId": "dev.khoj.app",
-  "host": "app.khoj.dev",
-  "name": "Khoj AI",
-  "launcherName": "Khoj",
+  "packageId": "dev.alphamind.app",
+  "host": "app.alphamind.dev",
+  "name": "AlphaMind AI",
+  "launcherName": "AlphaMind",
   "display": "standalone",
   "themeColor": "#FFFFFF",
   "themeColorDark": "#000000",
@@ -13,7 +13,7 @@
   "backgroundColor": "#FFFFFF",
   "enableNotifications": true,
   "startUrl": "/",
-  "iconUrl": "https://assets.khoj.dev/khoj_lantern_1200x1200.png",
+  "iconUrl": "https://assets.alphamind.dev/alphamind_lantern_1200x1200.png",
   "splashScreenFadeOutDuration": 300,
   "signingKey": {
     "path": "android.keystore",
@@ -23,7 +23,7 @@
   "appVersionCode": 4,
   "shortcuts": [],
   "generatorApp": "bubblewrap-cli",
-  "webManifestUrl": "https://app.khoj.dev/static/khoj.webmanifest",
+  "webManifestUrl": "https://app.alphamind.dev/static/alphamind.webmanifest",
   "fallbackType": "customtabs",
   "features": {
     "locationDelegation": {
@@ -36,7 +36,7 @@
   "enableSiteSettingsShortcut": true,
   "isChromeOSOnly": false,
   "isMetaQuest": false,
-  "fullScopeUrl": "https://app.khoj.dev/",
+  "fullScopeUrl": "https://app.alphamind.dev/",
   "minSdkVersion": 19,
   "orientation": "natural",
   "fingerprints": [

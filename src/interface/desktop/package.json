@@ -1,12 +1,12 @@
 {
-  "name": "Khoj",
+  "name": "AlphaMind",
   "version": "2.0.0-beta.28",
   "description": "Your Second Brain",
-  "author": "Khoj Inc. <team@khoj.dev>",
+  "author": "AlphaMind Inc. <team@alphamind.dev>",
   "license": "GPL-3.0-or-later",
-  "homepage": "https://khoj.dev",
-  "repository": "\"https://github.com/khoj-ai/khoj\"",
-  "productName": "Khoj",
+  "homepage": "https://alphamind.dev",
+  "repository": "\"https://github.com/alphamind-ai/alphamind\"",
+  "productName": "AlphaMind",
   "main": "main.js",
   "private": false,
   "devDependencies": {

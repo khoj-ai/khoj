@@ -19,7 +19,7 @@ import yaml
 from datasets import Dataset, load_dataset
 from tqdm import tqdm
 
-from khoj.utils.helpers import (
+from alphamind.utils.helpers import (
     batcher,
     get_cost_of_chat_message,
     is_none_or_empty,
@@ -31,23 +31,23 @@ logging.basicConfig(level=logging.INFO, format="%(message)s")
 logger = logging.getLogger(__name__)
 
 # Configuration
-KHOJ_URL = os.getenv("KHOJ_URL", "http://localhost:42110")
-KHOJ_CHAT_API_URL = f"{KHOJ_URL}/api/chat"
-KHOJ_API_KEY = os.getenv("KHOJ_API_KEY")
-KHOJ_MODE = os.getenv("KHOJ_MODE", "default").lower()  # E.g research, general, default etc.
+ALPHAMIND_URL = os.getenv("ALPHAMIND_URL", "http://localhost:42110")
+ALPHAMIND_CHAT_API_URL = f"{ALPHAMIND_URL}/api/chat"
+ALPHAMIND_API_KEY = os.getenv("ALPHAMIND_API_KEY")
+ALPHAMIND_MODE = os.getenv("ALPHAMIND_MODE", "default").lower()  # E.g research, general, default etc.
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 GEMINI_EVAL_MODEL = os.getenv("GEMINI_EVAL_MODEL", "gemini-2.5-flash")
 
-LLM_SEED = int(os.getenv("KHOJ_LLM_SEED")) if os.getenv("KHOJ_LLM_SEED") else None
+LLM_SEED = int(os.getenv("ALPHAMIND_LLM_SEED")) if os.getenv("ALPHAMIND_LLM_SEED") else None
 DATASET_SEED = int(os.getenv("DATASET_SEED")) if os.getenv("DATASET_SEED") else None
 SAMPLE_SIZE = os.getenv("SAMPLE_SIZE")  # Number of examples to evaluate
 RANDOMIZE = os.getenv("RANDOMIZE", "false").lower() == "true"  # Randomize examples
 BATCH_SIZE = int(
     os.getenv("BATCH_SIZE", int(SAMPLE_SIZE) / 10 if SAMPLE_SIZE else 10)
 )  # Examples to evaluate in each batch
-SLEEP_SECONDS = 3 if KHOJ_MODE == "general" else 1  # Sleep between API calls to avoid rate limiting
-KHOJ_API_TIMEOUT_SECONDS = 1200  # Default to 20 minutes
+SLEEP_SECONDS = 3 if ALPHAMIND_MODE == "general" else 1  # Sleep between API calls to avoid rate limiting
+ALPHAMIND_API_TIMEOUT_SECONDS = 1200  # Default to 20 minutes
 
 
 class Counter:
@@ -132,16 +132,16 @@ def load_frames_kb():
 
 
 def index_frames_kb():
-    """Index Wikipedia articles from FRAMES dataset into Khoj"""
+    """Index Wikipedia articles from FRAMES dataset into AlphaMind"""
     try:
         # Load dataset
         dataset = load_frames_kb()
         dataset_files = set(map(get_article_filename, dataset))
 
-        # Get indexed files from Khoj API
-        headers = {"Authorization": f"Bearer {KHOJ_API_KEY}"} if KHOJ_API_KEY else {}
+        # Get indexed files from AlphaMind API
+        headers = {"Authorization": f"Bearer {ALPHAMIND_API_KEY}"} if ALPHAMIND_API_KEY else {}
         try:
-            response = requests.get(f"{KHOJ_URL}/api/content/computer", headers=headers)
+            response = requests.get(f"{ALPHAMIND_URL}/api/content/computer", headers=headers)
             response.raise_for_status()
             indexed_files = set(response.json())
         except requests.exceptions.RequestException as e:
@@ -170,7 +170,7 @@ def index_frames_kb():
                 files.append(("files", (filename, article["text"], "text/plaintext")))
             # Send files batch to index
             try:
-                response = requests.patch(f"{KHOJ_URL}/api/content?client=eval", headers=headers, files=files)
+                response = requests.patch(f"{ALPHAMIND_URL}/api/content?client=eval", headers=headers, files=files)
                 response.raise_for_status()
                 time.sleep(SLEEP_SECONDS)  # Rate limiting
             except Exception as e:
@@ -345,21 +345,21 @@ def load_math500_dataset():
 
 
 def get_agent_response(prompt: str) -> Dict[str, Any]:
-    """Get response from the Khoj API"""
+    """Get response from the AlphaMind API"""
     # Set headers
     headers = {"Content-Type": "application/json"}
-    if not is_none_or_empty(KHOJ_API_KEY):
-        headers["Authorization"] = f"Bearer {KHOJ_API_KEY}"
+    if not is_none_or_empty(ALPHAMIND_API_KEY):
+        headers["Authorization"] = f"Bearer {ALPHAMIND_API_KEY}"
 
     try:
         response = requests.post(
-            KHOJ_CHAT_API_URL,
+            ALPHAMIND_CHAT_API_URL,
             headers=headers,
             json={
                 "q": prompt,
                 "create_new": True,
             },
-            timeout=KHOJ_API_TIMEOUT_SECONDS,
+            timeout=ALPHAMIND_API_TIMEOUT_SECONDS,
         )
         response.raise_for_status()
         response_json = response.json()
@@ -393,7 +393,7 @@ def calculate_fi(precision: float, recall: float) -> float:
 def evaluate_response_for_ir(
     query: str, agent_response: str, ground_truth: int, agent_references: dict = {}
 ) -> tuple[bool | None, str, float]:
-    """Evaluate Khoj response against benchmark ground truth using string matching"""
+    """Evaluate AlphaMind response against benchmark ground truth using string matching"""
     try:
         # Extract answer from agent response
         referenced_files: list[dict[str, str]] = agent_references.get("context", [])
@@ -434,7 +434,7 @@ def evaluate_response_for_ir(
 def evaluate_response_with_mcq_match(
     query: str, agent_response: str, ground_truth: str, agent_references: dict = {}
 ) -> tuple[bool | None, str, float]:
-    """Evaluate Khoj response against benchmark ground truth using string matching"""
+    """Evaluate AlphaMind response against benchmark ground truth using string matching"""
     try:
         # Extract answer from agent response using multiple patterns
         answer_patterns = [
@@ -466,7 +466,7 @@ def evaluate_response_with_mcq_match(
 def evaluate_response_with_gemini(
     query: str, agent_response: str, ground_truth: str, agent_references: dict = {}, eval_model=GEMINI_EVAL_MODEL
 ) -> tuple[bool | None, str, float]:
-    """Evaluate Khoj response against benchmark ground truth using Gemini"""
+    """Evaluate AlphaMind response against benchmark ground truth using Gemini"""
     evaluation_prompt = f"""
     Compare the following agent response with the ground truth answer.
     Determine if the agent response contains the key information from the ground truth.
@@ -523,7 +523,7 @@ def process_batch(batch, batch_start, results, dataset_length, response_evaluato
         logger.info(f"Processing example: {current_index}/{dataset_length}")
 
         # Trigger research mode if enabled
-        prompt = f"/{KHOJ_MODE} {prompt}" if KHOJ_MODE and not prompt.startswith(f"/{KHOJ_MODE}") else prompt
+        prompt = f"/{ALPHAMIND_MODE} {prompt}" if ALPHAMIND_MODE and not prompt.startswith(f"/{ALPHAMIND_MODE}") else prompt
 
         # Get agent response
         response = get_agent_response(prompt)
@@ -603,7 +603,7 @@ def clean_json(response: str):
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description="Evaluate Khoj on a supported benchmark.")
+    parser = argparse.ArgumentParser(description="Evaluate AlphaMind on a supported benchmark.")
     parser.add_argument(
         "--output",
         "-o",
@@ -710,17 +710,17 @@ def main():
 
 if __name__ == "__main__":
     """
-    Evaluate Khoj on supported benchmarks.
+    Evaluate AlphaMind on supported benchmarks.
     Response are evaluated by GEMINI_EVAL_MODEL (default: gemini-2.5-flash).
 
-    Khoj should be running at KHOJ_URL (default: http://localhost:42110).
+    AlphaMind should be running at ALPHAMIND_URL (default: http://localhost:42110).
     The Gemini judge model is accessed via the Gemini API with your GEMINI_API_KEY.
-    To evaluate Khoj in research mode, set the KHOJ_MODE environment variable to "research".
+    To evaluate AlphaMind in research mode, set the ALPHAMIND_MODE environment variable to "research".
 
     Run the script using the following command:
-    KHOJ_MODE="research" GEMINI_API_KEY="<your_gemini_api_key>" python eval_frames.py
+    ALPHAMIND_MODE="research" GEMINI_API_KEY="<your_gemini_api_key>" python eval_frames.py
     """
-    logger.info(f"{datetime.now()} - Begin Quizzing Khoj.")
+    logger.info(f"{datetime.now()} - Begin Quizzing AlphaMind.")
     with timer("Ran eval script in", logger, log_level=logging.INFO):
         main()
-    logger.info(f"{datetime.now()} - End Quizzing Khoj.")
+    logger.info(f"{datetime.now()} - End Quizzing AlphaMind.")

@@ -50,8 +50,8 @@ do
 
             # Bump Emacs package to pre-release version
             cd ../emacs
-            sed -E -i.bak "s/^;; Version: (.*)/;; Version: $current_version/" khoj.el
-            git add khoj.el
+            sed -E -i.bak "s/^;; Version: (.*)/;; Version: $current_version/" alphamind.el
+            git add alphamind.el
             rm *.bak
 
             # Copy current obsidian versioned files to project root
@@ -70,10 +70,10 @@ do
                 $project_root/src/interface/obsidian/yarn.lock \
                 $project_root/src/interface/obsidian/manifest.json \
                 $project_root/src/interface/obsidian/versions.json \
-                $project_root/src/interface/emacs/khoj.el \
+                $project_root/src/interface/emacs/alphamind.el \
                 $project_root/manifest.json \
                 $project_root/versions.json
-            git commit -m "Release Khoj version $current_version"
+            git commit -m "Release AlphaMind version $current_version"
             git tag $current_version
             ;;
         t)
@@ -101,8 +101,8 @@ do
 
             # Bump Emacs package to current version
             cd ../emacs
-            sed -E -i.bak "s/^;; Version: (.*)/;; Version: $current_version/" khoj.el
-            git add khoj.el
+            sed -E -i.bak "s/^;; Version: (.*)/;; Version: $current_version/" alphamind.el
+            git add alphamind.el
             rm *.bak
 
             # Copy current obsidian versioned files to project root
@@ -121,10 +121,10 @@ do
                 $project_root/src/interface/obsidian/yarn.lock \
                 $project_root/src/interface/obsidian/manifest.json \
                 $project_root/src/interface/obsidian/versions.json \
-                $project_root/src/interface/emacs/khoj.el \
+                $project_root/src/interface/emacs/alphamind.el \
                 $project_root/manifest.json \
                 $project_root/versions.json
-            git commit -m "Release Khoj version $current_version"
+            git commit -m "Release AlphaMind version $current_version"
             git tag $current_version
             ;;
         c)
@@ -148,8 +148,8 @@ do
 
             # Bump Emacs package to current version
             cd ../emacs
-            sed -E -i.bak "s/^;; Version: (.*)/;; Version: $current_version/" khoj.el
-            git add khoj.el
+            sed -E -i.bak "s/^;; Version: (.*)/;; Version: $current_version/" alphamind.el
+            git add alphamind.el
             rm *.bak
 
             # Copy current obsidian versioned files to project root
@@ -168,10 +168,10 @@ do
                 $project_root/src/interface/obsidian/yarn.lock \
                 $project_root/src/interface/obsidian/manifest.json \
                 $project_root/src/interface/obsidian/versions.json \
-                $project_root/src/interface/emacs/khoj.el \
+                $project_root/src/interface/emacs/alphamind.el \
                 $project_root/manifest.json \
                 $project_root/versions.json
-            git commit -m "Release Khoj version $current_version"
+            git commit -m "Release AlphaMind version $current_version"
             git tag $current_version
             ;;
         n)
@@ -197,7 +197,7 @@ do
 
             # Bump Emacs package to next version
             cd $project_root/src/interface/emacs
-            sed -E -i.bak "s/^;; Version: (.*)/;; Version: $next_version/" khoj.el
+            sed -E -i.bak "s/^;; Version: (.*)/;; Version: $next_version/" alphamind.el
             rm *.bak
 
             # Run pre-commit validations to fix jsons
@@ -211,8 +211,8 @@ do
                 $project_root/src/interface/obsidian/yarn.lock \
                 $project_root/src/interface/obsidian/manifest.json \
                 $project_root/src/interface/obsidian/versions.json \
-                $project_root/src/interface/emacs/khoj.el
-            git commit -m "Bump Khoj to pre-release version $next_version"
+                $project_root/src/interface/emacs/alphamind.el
+            git commit -m "Bump AlphaMind to pre-release version $next_version"
             ;;
         ?)
            echo -e "Invalid command option.\nUsage: $(basename $0) [-t type] [-c version] [-p prerelease] [-n]"

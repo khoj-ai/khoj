@@ -2,7 +2,7 @@ import os
 import re
 from pathlib import Path
 
-from khoj.processor.content.markdown.markdown_to_entries import MarkdownToEntries
+from alphamind.processor.content.markdown.markdown_to_entries import MarkdownToEntries
 
 
 def test_extract_markdown_with_no_headings(tmp_path):

@@ -11,12 +11,12 @@ import {
     SidebarRail,
 } from "@/components/ui/sidebar";
 import {
-    KhojAgentLogo,
-    KhojAutomationLogo,
-    KhojLogo,
-    KhojLogoType,
-    KhojSearchLogo,
-} from "../logo/khojLogo";
+    AlphaMindAgentLogo,
+    AlphaMindAutomationLogo,
+    AlphaMindLogo,
+    AlphaMindLogoType,
+    AlphaMindSearchLogo,
+} from "../logo/alphamindLogo";
 import { Plus, Gear, HouseSimple } from "@phosphor-icons/react";
 import { useEffect, useState } from "react";
 import AllConversations from "../allConversations/allConversations";
@@ -60,17 +60,17 @@ const items = [
     {
         title: "Agents",
         url: "/agents",
-        icon: KhojAgentLogo,
+        icon: AlphaMindAgentLogo,
     },
     {
         title: "Automations",
         url: "/automations",
-        icon: KhojAutomationLogo,
+        icon: AlphaMindAutomationLogo,
     },
     {
         title: "Search",
         url: "/search",
-        icon: KhojSearchLogo,
+        icon: AlphaMindSearchLogo,
     },
     {
         title: "Settings",
@@ -114,13 +114,13 @@ export function AppSidebar(props: AppSidebarProps) {
                         {open ? (
                             <SidebarMenuButton>
                                 <Link className="p-0 no-underline" href="/">
-                                    <KhojLogoType className="h-auto w-16" />
+                                    <AlphaMindLogoType className="h-auto w-16" />
                                 </Link>
                             </SidebarMenuButton>
                         ) : (
                             <SidebarMenuButton asChild>
                                 <Link className="flex items-center gap-2 no-underline" href="/">
-                                    <KhojLogo className="w-14 h-auto" />
+                                    <AlphaMindLogo className="w-14 h-auto" />
                                 </Link>
                             </SidebarMenuButton>
                         )}

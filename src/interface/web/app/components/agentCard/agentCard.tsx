@@ -240,7 +240,7 @@ export function AgentCard(props: AgentCardProps) {
     if (showModal) {
         window.history.pushState(
             {},
-            `Khoj AI - Agent ${props.data.slug}`,
+            `AlphaMind AI - Agent ${props.data.slug}`,
             `/agents?agent=${props.data.slug}`,
         );
     }
@@ -341,7 +341,7 @@ export function AgentCard(props: AgentCardProps) {
                         open={showModal}
                         onOpenChange={() => {
                             setShowModal(!showModal);
-                            window.history.pushState({}, `Khoj AI - Agents`, `/agents`);
+                            window.history.pushState({}, `AlphaMind AI - Agents`, `/agents`);
                         }}
                     >
                         <DialogTrigger className="focus-visible:outline-none">
@@ -951,7 +951,7 @@ export function AgentModificationForm(props: AgentModificationFormProps) {
                                 </FormDescription>
                                 <FormControl>
                                     <Textarea
-                                        className="dark:bg-muted focus:outline-none focus-visible:border-orange-500 focus-visible:border-2"
+                                        className="dark:bg-muted focus:outline-none focus-visible:border-emerald-500 focus-visible:border-2"
                                         placeholder="You are an excellent biologist, at the top of your field in marine biology."
                                         {...field}
                                     />

@@ -2,16 +2,16 @@
 import pytest
 import logging
 
-from khoj.database.adapters import FileObjectAdapters
-from khoj.database.models import KhojUser
-from khoj.routers.helpers import grep_files
+from alphamind.database.adapters import FileObjectAdapters
+from alphamind.database.models import AlphaMindUser
+from alphamind.routers.helpers import grep_files
 
 logger = logging.getLogger(__name__)
 
 
 @pytest.fixture
 def default_user():
-    user, _ = KhojUser.objects.get_or_create(
+    user, _ = AlphaMindUser.objects.get_or_create(
         username="test_user",
         password="test_password",
         email="test@example.com",
@@ -21,7 +21,7 @@ def default_user():
 
 @pytest.mark.django_db(transaction=True)
 @pytest.mark.asyncio
-async def test_grep_files_simple_match(default_user: KhojUser):
+async def test_grep_files_simple_match(default_user: AlphaMindUser):
     user = default_user
     await FileObjectAdapters.adelete_all_file_objects(user=user)
     # Arrange
@@ -50,7 +50,7 @@ async def test_grep_files_simple_match(default_user: KhojUser):
 
 @pytest.mark.django_db(transaction=True)
 @pytest.mark.asyncio
-async def test_grep_files_no_match(default_user: KhojUser):
+async def test_grep_files_no_match(default_user: AlphaMindUser):
     user = default_user
     await FileObjectAdapters.adelete_all_file_objects(user=user)
     # Arrange
@@ -78,7 +78,7 @@ async def test_grep_files_no_match(default_user: KhojUser):
 
 @pytest.mark.django_db(transaction=True)
 @pytest.mark.asyncio
-async def test_grep_files_with_path_prefix(default_user: KhojUser):
+async def test_grep_files_with_path_prefix(default_user: AlphaMindUser):
     user = default_user
     await FileObjectAdapters.adelete_all_file_objects(user=user)
     # Arrange
@@ -114,7 +114,7 @@ async def test_grep_files_with_path_prefix(default_user: KhojUser):
 
 @pytest.mark.django_db(transaction=True)
 @pytest.mark.asyncio
-async def test_grep_files_with_context(default_user: KhojUser):
+async def test_grep_files_with_context(default_user: AlphaMindUser):
     user = default_user
     await FileObjectAdapters.adelete_all_file_objects(user=user)
     # Arrange
@@ -149,7 +149,7 @@ async def test_grep_files_with_context(default_user: KhojUser):
 
 @pytest.mark.django_db(transaction=True)
 @pytest.mark.asyncio
-async def test_grep_files_invalid_regex(default_user: KhojUser):
+async def test_grep_files_invalid_regex(default_user: AlphaMindUser):
     user = default_user
     await FileObjectAdapters.adelete_all_file_objects(user=user)
     # Act
@@ -169,7 +169,7 @@ async def test_grep_files_invalid_regex(default_user: KhojUser):
 
 @pytest.mark.django_db(transaction=True)
 @pytest.mark.asyncio
-async def test_grep_files_multiple_files(default_user: KhojUser):
+async def test_grep_files_multiple_files(default_user: AlphaMindUser):
     user = default_user
     await FileObjectAdapters.adelete_all_file_objects(user=user)
     # Arrange
@@ -223,7 +223,7 @@ async def test_grep_files_multiple_files(default_user: KhojUser):
 @pytest.mark.django_db(transaction=True)
 @pytest.mark.asyncio
 async def test_grep_files_financial_entries_regex_patterns(
-    default_user: KhojUser, regex_pattern: str, expected_matches: int, test_description: str
+    default_user: AlphaMindUser, regex_pattern: str, expected_matches: int, test_description: str
 ):
     user = default_user
     await FileObjectAdapters.adelete_all_file_objects(user=user)

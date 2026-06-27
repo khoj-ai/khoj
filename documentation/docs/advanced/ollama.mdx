@@ -6,21 +6,21 @@ import TabItem from '@theme/TabItem';
 ```
 
 :::info
-This is only helpful for self-hosted users. If you're using [Khoj Cloud](https://app.khoj.dev), you can use our first-party supported models.
+This is only helpful for self-hosted users. If you're using [AlphaMind Cloud](https://app.alphamind.dev), you can use our first-party supported models.
 :::
 
 :::info
-Khoj can directly run local LLMs [available on HuggingFace in GGUF format](https://huggingface.co/models?library=gguf). The integration with Ollama is useful to run Khoj on Docker and have the chat models use your GPU or to try new models via CLI.
+AlphaMind can directly run local LLMs [available on HuggingFace in GGUF format](https://huggingface.co/models?library=gguf). The integration with Ollama is useful to run AlphaMind on Docker and have the chat models use your GPU or to try new models via CLI.
 :::
 
 Ollama allows you to run [many popular open-source LLMs](https://ollama.com/library) locally from your terminal.
 For folks comfortable with the terminal, Ollama's terminal based flows can ease setup and management of chat models.
 
-Ollama exposes a local [OpenAI API compatible server](https://github.com/ollama/ollama/blob/main/docs/openai.md#models). This makes it possible to use chat models from Ollama with Khoj.
+Ollama exposes a local [OpenAI API compatible server](https://github.com/ollama/ollama/blob/main/docs/openai.md#models). This makes it possible to use chat models from Ollama with AlphaMind.
 
 ## Setup
 :::info
-Restart your Khoj server after first run or update to the settings below to ensure all settings are applied correctly.
+Restart your AlphaMind server after first run or update to the settings below to ensure all settings are applied correctly.
 :::
 
 <Tabs groupId="type" queryString>
@@ -32,10 +32,10 @@ Restart your Khoj server after first run or update to the settings below to ensu
          ```bash
          ollama pull llama3.1
          ```
-      3. Uncomment `OPENAI_BASE_URL` environment variable in your downloaded Khoj [docker-compose.yml](https://github.com/khoj-ai/khoj/blob/master/docker-compose.yml#:~:text=OPENAI_BASE_URL)
-      4. Start Khoj docker for the first time to automatically integrate and load models from the Ollama running on your host machine
+      3. Uncomment `OPENAI_BASE_URL` environment variable in your downloaded AlphaMind [docker-compose.yml](https://github.com/alphamind-ai/alphamind/blob/master/docker-compose.yml#:~:text=OPENAI_BASE_URL)
+      4. Start AlphaMind docker for the first time to automatically integrate and load models from the Ollama running on your host machine
          ```bash
-         # run below command in the directory where you downloaded the Khoj docker-compose.yml
+         # run below command in the directory where you downloaded the AlphaMind docker-compose.yml
          docker-compose up
          ```
       </TabItem>
@@ -46,10 +46,10 @@ Restart your Khoj server after first run or update to the settings below to ensu
          ```bash
          ollama pull llama3.1
          ```
-      3. Set `OPENAI_BASE_URL` environment variable to `http://localhost:11434/v1/` in your shell before starting Khoj for the first time
+      3. Set `OPENAI_BASE_URL` environment variable to `http://localhost:11434/v1/` in your shell before starting AlphaMind for the first time
          ```bash
          export OPENAI_BASE_URL="http://localhost:11434/v1/"
-         khoj --anonymous-mode
+         alphamind --anonymous-mode
          ```
       </TabItem>
    </Tabs>
@@ -60,11 +60,11 @@ Restart your Khoj server after first run or update to the settings below to ensu
       ```bash
       ollama pull llama3.1
       ```
-   3. Create a new [AI Model API](http://localhost:42110/server/admin/database/aimodelapi/add) on your Khoj admin panel
+   3. Create a new [AI Model API](http://localhost:42110/server/admin/database/aimodelapi/add) on your AlphaMind admin panel
       - **Name**: `ollama`
       - **Api Key**: `any string`
       - **Api Base Url**: `http://localhost:11434/v1/` (default for Ollama)
-   4. Create a new [Chat Model](http://localhost:42110/server/admin/database/chatmodel/add) on your Khoj admin panel.
+   4. Create a new [Chat Model](http://localhost:42110/server/admin/database/chatmodel/add) on your AlphaMind admin panel.
       - **Name**: `llama3.1` (replace with the name of your local model)
       - **Model Type**: `Openai`
       - **AI Model API**: *the ollama AI Model API you created in step 3*
@@ -75,4 +75,4 @@ Restart your Khoj server after first run or update to the settings below to ensu
   </TabItem>
 </Tabs>
 
-That's it! You should now be able to chat with your Ollama model from Khoj.
+That's it! You should now be able to chat with your Ollama model from AlphaMind.

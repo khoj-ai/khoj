@@ -5,12 +5,12 @@ import os
 
 import pytest
 
-from khoj.database.adapters import EntryAdapters
-from khoj.database.models import Entry, GithubConfig, KhojUser
-from khoj.processor.content.github.github_to_entries import GithubToEntries
-from khoj.processor.content.org_mode.org_to_entries import OrgToEntries
-from khoj.processor.content.text_to_entries import TextToEntries
-from khoj.search_type import text_search
+from alphamind.database.adapters import EntryAdapters
+from alphamind.database.models import Entry, GithubConfig, AlphaMindUser
+from alphamind.processor.content.github.github_to_entries import GithubToEntries
+from alphamind.processor.content.org_mode.org_to_entries import OrgToEntries
+from alphamind.processor.content.text_to_entries import TextToEntries
+from alphamind.search_type import text_search
 from tests.helpers import get_index_files, get_sample_data
 
 logger = logging.getLogger(__name__)
@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 # Test
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.django_db
-def test_text_search_setup_with_empty_file_creates_no_entries(search_config, default_user: KhojUser):
+def test_text_search_setup_with_empty_file_creates_no_entries(search_config, default_user: AlphaMindUser):
     # Arrange
     initial_data = {
         "test.org": "* First heading\nFirst content",
@@ -44,7 +44,7 @@ def test_text_search_setup_with_empty_file_creates_no_entries(search_config, def
 
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.django_db
-def test_text_indexer_deletes_embedding_before_regenerate(search_config, default_user: KhojUser, caplog):
+def test_text_indexer_deletes_embedding_before_regenerate(search_config, default_user: AlphaMindUser, caplog):
     # Arrange
     data = {
         "test1.org": "* Test heading\nTest content",
@@ -68,7 +68,7 @@ def test_text_indexer_deletes_embedding_before_regenerate(search_config, default
 
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.django_db
-def test_text_index_same_if_content_unchanged(search_config, default_user: KhojUser, caplog):
+def test_text_index_same_if_content_unchanged(search_config, default_user: AlphaMindUser, caplog):
     # Arrange
     existing_entries = Entry.objects.filter(user=default_user)
     data = {"test.org": "* Test heading\nTest content"}
@@ -99,7 +99,7 @@ def test_text_index_same_if_content_unchanged(search_config, default_user: KhojU
 @pytest.mark.asyncio
 async def test_text_search(search_config):
     # Arrange
-    default_user, _ = await KhojUser.objects.aget_or_create(
+    default_user, _ = await AlphaMindUser.objects.aget_or_create(
         username="test_user", password="test_password", email="test@example.com"
     )
     # Get some sample org data to index
@@ -115,7 +115,7 @@ async def test_text_search(search_config):
         default_user,
     )
 
-    query = "Load Khoj on Emacs?"
+    query = "Load AlphaMind on Emacs?"
 
     # Act
     hits = await text_search.query(query, default_user)
@@ -129,7 +129,7 @@ async def test_text_search(search_config):
 
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.django_db
-def test_entry_chunking_by_max_tokens(tmp_path, search_config, default_user: KhojUser, caplog):
+def test_entry_chunking_by_max_tokens(tmp_path, search_config, default_user: AlphaMindUser, caplog):
     # Arrange
     # Insert org-mode entry with size exceeding max token limit to new org file
     max_tokens = 256
@@ -152,15 +152,15 @@ def test_entry_chunking_by_max_tokens(tmp_path, search_config, default_user: Kho
 
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.django_db
-def test_entry_chunking_by_max_tokens_not_full_corpus(tmp_path, search_config, default_user: KhojUser, caplog):
+def test_entry_chunking_by_max_tokens_not_full_corpus(tmp_path, search_config, default_user: AlphaMindUser, caplog):
     # Arrange
     # Insert org-mode entry with size exceeding max token limit to new org file
     data = {
         "readme.org": """
-* Khoj
+* AlphaMind
 /Allow natural language search on user content like notes, images using transformer based models/
 
-All data is processed locally. User can interface with khoj app via [[./interface/emacs/khoj.el][Emacs]], API or Commandline
+All data is processed locally. User can interface with alphamind app via [[./interface/emacs/alphamind.el][Emacs]], API or Commandline
 
 ** Dependencies
 - Python3
@@ -168,9 +168,9 @@ All data is processed locally. User can interface with khoj app via [[./interfac
 
 ** Install
 #+begin_src shell
-git clone https://github.com/khoj-ai/khoj && cd khoj
+git clone https://github.com/alphamind-ai/alphamind && cd alphamind
 conda env create -f environment.yml
-conda activate khoj
+conda activate alphamind
 #+end_src"""
     }
     text_search.setup(
@@ -205,7 +205,7 @@ conda activate khoj
 
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.django_db
-def test_regenerate_index_with_new_entry(search_config, default_user: KhojUser):
+def test_regenerate_index_with_new_entry(search_config, default_user: AlphaMindUser):
     # Arrange
     # Initial indexed files
     text_search.setup(OrgToEntries, get_sample_data("org"), regenerate=True, user=default_user)
@@ -242,7 +242,7 @@ def test_regenerate_index_with_new_entry(search_config, default_user: KhojUser):
 
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.django_db
-def test_update_index_with_duplicate_entries_in_stable_order(tmp_path, search_config, default_user: KhojUser):
+def test_update_index_with_duplicate_entries_in_stable_order(tmp_path, search_config, default_user: AlphaMindUser):
     # Arrange
     initial_data = get_sample_data("org")
     text_search.setup(OrgToEntries, initial_data, regenerate=True, user=default_user)
@@ -279,7 +279,7 @@ def test_update_index_with_duplicate_entries_in_stable_order(tmp_path, search_co
 
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.django_db
-def test_update_index_with_deleted_entry(tmp_path, search_config, default_user: KhojUser):
+def test_update_index_with_deleted_entry(tmp_path, search_config, default_user: AlphaMindUser):
     # Arrange
     existing_entries = list(Entry.objects.filter(user=default_user).values_list("compiled", flat=True))
 
@@ -315,7 +315,7 @@ def test_update_index_with_deleted_entry(tmp_path, search_config, default_user: 
 
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.django_db
-def test_update_index_with_new_entry(search_config, default_user: KhojUser):
+def test_update_index_with_new_entry(search_config, default_user: AlphaMindUser):
     # Arrange
     # Initial indexed files
     text_search.setup(OrgToEntries, get_sample_data("org"), regenerate=True, user=default_user)
@@ -349,7 +349,7 @@ def test_update_index_with_new_entry(search_config, default_user: KhojUser):
         (OrgToEntries),
     ],
 )
-def test_update_index_with_deleted_file(text_to_entries: TextToEntries, search_config, default_user: KhojUser):
+def test_update_index_with_deleted_file(text_to_entries: TextToEntries, search_config, default_user: AlphaMindUser):
     "Delete entries associated with new file when file path with empty content passed."
     # Arrange
     file_to_index = "test"
@@ -384,7 +384,7 @@ def test_update_index_with_deleted_file(text_to_entries: TextToEntries, search_c
 
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.skipif(os.getenv("GITHUB_PAT_TOKEN") is None, reason="GITHUB_PAT_TOKEN not set")
-def test_text_search_setup_github(search_config, default_user: KhojUser):
+def test_text_search_setup_github(search_config, default_user: AlphaMindUser):
     # Arrange
     github_config = GithubConfig.objects.filter(user=default_user).first()
 

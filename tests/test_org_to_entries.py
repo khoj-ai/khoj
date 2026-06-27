@@ -2,10 +2,10 @@ import os
 import re
 import time
 
-from khoj.processor.content.org_mode.org_to_entries import OrgToEntries
-from khoj.processor.content.text_to_entries import TextToEntries
-from khoj.utils.helpers import is_none_or_empty
-from khoj.utils.rawconfig import Entry
+from alphamind.processor.content.org_mode.org_to_entries import OrgToEntries
+from alphamind.processor.content.text_to_entries import TextToEntries
+from alphamind.utils.helpers import is_none_or_empty
+from alphamind.utils.rawconfig import Entry
 
 
 def test_configure_indexing_heading_only_entries(tmp_path):

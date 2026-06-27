@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package dev.khoj.app;
+package dev.alphamind.app;
 
 import android.content.pm.ActivityInfo;
 import android.net.Uri;

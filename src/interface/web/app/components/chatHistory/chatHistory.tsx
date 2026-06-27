@@ -24,7 +24,7 @@ import { AgentData } from "@/app/components/agentCard/agentCard";
 import React from "react";
 import { useIsMobileWidth } from "@/app/common/utils";
 import { Button } from "@/components/ui/button";
-import { KhojLogo } from "../logo/khojLogo";
+import { AlphaMindLogo } from "../logo/alphamindLogo";
 
 interface ChatResponse {
     status: string;
@@ -496,7 +496,7 @@ export default function ChatHistory(props: ChatHistoryProps) {
 
     function constructAgentName() {
         if (!data || !data.agent || !data.agent?.name) return `Agent`;
-        if (data.agent.is_hidden) return "Khoj";
+        if (data.agent.is_hidden) return "AlphaMind";
         return data.agent?.name;
     }
 
@@ -562,10 +562,10 @@ export default function ChatHistory(props: ChatHistoryProps) {
                 <div className="print-only-header">
                     <div className="print-header-content">
                         <div className="print-header-left">
-                            <KhojLogo className="print-logo" />
+                            <AlphaMindLogo className="print-logo" />
                         </div>
                         <div className="print-header-right">
-                            <h1>{data?.slug || "Conversation with Khoj"}</h1>
+                            <h1>{data?.slug || "Conversation with AlphaMind"}</h1>
                             <div className="conversation-meta">
                                 <p>
                                     <strong>Agent:</strong> {constructAgentName()}
@@ -584,11 +584,11 @@ export default function ChatHistory(props: ChatHistoryProps) {
                         data.chat &&
                         data.chat.map((chatMessage, index) => (
                             <React.Fragment key={`chatMessage-${index}`}>
-                                {chatMessage.trainOfThought && chatMessage.by === "khoj" && (
+                                {chatMessage.trainOfThought && chatMessage.by === "alphamind" && (
                                     <TrainOfThoughtComponent
                                         trainOfThought={chatMessage.trainOfThought}
                                         lastMessage={false}
-                                        agentColor={data?.agent?.color || "orange"}
+                                        agentColor={data?.agent?.color || "emerald"}
                                         key={`${index}trainOfThought`}
                                         keyId={`${index}trainOfThought`}
                                         completed={true}
@@ -654,7 +654,7 @@ export default function ChatHistory(props: ChatHistoryProps) {
                                                 lastMessage={
                                                     index === incompleteIncomingMessageIndex
                                                 }
-                                                agentColor={data?.agent?.color || "orange"}
+                                                agentColor={data?.agent?.color || "emerald"}
                                                 key={`${index}trainOfThought-${message.trainOfThought.length}-${message.trainOfThought.map((t) => t.length).join("-")}`}
                                                 keyId={`${index}trainOfThought`}
                                                 completed={message.completed}
@@ -669,7 +669,7 @@ export default function ChatHistory(props: ChatHistoryProps) {
                                             onlineContext: message.onlineContext,
                                             codeContext: message.codeContext,
                                             created: message.timestamp,
-                                            by: "khoj",
+                                            by: "alphamind",
                                             automationId: "",
                                             rawQuery: message.rawQuery,
                                             intent: {

@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardHeader } from "@/components/ui/card";
-import { KhojLogo } from "../logo/khojLogo";
+import { AlphaMindLogo } from "../logo/alphamindLogo";
 import { Drawer, DrawerContent } from "@/components/ui/drawer";
 
 export interface LoginPopupProps {
@@ -31,11 +31,11 @@ export default function LoginPopup(props: LoginPopupProps) {
 function PopUpContent(props: LoginPopupProps) {
     return (
         <Card className="rounded-lg p-6 flex flex-col items-center justify-between gap-8 md:w-fit border-none md:flex-row md:z-30 md:shadow-lg">
-            {!props.isMobileWidth && <KhojLogo className="w-12 h-auto" />}
+            {!props.isMobileWidth && <AlphaMindLogo className="w-12 h-auto" />}
             <div className="flex flex-col items-start justify-center gap-8 md:gap-2">
-                <CardHeader className="p-0 text-xl font-bold">Welcome to Khoj!</CardHeader>
+                <CardHeader className="p-0 text-xl font-bold">Welcome to AlphaMind!</CardHeader>
                 <CardDescription>
-                    Sign in to get started with Khoj, your AI research assistant.
+                    Sign in to get started with AlphaMind, your AI research assistant.
                 </CardDescription>
             </div>
             <Button

@@ -71,7 +71,7 @@ import { Drawer, DrawerContent, DrawerTitle, DrawerTrigger } from "@/components/
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "../components/appSidebar/appSidebar";
 import { Separator } from "@/components/ui/separator";
-import { KhojLogoType } from "../components/logo/khojLogo";
+import { AlphaMindLogoType } from "../components/logo/alphamindLogo";
 
 const automationsFetcher = () =>
     window
@@ -555,7 +555,7 @@ function EditCard(props: EditCardProps) {
                 props.setIsEditing(false);
                 // Show error message
                 props.setToastMessage(
-                    "Sorry, something went wrong. Try again or contact team@khoj.dev.",
+                    "Sorry, something went wrong. Try again or contact team@alphamind.dev.",
                 );
             });
     };
@@ -838,7 +838,7 @@ function AutomationModificationForm(props: AutomationModificationFormProps) {
                     render={({ field }) => (
                         <FormItem className="space-y-1">
                             <FormLabel>Instructions</FormLabel>
-                            <FormDescription>What do you want Khoj to do?</FormDescription>
+                            <FormDescription>What do you want AlphaMind to do?</FormDescription>
                             {props.create && (
                                 <div>
                                     {recommendationPills.map((recommendation) =>
@@ -891,7 +891,7 @@ function metadataMap(ipLocationData: LocationData, authenticatedData: UserProfil
         <div className="flex flex-wrap gap-2 items-center justify-start">
             {authenticatedData ? (
                 <span className="rounded-lg text-sm border-secondary border p-1 flex items-center shadow-sm dark:bg-muted">
-                    <Envelope className="h-4 w-4 mr-2 inline text-orange-500 shadow-sm" />
+                    <Envelope className="h-4 w-4 mr-2 inline text-emerald-600 shadow-sm" />
                     {authenticatedData.email}
                 </span>
             ) : null}
@@ -1061,7 +1061,7 @@ export default function Automations() {
                     <Separator orientation="vertical" className="mr-2 h-4" />
                     {isMobileWidth ? (
                         <Link className="p-0 no-underline" href="/">
-                            <KhojLogoType className="h-auto w-16" />
+                            <AlphaMindLogoType className="h-auto w-16" />
                         </Link>
                     ) : (
                         <h2 className="text-lg">Automations</h2>
@@ -1075,7 +1075,7 @@ export default function Automations() {
                                 <div className="flex flex-wrap gap-2 items-center justify-start">
                                     {authenticatedData ? (
                                         <span className="rounded-lg text-sm border-secondary border p-1 flex items-center shadow-sm dark:bg-muted">
-                                            <Envelope className="h-4 w-4 mr-2 inline text-orange-500 shadow-sm" />
+                                            <Envelope className="h-4 w-4 mr-2 inline text-emerald-600 shadow-sm" />
                                             {authenticatedData.email}
                                         </span>
                                     ) : null}

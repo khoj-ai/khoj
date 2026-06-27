@@ -183,7 +183,7 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
         if (!message.trim() && imageData.length === 0) return;
         if (!props.isLoggedIn) {
             setLoginRedirectMessage(
-                "Hey there, you need to be signed in to send messages to Khoj AI",
+                "Hey there, you need to be signed in to send messages to AlphaMind AI",
             );
             setShowLoginPrompt(true);
             return;
@@ -322,7 +322,7 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
             setError(
                 "Error converting files. " +
                     error +
-                    ". Please try again, or contact team@khoj.dev if the issue persists.",
+                    ". Please try again, or contact team@alphamind.dev if the issue persists.",
             );
             console.error("Error converting files:", error);
             return [];
@@ -580,7 +580,7 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
                                 <DialogTrigger asChild>
                                     <div key={index} className="relative flex-shrink-0 p-2 group">
                                         <div
-                                            className={`w-auto h-16 object-cover rounded-xl ${props.agentColor ? convertToBGClass(props.agentColor) : "bg-orange-300 hover:bg-orange-500"} bg-opacity-15`}
+                                            className={`w-auto h-16 object-cover rounded-xl ${props.agentColor ? convertToBGClass(props.agentColor) : "bg-emerald-500 hover:bg-emerald-600"} bg-opacity-15`}
                                         >
                                             <div className="flex p-2 flex-col justify-start items-start h-full">
                                                 <span className="text-sm font-bold text-neutral-500 dark:text-neutral-400 text-ellipsis truncate max-w-[200px] break-words">
@@ -713,7 +713,7 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
                                     <TooltipTrigger asChild>
                                         <Button
                                             variant="default"
-                                            className={`${!recording && "hidden"} ${props.agentColor ? convertToBGClass(props.agentColor) : "bg-orange-300 hover:bg-orange-500"} rounded-full p-1 m-2 h-auto text-3xl transition transform md:hover:-translate-y-1`}
+                                            className={`${!recording && "hidden"} ${props.agentColor ? convertToBGClass(props.agentColor) : "bg-emerald-500 hover:bg-emerald-600"} rounded-full p-1 m-2 h-auto text-3xl transition transform md:hover:-translate-y-1`}
                                             onClick={() => {
                                                 setRecording(!recording);
                                             }}
@@ -736,7 +736,7 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
                                         {props.sendDisabled && !message ? (
                                             <Button
                                                 variant="default"
-                                                className={`${props.agentColor ? convertToBGClass(props.agentColor) : "bg-orange-300 hover:bg-orange-500"} rounded-full p-1 m-2 h-auto text-3xl transition transform md:hover:-translate-y-1`}
+                                                className={`${props.agentColor ? convertToBGClass(props.agentColor) : "bg-emerald-500 hover:bg-emerald-600"} rounded-full p-1 m-2 h-auto text-3xl transition transform md:hover:-translate-y-1`}
                                                 onClick={() => {
                                                     props.setTriggeredAbort(true);
                                                 }}
@@ -746,7 +746,7 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
                                         ) : (
                                             <Button
                                                 variant="default"
-                                                className={`${!message || recording || "hidden"} ${props.agentColor ? convertToBGClass(props.agentColor) : "bg-orange-300 hover:bg-orange-500"} rounded-full p-1 m-2 h-auto text-3xl transition transform md:hover:-translate-y-1`}
+                                                className={`${!message || recording || "hidden"} ${props.agentColor ? convertToBGClass(props.agentColor) : "bg-emerald-500 hover:bg-emerald-600"} rounded-full p-1 m-2 h-auto text-3xl transition transform md:hover:-translate-y-1`}
                                                 disabled={props.sendDisabled || !props.isLoggedIn}
                                                 onClick={() => {
                                                     setMessage("Listening...");
@@ -766,7 +766,7 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
                             </TooltipProvider>
                         )}
                         <Button
-                            className={`${(!message || recording) && "hidden"} ${props.agentColor ? convertToBGClass(props.agentColor) : "bg-orange-300 hover:bg-orange-500"} rounded-full p-1 m-2 h-auto text-3xl transition transform md:hover:-translate-y-1`}
+                            className={`${(!message || recording) && "hidden"} ${props.agentColor ? convertToBGClass(props.agentColor) : "bg-emerald-500 hover:bg-emerald-600"} rounded-full p-1 m-2 h-auto text-3xl transition transform md:hover:-translate-y-1`}
                             disabled={!message || recording || !props.isLoggedIn}
                             onClick={onSendMessage}
                         >
@@ -791,7 +791,7 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
                                 {useResearchMode ? (
                                     <ToggleRight
                                         weight="fill"
-                                        className={`w-6 h-6 inline-block ${props.agentColor ? convertColorToTextClass(props.agentColor) : convertColorToTextClass("orange")} rounded-full`}
+                                        className={`w-6 h-6 inline-block ${props.agentColor ? convertColorToTextClass(props.agentColor) : convertColorToTextClass("emerald")} rounded-full`}
                                     />
                                 ) : (
                                     <ToggleLeft

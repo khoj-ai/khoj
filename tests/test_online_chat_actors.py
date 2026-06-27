@@ -5,10 +5,10 @@ import freezegun
 import pytest
 from freezegun import freeze_time
 
-from khoj.database.models import ChatMessageModel
-from khoj.processor.conversation.openai.gpt import converse_openai
-from khoj.processor.conversation.utils import message_to_log
-from khoj.routers.helpers import (
+from alphamind.database.models import ChatMessageModel
+from alphamind.processor.conversation.openai.gpt import converse_openai
+from alphamind.processor.conversation.utils import message_to_log
+from alphamind.routers.helpers import (
     aget_data_sources_and_output_format,
     extract_questions,
     generate_online_subqueries,
@@ -16,12 +16,12 @@ from khoj.routers.helpers import (
     schedule_query,
     should_notify,
 )
-from khoj.utils.helpers import ConversationCommand
+from alphamind.utils.helpers import ConversationCommand
 from tests.helpers import generate_chat_history, get_chat_api_key
 
 # Initialize variables for tests
 api_key = get_chat_api_key()
-if api_key is None or not os.getenv("KHOJ_TEST_CHAT_PROVIDER"):
+if api_key is None or not os.getenv("ALPHAMIND_TEST_CHAT_PROVIDER"):
     pytest.skip(
         reason="Set OPENAI_API_KEY, GEMINI_API_KEY or ANTHROPIC_API_KEY environment variable to run tests below.",
         allow_module_level=True,
@@ -193,7 +193,7 @@ async def test_chat_with_no_chat_history_or_retrieved_content():
     response = "".join([response_chunk.text async for response_chunk in response_gen])
 
     # Assert
-    expected_responses = ["Khoj", "khoj"]
+    expected_responses = ["AlphaMind", "alphamind"]
     assert len(response) > 0
     assert any([expected_response in response for expected_response in expected_responses]), (
         "Expected assistants name, [K|k]hoj, in response but got: " + response
@@ -207,7 +207,7 @@ async def test_chat_with_no_chat_history_or_retrieved_content():
 async def test_answer_from_chat_history_and_no_content():
     # Arrange
     message_list = [
-        ("Hello, my name is Testatron. Who are you?", "Hi, I am Khoj, a personal assistant. How can I help?", []),
+        ("Hello, my name is Testatron. Who are you?", "Hi, I am AlphaMind, a personal assistant. How can I help?", []),
         ("When was I born?", "You were born on 1st April 1984.", []),
     ]
 
@@ -236,7 +236,7 @@ async def test_answer_from_chat_history_and_previously_retrieved_content():
     "Chat actor needs to use context in previous notes and chat history to answer question"
     # Arrange
     message_list = [
-        ("Hello, my name is Testatron. Who are you?", "Hi, I am Khoj, a personal assistant. How can I help?", []),
+        ("Hello, my name is Testatron. Who are you?", "Hi, I am AlphaMind, a personal assistant. How can I help?", []),
         (
             "When was I born?",
             "You were born on 1st April 1984.",
@@ -267,7 +267,7 @@ async def test_answer_from_chat_history_and_currently_retrieved_content():
     "Chat actor needs to use context across currently retrieved notes and chat history to answer question"
     # Arrange
     message_list = [
-        ("Hello, my name is Testatron. Who are you?", "Hi, I am Khoj, a personal assistant. How can I help?", []),
+        ("Hello, my name is Testatron. Who are you?", "Hi, I am AlphaMind, a personal assistant. How can I help?", []),
         ("When was I born?", "You were born on 1st April 1984.", []),
     ]
 
@@ -295,7 +295,7 @@ async def test_refuse_answering_unanswerable_question():
     "Chat actor should not try make up answers to unanswerable questions."
     # Arrange
     message_list = [
-        ("Hello, my name is Testatron. Who are you?", "Hi, I am Khoj, a personal assistant. How can I help?", []),
+        ("Hello, my name is Testatron. Who are you?", "Hi, I am AlphaMind, a personal assistant. How can I help?", []),
         ("When was I born?", "You were born on 1st April 1984.", []),
     ]
 
@@ -421,7 +421,7 @@ async def test_answer_general_question_not_in_chat_history_or_retrieved_content(
     "Chat actor should be able to answer general questions not requiring looking at chat history or notes"
     # Arrange
     message_list = [
-        ("Hello, my name is Testatron. Who are you?", "Hi, I am Khoj, a personal assistant. How can I help?", []),
+        ("Hello, my name is Testatron. Who are you?", "Hi, I am AlphaMind, a personal assistant. How can I help?", []),
         ("When was I born?", "You were born on 1st April 1984.", []),
         ("Where was I born?", "You were born Testville.", []),
     ]
@@ -551,7 +551,7 @@ async def test_websearch_with_operators(chat_client, default_user2):
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.anyio
 @pytest.mark.django_db(transaction=True)
-async def test_websearch_khoj_website_for_info_about_khoj(chat_client, default_user2):
+async def test_websearch_alphamind_website_for_info_about_alphamind(chat_client, default_user2):
     # Arrange
     user_query = "Do you support image search?"
 
@@ -559,8 +559,8 @@ async def test_websearch_khoj_website_for_info_about_khoj(chat_client, default_u
     responses = await generate_online_subqueries(user_query, [], None, default_user2)
 
     # Assert
-    assert any(["site:khoj.dev" in response for response in responses]), (
-        "Expected search query to include site:khoj.dev but got: " + str(responses)
+    assert any(["site:alphamind.dev" in response for response in responses]), (
+        "Expected search query to include site:alphamind.dev but got: " + str(responses)
     )
 
 
@@ -719,7 +719,7 @@ def test_infer_task_scheduling_request(
         (
             "Create a weather wallpaper every morning using the current weather",
             "Paint a weather wallpaper using the current weather",
-            "https://khoj-generated-wallpaper.khoj.dev/user110/weathervane.webp",
+            "https://alphamind-generated-wallpaper.alphamind.dev/user110/weathervane.webp",
             True,
         ),
         (
@@ -749,7 +749,7 @@ def populate_chat_history(message_list):
         chat_history += message_to_log(
             user_message,
             gpt_message,
-            khoj_message_metadata={
+            alphamind_message_metadata={
                 "context": context,
                 "intent": {"query": user_message, "inferred-queries": [user_message]},
             },

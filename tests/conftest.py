@@ -3,28 +3,28 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.testclient import TestClient
 
-from khoj.configure import (
+from alphamind.configure import (
     configure_middleware,
     configure_routes,
     configure_search_types,
 )
-from khoj.database.adapters import get_default_search_model
-from khoj.database.models import (
+from alphamind.database.adapters import get_default_search_model
+from alphamind.database.models import (
     Agent,
     ChatModel,
     FileObject,
     GithubConfig,
     GithubRepoConfig,
-    KhojApiUser,
-    KhojUser,
+    AlphaMindApiUser,
+    AlphaMindUser,
 )
-from khoj.processor.content.org_mode.org_to_entries import OrgToEntries
-from khoj.processor.content.plaintext.plaintext_to_entries import PlaintextToEntries
-from khoj.processor.embeddings import CrossEncoderModel, EmbeddingsModel
-from khoj.routers.api_content import configure_content
-from khoj.search_type import text_search
-from khoj.utils import state
-from khoj.utils.constants import web_directory
+from alphamind.processor.content.org_mode.org_to_entries import OrgToEntries
+from alphamind.processor.content.plaintext.plaintext_to_entries import PlaintextToEntries
+from alphamind.processor.embeddings import CrossEncoderModel, EmbeddingsModel
+from alphamind.routers.api_content import configure_content
+from alphamind.search_type import text_search
+from alphamind.utils import state
+from alphamind.utils.constants import web_directory
 from tests.helpers import (
     AiModelApiFactory,
     ChatModelFactory,
@@ -73,10 +73,10 @@ def default_user():
 
 @pytest.fixture
 def default_user2():
-    if KhojUser.objects.filter(username="default").exists():
-        return KhojUser.objects.get(username="default")
+    if AlphaMindUser.objects.filter(username="default").exists():
+        return AlphaMindUser.objects.get(username="default")
 
-    user = KhojUser.objects.create(
+    user = AlphaMindUser.objects.create(
         username="default",
         email="default@example.com",
         password="default",
@@ -90,10 +90,10 @@ def default_user3():
     """
     This user should not have any data associated with it
     """
-    if KhojUser.objects.filter(username="default3").exists():
-        return KhojUser.objects.get(username="default3")
+    if AlphaMindUser.objects.filter(username="default3").exists():
+        return AlphaMindUser.objects.get(username="default3")
 
-    user = KhojUser.objects.create(
+    user = AlphaMindUser.objects.create(
         username="default3",
         email="default3@example.com",
         password="default3",
@@ -107,10 +107,10 @@ def default_user4():
     """
     This user should not have a valid subscription
     """
-    if KhojUser.objects.filter(username="default4").exists():
-        return KhojUser.objects.get(username="default4")
+    if AlphaMindUser.objects.filter(username="default4").exists():
+        return AlphaMindUser.objects.get(username="default4")
 
-    user = KhojUser.objects.create(
+    user = AlphaMindUser.objects.create(
         username="default4",
         email="default4@example.com",
         password="default4",
@@ -121,10 +121,10 @@ def default_user4():
 
 @pytest.fixture
 def api_user(default_user):
-    if KhojApiUser.objects.filter(user=default_user).exists():
-        return KhojApiUser.objects.get(user=default_user)
+    if AlphaMindApiUser.objects.filter(user=default_user).exists():
+        return AlphaMindApiUser.objects.get(user=default_user)
 
-    return KhojApiUser.objects.create(
+    return AlphaMindApiUser.objects.create(
         user=default_user,
         name="api-key",
         token="kk-secret",
@@ -133,10 +133,10 @@ def api_user(default_user):
 
 @pytest.fixture
 def api_user2(default_user2):
-    if KhojApiUser.objects.filter(user=default_user2).exists():
-        return KhojApiUser.objects.get(user=default_user2)
+    if AlphaMindApiUser.objects.filter(user=default_user2).exists():
+        return AlphaMindApiUser.objects.get(user=default_user2)
 
-    return KhojApiUser.objects.create(
+    return AlphaMindApiUser.objects.create(
         user=default_user2,
         name="api-key",
         token="kk-diff-secret",
@@ -145,10 +145,10 @@ def api_user2(default_user2):
 
 @pytest.fixture
 def api_user3(default_user3):
-    if KhojApiUser.objects.filter(user=default_user3).exists():
-        return KhojApiUser.objects.get(user=default_user3)
+    if AlphaMindApiUser.objects.filter(user=default_user3).exists():
+        return AlphaMindApiUser.objects.get(user=default_user3)
 
-    return KhojApiUser.objects.create(
+    return AlphaMindApiUser.objects.create(
         user=default_user3,
         name="api-key",
         token="kk-diff-secret-3",
@@ -157,10 +157,10 @@ def api_user3(default_user3):
 
 @pytest.fixture
 def api_user4(default_user4):
-    if KhojApiUser.objects.filter(user=default_user4).exists():
-        return KhojApiUser.objects.get(user=default_user4)
+    if AlphaMindApiUser.objects.filter(user=default_user4).exists():
+        return AlphaMindApiUser.objects.get(user=default_user4)
 
-    return KhojApiUser.objects.create(
+    return AlphaMindApiUser.objects.create(
         user=default_user4,
         name="api-key",
         token="kk-diff-secret-4",
@@ -194,22 +194,22 @@ def anyio_backend():
 
 
 @pytest.fixture(scope="function")
-def chat_client(search_config, default_user2: KhojUser):
+def chat_client(search_config, default_user2: AlphaMindUser):
     return chat_client_builder(search_config, default_user2, require_auth=False)
 
 
 @pytest.fixture(scope="function")
-def chat_client_with_auth(search_config, default_user2: KhojUser):
+def chat_client_with_auth(search_config, default_user2: AlphaMindUser):
     return chat_client_builder(search_config, default_user2, require_auth=True)
 
 
 @pytest.fixture(scope="function")
-def chat_client_no_background(search_config, default_user2: KhojUser):
+def chat_client_no_background(search_config, default_user2: AlphaMindUser):
     return chat_client_builder(search_config, default_user2, index_content=False, require_auth=False)
 
 
 @pytest.fixture(scope="function")
-def chat_client_with_large_kb(search_config, default_user2: KhojUser):
+def chat_client_with_large_kb(search_config, default_user2: AlphaMindUser):
     """
     Chat client fixture that creates a large knowledge base with many files
     for stress testing atomic agent updates.
@@ -266,7 +266,7 @@ def large_kb_chat_client_builder(search_config, user):
     state.SearchType = configure_search_types()
 
     # Create temporary directory for large number of test files
-    temp_dir = tempfile.mkdtemp(prefix="khoj_test_large_kb_")
+    temp_dir = tempfile.mkdtemp(prefix="alphamind_test_large_kb_")
     file_type = "markdown"
     large_file_list = []
 
@@ -377,7 +377,7 @@ def fastapi_app():
 
 @pytest.fixture(scope="function")
 def client(
-    api_user: KhojApiUser,
+    api_user: AlphaMindApiUser,
 ):
     state.SearchType = configure_search_types()
     state.embeddings_model = dict()
@@ -409,7 +409,7 @@ def client(
 
 
 @pytest.fixture(scope="function")
-def pdf_configured_user1(default_user: KhojUser):
+def pdf_configured_user1(default_user: AlphaMindUser):
     # Read data from pdf file at tests/data/pdf/singlepage.pdf
     pdf_file_path = "tests/data/pdf/singlepage.pdf"
     with open(pdf_file_path, "rb") as pdf_file:

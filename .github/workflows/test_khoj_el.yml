@@ -1,4 +1,4 @@
-name: test khoj.el
+name: test alphamind.el
 
 on:
   push:
@@ -8,7 +8,7 @@ on:
     paths:
       - src/interface/emacs/*.el
       - src/interface/emacs/tests/*.el
-      - .github/workflows/test_khoj_el.yml
+      - .github/workflows/test_alphamind_el.yml
   pull_request:
     branches:
       - 'master'
@@ -16,7 +16,7 @@ on:
     paths:
       - src/interface/emacs/*.el
       - src/interface/emacs/tests/*.el
-      - .github/workflows/test_khoj_el.yml
+      - .github/workflows/test_alphamind_el.yml
 
 jobs:
   test:
@@ -34,9 +34,9 @@ jobs:
         with:
           version: ${{ matrix.emacs_version }}
       - uses: actions/checkout@v3
-      - name: 🧪 Test Khoj.el
+      - name: 🧪 Test AlphaMind.el
         run: |
-           # Run ERT tests on khoj.el
+           # Run ERT tests on alphamind.el
            emacs -batch \
            --eval "(progn \
                     (require 'package) \
@@ -48,6 +48,6 @@ jobs:
                     (unless (package-installed-p 'org) (package-install 'org)) \
                    )" \
            -l ert \
-           -l ./src/interface/emacs/khoj.el \
-           -l ./src/interface/emacs/tests/khoj-tests.el \
+           -l ./src/interface/emacs/alphamind.el \
+           -l ./src/interface/emacs/tests/alphamind-tests.el \
            -f ert-run-tests-batch-and-exit

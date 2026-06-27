@@ -1,5 +1,5 @@
 {
-    "name": "Khoj Development Environment",
+    "name": "AlphaMind Development Environment",
     "build": {
         "dockerfile": "Dockerfile",
         "context": "..", // Build context is the project root

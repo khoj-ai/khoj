@@ -8,7 +8,7 @@ on:
       - 'master'
       - 'release/1.x'
     paths:
-      - src/khoj/**
+      - src/alphamind/**
       - src/interface/web/**
       - pyproject.toml
       - .github/workflows/pypi.yml
@@ -17,7 +17,7 @@ on:
       - 'master'
       - 'release/1.x'
     paths:
-      - src/khoj/**
+      - src/alphamind/**
       - src/interface/web/**
       - pyproject.toml
       - .github/workflows/pypi.yml
@@ -75,8 +75,8 @@ jobs:
       - name: ⏫ Upload Python Package Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: khoj
-          path: dist/khoj-*.whl
+          name: alphamind
+          path: dist/alphamind-*.whl
 
       - name: 📦 Publish Python Package to PyPI
         if: startsWith(github.ref, 'refs/tags') || github.ref == 'refs/heads/master' || github.ref == 'refs/heads/release/1.x'

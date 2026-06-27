@@ -1,5 +1,5 @@
 # Support Multilingual Docs
-Khoj uses an embedding model to understand documents. Multilingual embedding models improve the search quality for documents not in English. This affects both search and chat with docs experiences across Khoj.
+AlphaMind uses an embedding model to understand documents. Multilingual embedding models improve the search quality for documents not in English. This affects both search and chat with docs experiences across AlphaMind.
 
 To improve search and chat quality for non-english documents you can use a [multilingual model](https://www.sbert.net/docs/pretrained_models.html#multi-lingual-models).<br />
 For example, the [paraphrase-multilingual-MiniLM-L12-v2](https://huggingface.co/sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2) supports [50+ languages](https://www.sbert.net/docs/pretrained_models.html#:~:text=we%20used%20the%20following%2050%2B%20languages), has decent search quality and speed for a consumer machine.

@@ -109,7 +109,7 @@ function generateOnlineReference(reference, index) {
 
 function renderMessage(message, by, dt=null, annotations=null, raw=false, renderType="append") {
     let message_time = formatDate(dt ?? new Date());
-    let by_name =  by == "khoj" ? "🏮 Khoj" : "🤔 You";
+    let by_name =  by == "alphamind" ? "🏮 AlphaMind" : "🤔 You";
     let formattedMessage = formatHTMLMessage(message, raw);
 
     // Create a new div for the chat message
@@ -195,7 +195,7 @@ function renderMessageWithReference(message, by, context=null, dt=null, onlineCo
         let imageMarkdown = generateImageMarkdown(message, intentType, inferredQueries);
         chatEl = renderMessage(imageMarkdown, by, dt, null, false, "return");
     } else if (intentType === "excalidraw") {
-        let domain = hostURL ?? "https://app.khoj.dev/";
+        let domain = hostURL ?? "https://app.alphamind.dev/";
 
         if (!domain.endsWith("/")) domain += "/";
 

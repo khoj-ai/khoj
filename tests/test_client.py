@@ -6,12 +6,12 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from khoj.configure import configure_routes, configure_search_types
-from khoj.database.adapters import EntryAdapters
-from khoj.database.models import KhojApiUser, KhojUser
-from khoj.processor.content.org_mode.org_to_entries import OrgToEntries
-from khoj.search_type import text_search
-from khoj.utils import state
+from alphamind.configure import configure_routes, configure_search_types
+from alphamind.database.adapters import EntryAdapters
+from alphamind.database.models import AlphaMindApiUser, AlphaMindUser
+from alphamind.processor.content.org_mode.org_to_entries import OrgToEntries
+from alphamind.search_type import text_search
+from alphamind.utils import state
 
 
 # Test
@@ -19,7 +19,7 @@ from khoj.utils import state
 @pytest.mark.django_db(transaction=True)
 def test_search_with_no_auth_key(client):
     # Arrange
-    user_query = quote("How to call Khoj from Emacs?")
+    user_query = quote("How to call AlphaMind from Emacs?")
 
     # Act
     response = client.get(f"/api/search?q={user_query}")
@@ -32,7 +32,7 @@ def test_search_with_no_auth_key(client):
 def test_search_with_invalid_auth_key(client):
     # Arrange
     headers = {"Authorization": "Bearer invalid-token"}
-    user_query = quote("How to call Khoj from Emacs?")
+    user_query = quote("How to call AlphaMind from Emacs?")
 
     # Act
     response = client.get(f"/api/search?q={user_query}", headers=headers)
@@ -46,7 +46,7 @@ def test_search_with_invalid_auth_key(client):
 def test_search_with_invalid_content_type(client):
     # Arrange
     headers = {"Authorization": "Bearer kk-secret"}
-    user_query = quote("How to call Khoj from Emacs?")
+    user_query = quote("How to call AlphaMind from Emacs?")
 
     # Act
     response = client.get(f"/api/search?q={user_query}&t=invalid_content_type", headers=headers)
@@ -138,7 +138,7 @@ def test_index_update_big_files(client):
 
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.django_db(transaction=True)
-def test_index_update_medium_file_unsubscribed(client, api_user4: KhojApiUser):
+def test_index_update_medium_file_unsubscribed(client, api_user4: AlphaMindApiUser):
     # Arrange
     api_token = api_user4.token
     state.billing_enabled = True
@@ -154,7 +154,7 @@ def test_index_update_medium_file_unsubscribed(client, api_user4: KhojApiUser):
 
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.django_db(transaction=True)
-def test_index_update_normal_file_unsubscribed(client, api_user4: KhojApiUser):
+def test_index_update_normal_file_unsubscribed(client, api_user4: AlphaMindApiUser):
     # Arrange
     api_token = api_user4.token
     state.billing_enabled = True
@@ -199,7 +199,7 @@ def test_index_update(client):
 
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.django_db(transaction=True)
-def test_index_update_fails_if_more_than_1000_files(client, api_user4: KhojApiUser):
+def test_index_update_fails_if_more_than_1000_files(client, api_user4: AlphaMindApiUser):
     # Arrange
     api_token = api_user4.token
     state.billing_enabled = True
@@ -251,7 +251,7 @@ def test_regenerate_with_github_fails_without_pat(client):
 
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.django_db
-def test_get_configured_types_via_api(client, sample_org_data, default_user3: KhojUser):
+def test_get_configured_types_via_api(client, sample_org_data, default_user3: AlphaMindUser):
     # Act
     text_search.setup(OrgToEntries, sample_org_data, regenerate=False, user=default_user3)
 
@@ -263,7 +263,7 @@ def test_get_configured_types_via_api(client, sample_org_data, default_user3: Kh
 
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.django_db(transaction=True)
-def test_get_api_config_types(client, sample_org_data, default_user: KhojUser):
+def test_get_api_config_types(client, sample_org_data, default_user: AlphaMindUser):
     # Arrange
     headers = {"Authorization": "Bearer kk-secret"}
     text_search.setup(OrgToEntries, sample_org_data, regenerate=False, user=default_user)
@@ -294,7 +294,7 @@ def test_get_configured_types_with_no_content_config(fastapi_app: FastAPI):
 
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.django_db(transaction=True)
-def test_notes_search(client, search_config, sample_org_data, default_user: KhojUser):
+def test_notes_search(client, search_config, sample_org_data, default_user: AlphaMindUser):
     # Arrange
     headers = {"Authorization": "Bearer kk-secret"}
     text_search.setup(OrgToEntries, sample_org_data, regenerate=False, user=default_user)
@@ -308,12 +308,12 @@ def test_notes_search(client, search_config, sample_org_data, default_user: Khoj
 
     assert len(response.json()) == 1, "Expected only 1 result"
     search_result = response.json()[0]["entry"]
-    assert "git clone https://github.com/khoj-ai/khoj" in search_result, "Expected 'git clone' in search result"
+    assert "git clone https://github.com/alphamind-ai/alphamind" in search_result, "Expected 'git clone' in search result"
 
 
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.django_db(transaction=True)
-def test_notes_search_no_results(client, search_config, sample_org_data, default_user: KhojUser):
+def test_notes_search_no_results(client, search_config, sample_org_data, default_user: AlphaMindUser):
     # Arrange
     headers = {"Authorization": "Bearer kk-secret"}
     text_search.setup(OrgToEntries, sample_org_data, regenerate=False, user=default_user)
@@ -329,7 +329,7 @@ def test_notes_search_no_results(client, search_config, sample_org_data, default
 
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.django_db(transaction=True)
-def test_notes_search_with_only_filters(client, sample_org_data, default_user: KhojUser):
+def test_notes_search_with_only_filters(client, sample_org_data, default_user: AlphaMindUser):
     # Arrange
     headers = {"Authorization": "Bearer kk-secret"}
     text_search.setup(
@@ -352,7 +352,7 @@ def test_notes_search_with_only_filters(client, sample_org_data, default_user: K
 
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.django_db(transaction=True)
-def test_notes_search_with_include_filter(client, sample_org_data, default_user: KhojUser):
+def test_notes_search_with_include_filter(client, sample_org_data, default_user: AlphaMindUser):
     # Arrange
     headers = {"Authorization": "Bearer kk-secret"}
     text_search.setup(OrgToEntries, sample_org_data, regenerate=False, user=default_user)
@@ -370,7 +370,7 @@ def test_notes_search_with_include_filter(client, sample_org_data, default_user:
 
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.django_db(transaction=True)
-def test_notes_search_with_exclude_filter(client, sample_org_data, default_user: KhojUser):
+def test_notes_search_with_exclude_filter(client, sample_org_data, default_user: AlphaMindUser):
     # Arrange
     headers = {"Authorization": "Bearer kk-secret"}
     text_search.setup(
@@ -393,11 +393,11 @@ def test_notes_search_with_exclude_filter(client, sample_org_data, default_user:
 
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.django_db(transaction=True)
-def test_notes_search_requires_parent_context(client, search_config, sample_org_data, default_user: KhojUser):
+def test_notes_search_requires_parent_context(client, search_config, sample_org_data, default_user: AlphaMindUser):
     # Arrange
     headers = {"Authorization": "Bearer kk-secret"}
     text_search.setup(OrgToEntries, sample_org_data, regenerate=False, user=default_user)
-    user_query = quote("Install Khoj on Emacs")
+    user_query = quote("Install AlphaMind on Emacs")
 
     # Act
     response = client.get(f"/api/search?q={user_query}&n=1&t=org&r=true&max_distance=0.22", headers=headers)
@@ -412,7 +412,7 @@ def test_notes_search_requires_parent_context(client, search_config, sample_org_
 
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.django_db(transaction=True)
-def test_different_user_data_not_accessed(client, sample_org_data, default_user: KhojUser):
+def test_different_user_data_not_accessed(client, sample_org_data, default_user: AlphaMindUser):
     # Arrange
     headers = {"Authorization": "Bearer kk-token"}  # Token for default_user2
     text_search.setup(OrgToEntries, sample_org_data, regenerate=False, user=default_user)
@@ -429,7 +429,7 @@ def test_different_user_data_not_accessed(client, sample_org_data, default_user:
 
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.django_db(transaction=True)
-def test_user_no_data_returns_empty(client, sample_org_data, api_user3: KhojApiUser):
+def test_user_no_data_returns_empty(client, sample_org_data, api_user3: AlphaMindApiUser):
     # Arrange
     token = api_user3.token
     headers = {"Authorization": "Bearer " + token}
@@ -447,7 +447,7 @@ def test_user_no_data_returns_empty(client, sample_org_data, api_user3: KhojApiU
 
 @pytest.mark.skipif(os.getenv("OPENAI_API_KEY") is None, reason="requires OPENAI_API_KEY")
 @pytest.mark.django_db(transaction=True)
-def test_chat_with_unauthenticated_user(chat_client_with_auth, api_user2: KhojApiUser):
+def test_chat_with_unauthenticated_user(chat_client_with_auth, api_user2: AlphaMindApiUser):
     # Arrange
     query = "Hello!"
     headers = {"Authorization": f"Bearer {api_user2.token}"}

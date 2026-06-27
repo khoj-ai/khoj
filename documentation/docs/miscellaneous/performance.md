@@ -4,7 +4,7 @@ sidebar_position: 2
 
 # Performance
 
-Here are some top-level performance metrics for Khoj. These are rough estimates and will vary based on your hardware and data.
+Here are some top-level performance metrics for AlphaMind. These are rough estimates and will vary based on your hardware and data.
 
 :::info
 These performance metrics were last evaluated in 2022.

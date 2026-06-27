@@ -1,0 +1,76 @@
+{
+    "id": "https://app.alphamind.dev",
+    "name": "AlphaMind AI - Get Answers, Create Anything",
+    "short_name": "AlphaMind",
+    "display": "standalone",
+    "start_url": "/",
+    "scope": "/",
+    "description": "AlphaMind is your open, personal AI. Gets answers from the internet and your documents. Quickly draft messages, summarize any information, generate beautiful paintings, create personal agents and do deep research.",
+    "categories": ["productivity", "utilities", "personalization", "education"],
+    "theme_color": "#1D9E75",
+    "background_color": "#0f0f0f",
+    "orientation": "natural",
+    "launch_handler": {
+        "client_mode": ["navigate-existing", "auto"]
+    },
+    "icons": [
+        {
+            "src": "/static/assets/icons/alphamind_lantern_128x128.png",
+            "sizes": "128x128",
+            "type": "image/png"
+        },
+        {
+            "src": "/static/assets/icons/alphamind_lantern_256x256.png",
+            "sizes": "256x256",
+            "type": "image/png"
+        },
+        {
+            "src": "/static/assets/icons/alphamind_lantern_512x512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "any"
+        },
+        {
+            "src": "/static/assets/icons/alphamind_lantern_512x512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "maskable"
+        },
+        {
+            "src": "/static/assets/icons/alphamind_lantern_1200x1200.png",
+            "sizes": "1200x1200",
+            "type": "image/png",
+            "purpose": "any"
+        }
+    ],
+    "screenshots": [
+        {
+            "src": "/static/assets/samples/phone-remember-plan-sample.png",
+            "sizes": "419x900",
+            "type": "image/png",
+            "form_factor": "narrow",
+            "label": "Remember and Plan"
+        },
+        {
+            "src": "/static/assets/samples/phone-browse-draw-sample.png",
+            "sizes": "419x900",
+            "type": "image/png",
+            "form_factor": "narrow",
+            "label": "Browse and Draw"
+        },
+        {
+            "src": "/static/assets/samples/desktop-remember-plan-sample.png",
+            "sizes": "1260x742",
+            "type": "image/png",
+            "form_factor": "wide",
+            "label": "Remember and Plan"
+        },
+        {
+            "src": "/static/assets/samples/desktop-browse-draw-sample.png",
+            "sizes": "1260x742",
+            "type": "image/png",
+            "form_factor": "wide",
+            "label": "Browse and Draw"
+        }
+    ]
+}

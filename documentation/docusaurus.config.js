@@ -8,7 +8,7 @@ import {themes as prismThemes} from 'prism-react-renderer';
 
 /** @type {import('@docusaurus/types').Config} */
 const config = {
-  title: 'Khoj AI',
+  title: 'AlphaMind AI',
   tagline: 'Your Second Brain',
 
   staticDirectories: ['assets'],
@@ -16,15 +16,15 @@ const config = {
   favicon: 'img/favicon-128x128.ico',
 
   // Set the production url of your site here
-  url: 'https://docs.khoj.dev',
+  url: 'https://docs.alphamind.dev',
   // Set the /<baseUrl>/ pathname under which your site is served
   // For GitHub pages deployment, it is often '/<projectName>/'
   baseUrl: '/',
 
   // GitHub pages deployment config.
   // If you aren't using GitHub pages, you don't need these.
-  organizationName: 'khoj-ai', // Usually your GitHub org/user name.
-  projectName: 'khoj', // Usually your repo name.
+  organizationName: 'alphamind-ai', // Usually your GitHub org/user name.
+  projectName: 'alphamind', // Usually your repo name.
 
   onBrokenLinks: 'throw',
   markdown: {
@@ -55,14 +55,14 @@ const config = {
           // Please change this to your repo.
           // Remove this to remove the "edit this page" links.
           editUrl:
-            'https://github.com/khoj-ai/khoj/tree/master/documentation/',
+            'https://github.com/alphamind-ai/alphamind/tree/master/documentation/',
         },
         blog: {
           showReadingTime: true,
           // Please change this to your repo.
           // Remove this to remove the "edit this page" links.
           editUrl:
-            'https://github.com/khoj-ai/khoj/tree/master/documentation/blog/',
+            'https://github.com/alphamind-ai/alphamind/tree/master/documentation/blog/',
         },
         theme: {
           customCss: './src/css/custom.css',
@@ -79,35 +79,35 @@ const config = {
   themeConfig:
     /** @type {import('@docusaurus/preset-classic').ThemeConfig} */
     ({
-      image: 'img/khoj_documentation.png',
+      image: 'img/alphamind_documentation.png',
       metadata: [
         {name: 'og:title', content: 'Docs'},
         {name: 'og:type', content: 'website'},
-        {name: 'og:site_name', content: 'Khoj Documentation'},
-        {name: 'og:description', content: 'Quickly get started with using or self-hosting Khoj'},
-        {name: 'og:url', content: 'https://docs.khoj.dev'},
-        {name: 'keywords', content: 'khoj, khoj ai, chatgpt, open source ai, open source, transparent, accessible, trustworthy, hackable, index notes, rag, productivity'}
+        {name: 'og:site_name', content: 'AlphaMind Documentation'},
+        {name: 'og:description', content: 'Quickly get started with using or self-hosting AlphaMind'},
+        {name: 'og:url', content: 'https://docs.alphamind.dev'},
+        {name: 'keywords', content: 'alphamind, alphamind ai, chatgpt, open source ai, open source, transparent, accessible, trustworthy, hackable, index notes, rag, productivity'}
       ],
       navbar: {
-        title: 'Khoj',
+        title: 'AlphaMind',
         logo: {
-          alt: 'Khoj AI',
+          alt: 'AlphaMind AI',
           src: 'img/favicon-128x128.ico',
         },
         items: [
           {
-            href: 'https://github.com/khoj-ai/khoj',
+            href: 'https://github.com/alphamind-ai/alphamind',
             position: 'right',
             className: 'header-github-link',
             title: 'Codebase',
             'aria-label': 'GitHub repository',
           },
           {
-            href: 'https://app.khoj.dev',
+            href: 'https://app.alphamind.dev',
             position: 'right',
             className: 'header-cloud-link',
-            title: 'Khoj Cloud',
-            'aria-label': 'Khoj Cloud',
+            title: 'AlphaMind Cloud',
+            'aria-label': 'AlphaMind Cloud',
           },
           {
             href: 'https://discord.gg/BDgyabRM6e',
@@ -117,11 +117,11 @@ const config = {
             'aria-label': 'Discord community',
           },
           {
-            href: 'https://blog.khoj.dev',
+            href: 'https://blog.alphamind.dev',
             position: 'right',
             className: 'header-blog-link',
             title: 'Blog',
-            'aria-label': 'Khoj Blog',
+            'aria-label': 'AlphaMind Blog',
           },
         ],
       },
@@ -166,19 +166,19 @@ const config = {
               },
               {
                 label: 'LinkedIn',
-                href: 'https://www.linkedin.com/company/khoj-ai/'
+                href: 'https://www.linkedin.com/company/alphamind-ai/'
               },
               {
                 label: 'Twitter',
-                href: 'https://twitter.com/khoj_ai',
+                href: 'https://twitter.com/alphamind_ai',
               },
               {
                 label: 'GitHub',
-                href: 'https://github.com/khoj-ai/khoj/issues',
+                href: 'https://github.com/alphamind-ai/alphamind/issues',
               },
               {
                 label: 'Email',
-                href: 'mailto:team@khoj.dev',
+                href: 'mailto:team@alphamind.dev',
               }
             ],
           },
@@ -186,25 +186,25 @@ const config = {
             title: 'More',
             items: [
               {
-                href: 'https://blog.khoj.dev',
+                href: 'https://blog.alphamind.dev',
                 label: 'Blog',
               },
               {
-                label: 'Khoj Cloud',
-                href: 'https://app.khoj.dev',
+                label: 'AlphaMind Cloud',
+                href: 'https://app.alphamind.dev',
               },
               {
                 label: 'GitHub',
-                href: 'https://github.com/khoj-ai/khoj',
+                href: 'https://github.com/alphamind-ai/alphamind',
               },
               {
-                label: 'Khoj Inc.',
-                href: 'https://khoj.dev',
+                label: 'AlphaMind Inc.',
+                href: 'https://alphamind.dev',
               },
             ],
           },
         ],
-        copyright: `Copyright © ${new Date().getFullYear()} Khoj, Inc.`,
+        copyright: `Copyright © ${new Date().getFullYear()} AlphaMind, Inc.`,
       },
       prism: {
         theme: prismThemes.github,
@@ -213,7 +213,7 @@ const config = {
       algolia: {
         appId: "NBR0FXJNGW",
         apiKey: "8841b34192a28b2d06f04dd28d768017",
-        indexName: "khoj",
+        indexName: "alphamind",
         contextualSearch: false,
       }
     }),

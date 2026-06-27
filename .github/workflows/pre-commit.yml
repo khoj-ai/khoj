@@ -17,7 +17,7 @@ on:
       - master
       - release/1.x
     paths:
-      - src/khoj/**
+      - src/alphamind/**
       - tests/**
       - config/**
       - pyproject.toml

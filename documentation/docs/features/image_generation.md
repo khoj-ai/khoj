@@ -1,7 +1,7 @@
 # Image Generation
-You can use Khoj to generate images from text prompts. You can get deeper into the  details of our image generation flow in this blog post: https://blog.khoj.dev/posts/how-khoj-generates-images/.
+You can use AlphaMind to generate images from text prompts. You can get deeper into the  details of our image generation flow in this blog post: https://blog.alphamind.dev/posts/how-alphamind-generates-images/.
 
-To generate images, you just need to provide a prompt to Khoj in which the image generation is in the instructions. Khoj will automatically detect the image generation intent, augment your generation prompt, and then create the image. Here are some examples:
+To generate images, you just need to provide a prompt to AlphaMind in which the image generation is in the instructions. AlphaMind will automatically detect the image generation intent, augment your generation prompt, and then create the image. Here are some examples:
 | Prompt | Image |
 | --- | --- |
 | Paint a picture of the plants I got last month, pixar-animation | ![plants](/img/plants_i_got.png) |

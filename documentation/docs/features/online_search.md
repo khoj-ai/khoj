@@ -1,8 +1,8 @@
 # Online Search
 
-Khoj will research on the internet to ground its responses, when it determines that it would need fresh information outside its existing knowledge to answer the query. It will always show any online references it used to respond to your requests.
+AlphaMind will research on the internet to ground its responses, when it determines that it would need fresh information outside its existing knowledge to answer the query. It will always show any online references it used to respond to your requests.
 
-By default, Khoj will try to infer which information sources, it needs to read to answer your question. This can include reading your documents or researching information online. You can also explicitly trigger an online search by adding the `/online` prefix to your chat query.
+By default, AlphaMind will try to infer which information sources, it needs to read to answer your question. This can include reading your documents or researching information online. You can also explicitly trigger an online search by adding the `/online` prefix to your chat query.
 
 Example queries that should trigger an online search:
 - What's the latest news about the Israel-Palestine war?
@@ -10,7 +10,7 @@ Example queries that should trigger an online search:
 - /online Deadline for filing taxes 2024.
 - Give me a summary of this article: https://en.wikipedia.org/wiki/Haitian_Revolution
 
-Try it out yourself! https://app.khoj.dev
+Try it out yourself! https://app.alphamind.dev
 
 ## Self-Hosting
 
@@ -25,7 +25,7 @@ Online search can work even with self-hosting! You have a few options:
 
 ### Webpage Reading
 
-Out of the box, you **don't have to do anything to enable webpage reading**. Khoj will automatically read webpages by using the `requests` library. To get faster, more readable webpages for Khoj, you can use the following options:
+Out of the box, you **don't have to do anything to enable webpage reading**. AlphaMind will automatically read webpages by using the `requests` library. To get faster, more readable webpages for AlphaMind, you can use the following options:
 
 - For open, self-hostable webpage reader, you can use [Firecrawl](https://www.firecrawl.dev/). Create a new [Webscraper](http://localhost:42110/server/admin/database/webscraper/add/). Set your Firecrawl API key to the Api Key field, and set the type to Firecrawl.
 - For advanced webpage reading, you can use [Olostep](https://www.olostep.com/). This can read a wider variety of webpages. Create a new [Webscraper](http://localhost:42110/server/admin/database/webscraper/add/). Set your Olostep API key to the Api Key field, and set the type to Olostep.

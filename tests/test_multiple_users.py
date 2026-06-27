@@ -3,14 +3,14 @@ from urllib.parse import quote
 
 import pytest
 
-from khoj.database.models import KhojApiUser, KhojUser
-from khoj.processor.content.org_mode.org_to_entries import OrgToEntries
-from khoj.search_type import text_search
+from alphamind.database.models import AlphaMindApiUser, AlphaMindUser
+from alphamind.processor.content.org_mode.org_to_entries import OrgToEntries
+from alphamind.search_type import text_search
 
 
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.django_db(transaction=True)
-def test_search_for_user2_returns_empty(client, api_user2: KhojApiUser):
+def test_search_for_user2_returns_empty(client, api_user2: AlphaMindApiUser):
     token = api_user2.token
     headers = {"Authorization": f"Bearer {token}"}
     for content_type in ["all", "org", "markdown", "pdf", "github", "notion", "plaintext"]:
@@ -23,7 +23,7 @@ def test_search_for_user2_returns_empty(client, api_user2: KhojApiUser):
 
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.django_db(transaction=True)
-def test_index_update_with_user2(client, api_user2: KhojApiUser):
+def test_index_update_with_user2(client, api_user2: AlphaMindApiUser):
     # Arrange
     files = get_sample_files_data()
     source_file_symbol = set([f[1][0] for f in files])
@@ -41,7 +41,7 @@ def test_index_update_with_user2(client, api_user2: KhojApiUser):
 
 
 @pytest.mark.django_db(transaction=True)
-def test_index_update_with_user2_inaccessible_user1(client, api_user2: KhojApiUser, api_user: KhojApiUser):
+def test_index_update_with_user2_inaccessible_user1(client, api_user2: AlphaMindApiUser, api_user: AlphaMindApiUser):
     # Arrange
     files = get_sample_files_data()
     source_file_symbol = set([f[1][0] for f in files])
@@ -63,7 +63,7 @@ def test_index_update_with_user2_inaccessible_user1(client, api_user2: KhojApiUs
 
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.django_db(transaction=True)
-def test_different_user_data_not_accessed(client, sample_org_data, default_user: KhojUser):
+def test_different_user_data_not_accessed(client, sample_org_data, default_user: AlphaMindUser):
     # Arrange
     headers = {"Authorization": "Bearer kk-token"}  # Token for default_user2
     text_search.setup(OrgToEntries, sample_org_data, regenerate=False, user=default_user)

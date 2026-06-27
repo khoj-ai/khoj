@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Khoj Mini</title>
+    <title>AlphaMind Mini</title>
     <style>
         #title-bar {
             display: flex;
@@ -254,7 +254,7 @@
     </style>
 </head>
 <body>
-    <div id="title-bar">Khoj (Esc to Quit)</div>
+    <div id="title-bar">AlphaMind (Esc to Quit)</div>
     <div id="chat-body-wrapper">
         <div id="input-container">
             <textarea id="styled-input" name="styled-input">Hello World!</textarea>
@@ -303,7 +303,7 @@
         <div id="chat-body"></div>
     </div>
     <script src="main.js"></script>
-    <script type="text/javascript" src="./assets/purify.min.js?v={{ khoj_version }}"></script>
+    <script type="text/javascript" src="./assets/purify.min.js?v={{ alphamind_version }}"></script>
     <script type="text/javascript" src="./assets/markdown-it.min.js"></script>
     <script src="./utils.js"></script>
     <script src="./chatutils.js"></script>
@@ -355,7 +355,7 @@
             let inp = document.getElementById("styled-input");
             query = inp.value;
             inp.setAttribute('readonly', true);
-            let resultsCount = localStorage.getItem("khojResultsCount") || 5;
+            let resultsCount = localStorage.getItem("alphamindResultsCount") || 5;
             console.log(`Query: ${query}`);
 
             // Short circuit on empty query
@@ -366,8 +366,8 @@
 
             let conversationID = chat_body.dataset.conversationId;
             let hostURL = await window.hostURLAPI.getURL();
-            const khojToken = await window.tokenAPI.getToken();
-            const headers = { 'Authorization': `Bearer ${khojToken}`, 'Content-Type': 'application/json' };
+            const alphamindToken = await window.tokenAPI.getToken();
+            const headers = { 'Authorization': `Bearer ${alphamindToken}`, 'Content-Type': 'application/json' };
 
             if (!conversationID) {
                 let response = await fetch(`${hostURL}/api/chat/sessions`, { method: "POST", headers });
@@ -377,15 +377,15 @@
             }
 
             let newResponseEl = document.createElement("div");
-            newResponseEl.classList.add("chat-message", "khoj");
-            newResponseEl.attributes["data-meta"] = "🏮 Khoj at " + formatDate(new Date());
+            newResponseEl.classList.add("chat-message", "alphamind");
+            newResponseEl.attributes["data-meta"] = "🏮 AlphaMind at " + formatDate(new Date());
             chat_body.appendChild(newResponseEl);
 
             let newResponseTextEl = document.createElement("div");
-            newResponseTextEl.classList.add("chat-message-text", "khoj");
+            newResponseTextEl.classList.add("chat-message-text", "alphamind");
             newResponseEl.appendChild(newResponseTextEl);
 
-            // Temporary status message to indicate that Khoj is thinking
+            // Temporary status message to indicate that AlphaMind is thinking
             let loadingEllipsis = createLoadingEllipsis();
             document.body.scrollTop = document.getElementById("chat-body").scrollHeight;
 
@@ -427,10 +427,10 @@
                 // Stream and render chat response
                 await readChatStream(response);
             } catch (err) {
-                console.error(`Khoj chat response failed with\n${err}`);
+                console.error(`AlphaMind chat response failed with\n${err}`);
                 if (chatMessageState.newResponseEl.getElementsByClassName("lds-ellipsis").length > 0 && chatMessageState.loadingEllipsis)
                     chatMessageState.newResponseTextEl.removeChild(chatMessageState.loadingEllipsis);
-                let errorMsg = "Sorry, unable to get response from Khoj backend ❤️‍🩹. Retry or contact developers for help at <a href=mailto:'team@khoj.dev'>team@khoj.dev</a> or <a href='https://discord.gg/BDgyabRM6e'>on Discord</a>";
+                let errorMsg = "Sorry, unable to get response from AlphaMind backend ❤️‍🩹. Retry or contact developers for help at <a href=mailto:'team@alphamind.dev'>team@alphamind.dev</a> or <a href='https://discord.gg/BDgyabRM6e'>on Discord</a>";
                 newResponseTextEl.textContent = errorMsg;
             }
             document.body.scrollTop = document.getElementById("chat-body").scrollHeight;

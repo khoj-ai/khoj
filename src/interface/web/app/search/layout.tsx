@@ -3,22 +3,22 @@ import type { Metadata } from "next";
 import "../globals.css";
 
 export const metadata: Metadata = {
-    title: "Khoj AI - Search",
+    title: "AlphaMind AI - Search",
     description:
-        "Find anything in documents you've shared with Khoj using natural language queries.",
+        "Find anything in documents you've shared with AlphaMind using natural language queries.",
     icons: {
-        icon: "/static/assets/icons/khoj_lantern.ico",
-        apple: "/static/assets/icons/khoj_lantern_256x256.png",
+        icon: "/static/assets/icons/alphamind_lantern.ico",
+        apple: "/static/assets/icons/alphamind_lantern_256x256.png",
     },
     openGraph: {
-        siteName: "Khoj AI",
-        title: "Khoj AI - Search",
+        siteName: "AlphaMind AI",
+        title: "AlphaMind AI - Search",
         description: "Your Second Brain.",
-        url: "https://app.khoj.dev/search",
+        url: "https://app.alphamind.dev/search",
         type: "website",
         images: [
             {
-                url: "https://assets.khoj.dev/khoj_lantern_256x256.png",
+                url: "https://assets.alphamind.dev/alphamind_lantern_256x256.png",
                 width: 256,
                 height: 256,
             },

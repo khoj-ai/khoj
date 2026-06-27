@@ -72,7 +72,7 @@ RUN apt update \
     && apt remove -y light-locker xfce4-screensaver xfce4-power-manager || true
 
 # Create Computer User
-ENV USERNAME=khoj
+ENV USERNAME=alphamind
 ENV HOME=/home/$USERNAME
 RUN groupadd $USERNAME && \
     useradd -m -s /bin/bash -d $HOME -g $USERNAME $USERNAME && \
@@ -96,7 +96,7 @@ RUN uv pip install --no-cache-dir \
     pygetwindow
 
 # Setup VNC
-RUN x11vnc -storepasswd secret /home/khoj/.vncpass
+RUN x11vnc -storepasswd secret /home/alphamind/.vncpass
 
 ARG WIDTH=1024
 ARG HEIGHT=768

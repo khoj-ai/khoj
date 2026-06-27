@@ -1,14 +1,14 @@
 import { Plugin, WorkspaceLeaf } from 'obsidian';
-import { KhojSetting, KhojSettingTab, DEFAULT_SETTINGS } from 'src/settings'
-import { KhojSearchModal } from 'src/search_modal'
-import { KhojChatView } from 'src/chat_view'
-import { KhojSimilarView } from 'src/similar_view'
-import { updateContentIndex, canConnectToBackend, KhojView } from 'src/utils';
-import { KhojPaneView } from 'src/pane_view';
+import { AlphaMindSetting, AlphaMindSettingTab, DEFAULT_SETTINGS } from 'src/settings'
+import { AlphaMindSearchModal } from 'src/search_modal'
+import { AlphaMindChatView } from 'src/chat_view'
+import { AlphaMindSimilarView } from 'src/similar_view'
+import { updateContentIndex, canConnectToBackend, AlphaMindView } from 'src/utils';
+import { AlphaMindPaneView } from 'src/pane_view';
 
 
-export default class Khoj extends Plugin {
-    settings: KhojSetting;
+export default class AlphaMind extends Plugin {
+    settings: AlphaMindSetting;
     indexingTimer: NodeJS.Timeout;
 
     async onload() {
@@ -19,7 +19,7 @@ export default class Khoj extends Plugin {
             id: 'search',
             name: 'Search',
             hotkeys: [{ modifiers: ["Ctrl", "Alt"], key: "S" }],
-            callback: () => { new KhojSearchModal(this.app, this.settings).open(); }
+            callback: () => { new AlphaMindSearchModal(this.app, this.settings).open(); }
         });
 
         // Add similar notes command. It can only be triggered from the editor
@@ -27,21 +27,21 @@ export default class Khoj extends Plugin {
             id: 'similar',
             name: 'Find similar notes',
             hotkeys: [{ modifiers: ["Ctrl", "Alt"], key: "F" }],
-            editorCallback: () => { this.activateView(KhojView.SIMILAR); }
+            editorCallback: () => { this.activateView(AlphaMindView.SIMILAR); }
         });
 
         // Add chat command. It can be triggered from anywhere
         this.addCommand({
             id: 'chat',
             name: 'Chat',
-            callback: () => { this.activateView(KhojView.CHAT); }
+            callback: () => { this.activateView(AlphaMindView.CHAT); }
         });
 
         // Add similar documents view command
         this.addCommand({
             id: 'similar-view',
             name: 'Open Similar Documents View',
-            callback: () => { this.activateView(KhojView.SIMILAR); }
+            callback: () => { this.activateView(AlphaMindView.SIMILAR); }
         });
 
         // Add new chat command with hotkey
@@ -51,12 +51,12 @@ export default class Khoj extends Plugin {
             hotkeys: [{ modifiers: ["Ctrl", "Alt"], key: "N" }],
             callback: async () => {
                 // First, activate the chat view
-                await this.activateView(KhojView.CHAT);
+                await this.activateView(AlphaMindView.CHAT);
 
                 // Wait a short moment for the view to activate
                 setTimeout(() => {
                     // Try to get the active chat view
-                    const chatView = this.app.workspace.getActiveViewOfType(KhojChatView);
+                    const chatView = this.app.workspace.getActiveViewOfType(AlphaMindChatView);
                     if (chatView) {
                         chatView.createNewConversation();
                     }
@@ -70,8 +70,8 @@ export default class Khoj extends Plugin {
             name: 'Show Conversation History',
             hotkeys: [{ modifiers: ["Ctrl", "Alt"], key: "O" }],
             callback: () => {
-                this.activateView(KhojView.CHAT).then(() => {
-                    const chatView = this.app.workspace.getActiveViewOfType(KhojChatView);
+                this.activateView(AlphaMindView.CHAT).then(() => {
+                    const chatView = this.app.workspace.getActiveViewOfType(AlphaMindChatView);
                     if (chatView) {
                         chatView.toggleChatSessions();
                     }
@@ -85,8 +85,8 @@ export default class Khoj extends Plugin {
             name: 'Start Voice Capture',
             hotkeys: [{ modifiers: ["Ctrl", "Alt"], key: "V" }],
             callback: () => {
-                this.activateView(KhojView.CHAT).then(() => {
-                    const chatView = this.app.workspace.getActiveViewOfType(KhojChatView);
+                this.activateView(AlphaMindView.CHAT).then(() => {
+                    const chatView = this.app.workspace.getActiveViewOfType(AlphaMindChatView);
                     if (chatView) {
                         // Toggle speech to text functionality
                         const toggleEvent = chatView.voiceChatActive ? 'keyup' : 'keydown';
@@ -117,7 +117,7 @@ export default class Khoj extends Plugin {
             name: 'Apply pending edits',
             hotkeys: [{ modifiers: ["Ctrl", "Shift"], key: "Enter" }],
             callback: () => {
-                const chatView = this.app.workspace.getActiveViewOfType(KhojChatView);
+                const chatView = this.app.workspace.getActiveViewOfType(AlphaMindChatView);
                 if (chatView) {
                     chatView.applyPendingEdits();
                 }
@@ -129,7 +129,7 @@ export default class Khoj extends Plugin {
             name: 'Cancel pending edits',
             hotkeys: [{ modifiers: ["Ctrl", "Shift"], key: "Backspace" }],
             callback: () => {
-                const chatView = this.app.workspace.getActiveViewOfType(KhojChatView);
+                const chatView = this.app.workspace.getActiveViewOfType(AlphaMindChatView);
                 if (chatView) {
                     chatView.cancelPendingEdits();
                 }
@@ -137,16 +137,16 @@ export default class Khoj extends Plugin {
         });
 
         // Register views
-        this.registerView(KhojView.CHAT, (leaf) => new KhojChatView(leaf, this));
-        this.registerView(KhojView.SIMILAR, (leaf) => new KhojSimilarView(leaf, this));
+        this.registerView(AlphaMindView.CHAT, (leaf) => new AlphaMindChatView(leaf, this));
+        this.registerView(AlphaMindView.SIMILAR, (leaf) => new AlphaMindSimilarView(leaf, this));
 
         // Create an icon in the left ribbon.
-        this.addRibbonIcon('message-circle', 'Khoj', (_: MouseEvent) => {
-            this.activateView(KhojView.CHAT);
+        this.addRibbonIcon('message-circle', 'AlphaMind', (_: MouseEvent) => {
+            this.activateView(AlphaMindView.CHAT);
         });
 
-        // Add a settings tab so the user can configure khoj
-        this.addSettingTab(new KhojSettingTab(this.app, this));
+        // Add a settings tab so the user can configure alphamind
+        this.addSettingTab(new AlphaMindSettingTab(this.app, this));
 
         // Start the sync timer
         this.startSyncTimer();
@@ -177,12 +177,12 @@ export default class Khoj extends Plugin {
     }
 
     async loadSettings() {
-        // Load khoj obsidian plugin settings
+        // Load alphamind obsidian plugin settings
         this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
 
-        // Check if can connect to khoj server
+        // Check if can connect to alphamind server
         ({ connectedToBackend: this.settings.connectedToBackend } =
-            await canConnectToBackend(this.settings.khojUrl, this.settings.khojApiKey, true));
+            await canConnectToBackend(this.settings.alphamindUrl, this.settings.alphamindApiKey, true));
     }
 
     async saveSettings() {
@@ -197,15 +197,15 @@ export default class Khoj extends Plugin {
         this.unload();
     }
 
-    async activateView(viewType: KhojView, existingLeaf?: WorkspaceLeaf) {
+    async activateView(viewType: AlphaMindView, existingLeaf?: WorkspaceLeaf) {
         const { workspace } = this.app;
         let leafToUse: WorkspaceLeaf | null = null;
 
         // Check if an existingLeaf is provided and is suitable for a view type switch
         if (existingLeaf && existingLeaf.view &&
-            (existingLeaf.view.getViewType() === KhojView.CHAT || existingLeaf.view.getViewType() === KhojView.SIMILAR) &&
+            (existingLeaf.view.getViewType() === AlphaMindView.CHAT || existingLeaf.view.getViewType() === AlphaMindView.SIMILAR) &&
             existingLeaf.view.getViewType() !== viewType) {
-            // The existing leaf is a Khoj pane and we want to switch its type
+            // The existing leaf is a AlphaMind pane and we want to switch its type
             leafToUse = existingLeaf;
             await leafToUse.setViewState({ type: viewType, active: true });
         } else {
@@ -214,15 +214,15 @@ export default class Khoj extends Plugin {
             if (leaves.length > 0) {
                 leafToUse = leaves[0];
             } else {
-                // If we are not switching an existing Khoj leaf,
+                // If we are not switching an existing AlphaMind leaf,
                 // and no leaf of the target type exists, create a new one.
-                // Use the provided existingLeaf if it's not a Khoj pane we're trying to switch,
+                // Use the provided existingLeaf if it's not a AlphaMind pane we're trying to switch,
                 // otherwise, get a new right leaf.
-                leafToUse = (existingLeaf && !(existingLeaf.view instanceof KhojPaneView)) ? existingLeaf : workspace.getRightLeaf(false);
+                leafToUse = (existingLeaf && !(existingLeaf.view instanceof AlphaMindPaneView)) ? existingLeaf : workspace.getRightLeaf(false);
                 if (leafToUse) {
                     await leafToUse.setViewState({ type: viewType, active: true });
                 } else {
-                    console.error("Khoj: Could not get a leaf to activate view.");
+                    console.error("AlphaMind: Could not get a leaf to activate view.");
                     return;
                 }
             }
@@ -232,12 +232,12 @@ export default class Khoj extends Plugin {
             workspace.revealLeaf(leafToUse); // Ensure the leaf is visible
 
             // Specific actions after revealing/switching
-            if (viewType === KhojView.CHAT) {
+            if (viewType === AlphaMindView.CHAT) {
                 // Ensure the view instance is correct after potential setViewState
-                const chatView = leafToUse.view as KhojChatView;
-                if (chatView instanceof KhojChatView) { // Double check instance type
+                const chatView = leafToUse.view as AlphaMindChatView;
+                if (chatView instanceof AlphaMindChatView) { // Double check instance type
                     // Use a more robust way to get the input, or ensure it's always present after onOpen
-                    const chatInput = chatView.containerEl.querySelector<HTMLTextAreaElement>(".khoj-chat-input");
+                    const chatInput = chatView.containerEl.querySelector<HTMLTextAreaElement>(".alphamind-chat-input");
                     chatInput?.focus();
                 }
             }

@@ -28,7 +28,7 @@
         \"relation\": [\"delegate_permission/common.handle_all_urls\"],
         \"target\": {
             \"namespace\": \"web\",
-            \"site\": \"https://app.khoj.dev\"
+            \"site\": \"https://app.alphamind.dev\"
         }
     }]
 

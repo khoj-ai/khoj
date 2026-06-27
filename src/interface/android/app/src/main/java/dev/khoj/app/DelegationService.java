@@ -1,4 +1,4 @@
-package dev.khoj.app;
+package dev.alphamind.app;
 
 
 import com.google.androidbrowserhelper.locationdelegation.LocationDelegationExtraCommandHandler;

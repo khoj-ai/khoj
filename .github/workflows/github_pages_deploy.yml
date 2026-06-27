@@ -13,7 +13,7 @@ jobs:
     deploy:
       environment:
         name: github-pages
-        url: https://docs.khoj.dev
+        url: https://docs.alphamind.dev
       runs-on: ubuntu-latest
       steps:
         - name: Checkout

@@ -1,6 +1,6 @@
 const { app, BrowserWindow, ipcMain, Tray, Menu, nativeImage, shell, session } = require('electron');
 const todesktop = require("@todesktop/runtime");
-const khojPackage = require('./package.json');
+const alphamindPackage = require('./package.json');
 
 todesktop.init();
 
@@ -10,12 +10,12 @@ const {dialog} = require('electron');
 const cron = require('cron').CronJob;
 const axios = require('axios');
 
-const KHOJ_URL = 'https://app.khoj.dev';
+const ALPHAMIND_URL = 'https://app.alphamind.dev';
 
 const Store = require('electron-store');
 
 const textFileTypes = [
-    // Default valid file extensions supported by Khoj
+    // Default valid file extensions supported by AlphaMind
     'org', 'md', 'markdown', 'txt', 'html', 'xml',
     // Other valid text file extensions from https://google.github.io/magika/model/config.json
     'appleplist', 'asm', 'asp', 'batch', 'c', 'cs', 'css', 'csv', 'eml', 'go', 'html', 'ini', 'internetshortcut', 'java', 'javascript', 'json', 'latex', 'lisp', 'makefile', 'markdown', 'mht', 'mum', 'pem', 'perl', 'php', 'powershell', 'python', 'rdf', 'rst', 'rtf', 'ruby', 'rust', 'scala', 'shell', 'smali', 'sql', 'svg', 'symlinktext', 'txt', 'vba', 'winregistry', 'xml', 'yaml']
@@ -47,13 +47,13 @@ const schema = {
         },
         default: []
     },
-    khojToken: {
+    alphamindToken: {
         type: 'string',
         default: ''
     },
     hostURL: {
         type: 'string',
-        default: KHOJ_URL
+        default: ALPHAMIND_URL
     },
     lastSync: {
         type: 'array',
@@ -155,9 +155,9 @@ function processDirectory(filesToPush, folder) {
 
 }
 
-function pushDataToKhoj (regenerate = false) {
+function pushDataToAlphaMind (regenerate = false) {
     // Don't sync if token or hostURL is not set or if already syncing
-    if (store.get('khojToken') === '' || store.get('hostURL') === '' || syncing === true) {
+    if (store.get('alphamindToken') === '' || store.get('hostURL') === '' || syncing === true) {
         const win = BrowserWindow.getAllWindows()[0];
         if (win) win.webContents.send('update-state', state);
         return;
@@ -201,7 +201,7 @@ function pushDataToKhoj (regenerate = false) {
             }
         }
 
-        // Collect all updated or newly created files since last sync to index on Khoj server
+        // Collect all updated or newly created files since last sync to index on AlphaMind server
         try {
             let encoding = binaryFileTypes.includes(file.split('.').pop()) ? "binary" : "utf8";
             let mimeType = filenameToMimeType(file) + (encoding === "utf8" ? "; charset=UTF-8" : "");
@@ -220,7 +220,7 @@ function pushDataToKhoj (regenerate = false) {
         }
     }
 
-    // Mark deleted files for removal from index on Khoj server
+    // Mark deleted files for removal from index on AlphaMind server
     for (const syncedFile of lastSync) {
         if (!filesToPush.includes(syncedFile.path)) {
             fileObj = new Blob([""], { type: filenameToMimeType(syncedFile.path) });
@@ -228,9 +228,9 @@ function pushDataToKhoj (regenerate = false) {
         }
     }
 
-    // Send collected files to Khoj server for indexing
-    const hostURL = store.get('hostURL') || KHOJ_URL;
-    const headers = { 'Authorization': `Bearer ${store.get("khojToken")}` };
+    // Send collected files to AlphaMind server for indexing
+    const hostURL = store.get('hostURL') || ALPHAMIND_URL;
+    const headers = { 'Authorization': `Bearer ${store.get("alphamindToken")}` };
     let requests = [];
 
     // Request indexing files on server. With upto 1000 files in each request
@@ -259,14 +259,14 @@ function pushDataToKhoj (regenerate = false) {
         console.error(error);
         state["completed"] = false;
         if (error?.response?.status === 429 && (BrowserWindow.getAllWindows().find(win => win.webContents.getURL().includes('settings')))) {
-            state["error"] = `Looks like you're out of space to sync your files. <a href="https://app.khoj.dev/settings#subscription">Upgrade your plan</a> to unlock more space.`;
+            state["error"] = `Looks like you're out of space to sync your files. <a href="https://app.alphamind.dev/settings#subscription">Upgrade your plan</a> to unlock more space.`;
             const win = BrowserWindow.getAllWindows().find(win => win.webContents.getURL().includes('settings'));
             if (win) win.webContents.send('needsSubscription', true);
         } else if (error?.code === 'ECONNREFUSED') {
-            state["error"] = `Could not connect to Khoj server. Ensure you can connect to it at ${error.address}:${error.port}.`;
+            state["error"] = `Could not connect to AlphaMind server. Ensure you can connect to it at ${error.address}:${error.port}.`;
         } else {
             currentTime = new Date();
-            state["error"] = `Sync was unsuccessful at ${currentTime.toLocaleTimeString()}. Contact team@khoj.dev to report this issue.`;
+            state["error"] = `Sync was unsuccessful at ${currentTime.toLocaleTimeString()}. Contact team@alphamind.dev to report this issue.`;
         }
     })
     .finally(() => {
@@ -279,12 +279,12 @@ function pushDataToKhoj (regenerate = false) {
     });
 }
 
-pushDataToKhoj();
+pushDataToAlphaMind();
 
 async function handleFileOpen (type) {
     let { canceled, filePaths } = {canceled: true, filePaths: []};
     if (type === 'file') {
-        ({ canceled, filePaths } = await dialog.showOpenDialog({properties: ['openFile' ], filters: [{ name: "Valid Khoj Files", extensions: validFileTypes }] }));
+        ({ canceled, filePaths } = await dialog.showOpenDialog({properties: ['openFile' ], filters: [{ name: "Valid AlphaMind Files", extensions: validFileTypes }] }));
     } else if (type === 'folder') {
         ({ canceled, filePaths } = await dialog.showOpenDialog({properties: ['openDirectory' ]}));
     }
@@ -328,12 +328,12 @@ async function handleFileOpen (type) {
 }
 
 async function getToken () {
-    return store.get('khojToken');
+    return store.get('alphamindToken');
 }
 
 async function setToken (event, token) {
-    store.set('khojToken', token);
-    return store.get('khojToken');
+    store.set('alphamindToken', token);
+    return store.get('alphamindToken');
 }
 
 async function getFiles () {
@@ -375,9 +375,9 @@ async function removeFolder (event, folderPath) {
 
 async function syncData (regenerate = false) {
     try {
-        pushDataToKhoj(regenerate);
+        pushDataToAlphaMind(regenerate);
         const date = new Date();
-        console.log('Pushing data to Khoj at: ', date);
+        console.log('Pushing data to AlphaMind at: ', date);
     } catch (err) {
         console.error(err);
     }
@@ -387,18 +387,18 @@ async function deleteAllFiles () {
     try {
         store.set('files', []);
         store.set('folders', []);
-        pushDataToKhoj(true);
+        pushDataToAlphaMind(true);
         const date = new Date();
-        console.log('Pushing data to Khoj at: ', date);
+        console.log('Pushing data to AlphaMind at: ', date);
     } catch (err) {
         console.error(err);
     }
 }
 
-// Fetch user info from Khoj server
+// Fetch user info from AlphaMind server
 async function getUserInfo() {
-    const getUserInfoURL = `${store.get('hostURL') || KHOJ_URL}/api/v1/user?client=desktop`;
-    const headers = { 'Authorization': `Bearer ${store.get('khojToken')}` };
+    const getUserInfoURL = `${store.get('hostURL') || ALPHAMIND_URL}/api/v1/user?client=desktop`;
+    const headers = { 'Authorization': `Bearer ${store.get('alphamindToken')}` };
     try {
         let response = await axios.get(getUserInfoURL, { headers });
         return response.data;
@@ -409,15 +409,15 @@ async function getUserInfo() {
 
 function addCSPHeaderToSession () {
     // Get hostURL from store or use default
-    const hostURL = store.get('hostURL') || KHOJ_URL;
+    const hostURL = store.get('hostURL') || ALPHAMIND_URL;
 
     // Construct Content Security Policy
-    const defaultDomains = `'self' ${hostURL} https://app.khoj.dev https://assets.khoj.dev`;
+    const defaultDomains = `'self' ${hostURL} https://app.alphamind.dev https://assets.alphamind.dev`;
     const default_src = `default-src ${defaultDomains};`;
     const script_src = `script-src ${defaultDomains} 'unsafe-inline';`;
     const connect_src = `connect-src ${hostURL} https://ipapi.co/json;`;
     const style_src = `style-src ${defaultDomains} 'unsafe-inline' https://fonts.googleapis.com;`;
-    const img_src = `img-src ${defaultDomains} data: https://*.khoj.dev https://*.googleusercontent.com;`;
+    const img_src = `img-src ${defaultDomains} data: https://*.alphamind.dev https://*.googleusercontent.com;`;
     const font_src = `font-src https://fonts.gstatic.com;`;
     const child_src = `child-src 'none';`;
     const objectSrc = `object-src 'none';`;
@@ -455,9 +455,9 @@ const createWindow = (tab = 'settings.html') => {
 
     const job = new cron('0 */10 * * * *', function() {
         try {
-            pushDataToKhoj();
+            pushDataToAlphaMind();
             const date = new Date();
-            console.log('Pushing data to Khoj at: ', date);
+            console.log('Pushing data to AlphaMind at: ', date);
             win.webContents.send('update-state', state);
         } catch (err) {
             console.error(err);
@@ -613,11 +613,11 @@ app.whenReady().then(() => {
     const mainWindow = createWindow();
 
     app.setAboutPanelOptions({
-        applicationName: "Khoj",
-        applicationVersion: khojPackage.version,
-        version: khojPackage.version,
-        authors: "Khoj AI",
-        website: "https://khoj.dev",
+        applicationName: "AlphaMind",
+        applicationVersion: alphamindPackage.version,
+        version: alphamindPackage.version,
+        authors: "AlphaMind AI",
+        website: "https://alphamind.dev",
         copyright: "GPL v3",
         iconPath: path.join(__dirname, 'assets', 'icons', 'favicon-128x128.png')
     });
@@ -700,9 +700,9 @@ function openAboutWindow() {
 
     aboutWindow.loadFile('about.html');
 
-    // Pass OS, Khoj version to About page
+    // Pass OS, AlphaMind version to About page
     aboutWindow.webContents.on('did-finish-load', () => {
-        aboutWindow.webContents.send('appInfo', { version: khojPackage.version, platform: process.platform });
+        aboutWindow.webContents.send('appInfo', { version: alphamindPackage.version, platform: process.platform });
     });
 
     // Open links in external browser
@@ -737,10 +737,10 @@ app.whenReady().then(() => {
     const contextMenu = Menu.buildFromTemplate([
         { label: 'Configure', type: 'normal', click: () => { openWindow('settings.html') }},
         { type: 'separator' },
-        { label: 'About Khoj', type: 'normal', click: () => { openAboutWindow(); } },
+        { label: 'About AlphaMind', type: 'normal', click: () => { openAboutWindow(); } },
         { label: 'Quit', type: 'normal', click: () => { app.quit() } }
     ])
 
-    tray.setToolTip('Khoj')
+    tray.setToolTip('AlphaMind')
     tray.setContextMenu(contextMenu)
 })

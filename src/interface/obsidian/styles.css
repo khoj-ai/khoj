@@ -8,26 +8,26 @@ If your plugin does not need CSS, delete this file.
 */
 
 :root {
-    --khoj-winter-sun: #f9f5de;
-    --khoj-sun: #fee285;
-    --khoj-storm-grey: #475569;
+    --alphamind-winter-sun: #f9f5de;
+    --alphamind-sun: #fee285;
+    --alphamind-storm-grey: #475569;
     --chat-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24px' height='24px' viewBox='0 0 24 24' fill='currentColor' stroke-linecap='round' stroke-linejoin='round' class='svg-icon' version='1.1'%3E%3Cpath d='m 14.024348,9.8497703 0.04627,1.9750167' stroke='%231c274c' stroke-width='2' stroke-linecap='round' /%3E%3Cpath d='m 9.6453624,9.7953624 0.046275,1.9750166' stroke='%231c274c' stroke-width='2' stroke-linecap='round' /%3E%3Cpath d='m 11.90538,2.3619994 c -5.4939109,0 -9.6890976,4.0608185 -9.6890976,9.8578926 0,1.477202 0.2658016,2.542848 0.6989332,3.331408 0.433559,0.789293 1.0740097,1.372483 1.9230615,1.798517 1.7362861,0.87132 4.1946007,1.018626 7.0671029,1.018626 0.317997,0 0.593711,0.167879 0.784844,0.458501 0.166463,0.253124 0.238617,0.552748 0.275566,0.787233 0.07263,0.460801 0.05871,1.030165 0.04785,1.474824 v 4.8e-5 l -2.26e-4,0.0091 c -0.0085,0.348246 -0.01538,0.634247 -0.0085,0.861186 0.105589,-0.07971 0.227925,-0.185287 0.36735,-0.31735 0.348613,-0.330307 0.743513,-0.767362 1.176607,-1.246635 l 0.07837,-0.08673 c 0.452675,-0.500762 0.941688,-1.037938 1.41216,-1.473209 0.453774,-0.419787 0.969948,-0.822472 1.476003,-0.953853 1.323661,-0.343655 2.330132,-0.904027 3.005749,-1.76381 0.658957,-0.838568 1.073167,-2.051868 1.073167,-3.898667 0,-5.7970748 -4.195186,-9.8578946 -9.689097,-9.8578946 z M 0.92440678,12.219892 c 0,-7.0067939 5.05909412,-11.47090892 10.98097322,-11.47090892 5.921878,0 10.980972,4.46411502 10.980972,11.47090892 0,2.172259 -0.497596,3.825405 -1.442862,5.028357 -0.928601,1.181693 -2.218843,1.837914 -3.664937,2.213334 -0.211641,0.05502 -0.53529,0.268579 -0.969874,0.670658 -0.417861,0.386604 -0.865628,0.876836 -1.324566,1.384504 l -0.09131,0.101202 c -0.419252,0.464136 -0.849637,0.94059 -1.239338,1.309807 -0.210187,0.199169 -0.425281,0.383422 -0.635348,0.523424 -0.200911,0.133819 -0.449635,0.263369 -0.716376,0.281474 -0.327812,0.02226 -0.61539,-0.149209 -0.804998,-0.457293 -0.157614,-0.255993 -0.217622,-0.557143 -0.246564,-0.778198 -0.0542,-0.414027 -0.04101,-0.933065 -0.03027,-1.355183 l 0.0024,-0.0922 c 0.01099,-0.463865 0.01489,-0.820507 -0.01611,-1.06842 C 8.9434608,19.975238 6.3139711,19.828758 4.356743,18.84659 3.3355029,18.334136 2.4624526,17.578678 1.8500164,16.463713 1.2372016,15.348029 0.92459928,13.943803 0.92459928,12.219967 Z' clip-rule='evenodd' stroke-width='2' fill='currentColor' fill-rule='evenodd' fill-opacity='1' /%3E%3C/svg%3E%0A");
     --search-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24px' height='24px' viewBox='0 0 24 24' fill='currentColor' stroke-linecap='round' stroke-linejoin='round' class='svg-icon' version='1.1'%3E%3Cpath d='m 18.562765,17.147843 c 1.380497,-1.679442 2.307667,-4.013099 2.307667,-6.330999 C 20.870432,5.3951476 16.353958,1 10.782674,1 5.2113555,1 0.69491525,5.3951476 0.69491525,10.816844 c 0,5.421663 4.51644025,9.816844 10.08775875,9.816844 2.381867,0 4.570922,-0.803307 6.296712,-2.14673 0.508475,-0.508475 4.514633,4.192839 4.514633,4.192839 1.036377,1.008544 2.113087,-0.02559 1.07671,-1.034139 z m -7.780091,1.925408 c -4.3394583,0 -8.6708434,-4.033489 -8.6708434,-8.256407 0,-4.2229187 4.3313851,-8.2564401 8.6708434,-8.2564401 4.339458,0 8.670809,4.2369112 8.670809,8.4598301 0,4.222918 -4.331351,8.053017 -8.670809,8.053017 z' fill='currentColor' fill-rule='evenodd' clip-rule='evenodd' fill-opacity='1' stroke-width='1.10519' stroke-dasharray='none' /%3E%3Cpath d='m 13.337351,9.3402647 0.05184,2.1532893' stroke='%231c274c' stroke-width='2' stroke-linecap='round' /%3E%3Cpath d='M 8.431347,9.2809457 8.483191,11.434235' stroke='%231c274c' stroke-width='2' stroke-linecap='round' /%3E%3C/svg%3E%0A");
 }
 
-.khoj-chat p {
+.alphamind-chat p {
     margin: 0;
     line-height: 1.6;
 }
 
-.khoj-chat pre {
+.alphamind-chat pre {
     text-wrap: unset;
     border-radius: 6px;
     background-color: var(--background-modifier-hover);
     margin: 12px 0;
 }
 
-.khoj-chat {
+.alphamind-chat {
     display: flex;
     flex-direction: column;
     height: 100%;
@@ -40,19 +40,19 @@ If your plugin does not need CSS, delete this file.
     margin: 0px;
 }
 
-.khoj-chat>* {
+.alphamind-chat>* {
     padding: 12px;
     margin: 5px;
 }
 
-#khoj-chat-title {
+#alphamind-chat-title {
     font-weight: 300;
-    color: var(--khoj-sun);
+    color: var(--alphamind-sun);
     font-size: 1.4em;
     letter-spacing: 0.2px;
 }
 
-#khoj-chat-body {
+#alphamind-chat-body {
     flex: 1;
     overflow-y: auto;
     padding: 20px;
@@ -64,7 +64,7 @@ If your plugin does not need CSS, delete this file.
 }
 
 /* add chat metadata to bottom of bubble */
-.khoj-chat-message::after {
+.alphamind-chat-message::after {
     content: attr(data-meta);
     display: block;
     font-size: var(--font-ui-smaller);
@@ -74,32 +74,32 @@ If your plugin does not need CSS, delete this file.
     clear: both;
 }
 
-/* Specific adjustments for khoj messages */
-.khoj-chat-message.khoj::after {
+/* Specific adjustments for alphamind messages */
+.alphamind-chat-message.alphamind::after {
     text-align: left;
 }
 
 /* Specific adjustments for user messages */
-.khoj-chat-message.you::after {
+.alphamind-chat-message.you::after {
     text-align: right;
 }
 
-/* move message by khoj to left */
-.khoj-chat-message.khoj {
+/* move message by alphamind to left */
+.alphamind-chat-message.alphamind {
     margin-right: auto;
     text-align: left;
     padding: 6px 0;
 }
 
 /* move message by you to right */
-.khoj-chat-message.you {
+.alphamind-chat-message.you {
     margin-left: auto;
     text-align: right;
     padding: 6px 0;
 }
 
 /* basic style chat message text */
-.khoj-chat-message-text {
+.alphamind-chat-message-text {
     margin: 10px;
     border-radius: 12px;
     padding: 14px 16px;
@@ -115,9 +115,9 @@ If your plugin does not need CSS, delete this file.
     font-size: 0.8em;
 }
 
-/* color chat bubble by khoj blue */
-.khoj-chat-message-text.khoj {
-    border-left: 4px solid var(--khoj-sun);
+/* color chat bubble by alphamind blue */
+.alphamind-chat-message-text.alphamind {
+    border-left: 4px solid var(--alphamind-sun);
     border-radius: 8px;
     margin-right: auto;
     padding-left: 18px;
@@ -140,32 +140,32 @@ If your plugin does not need CSS, delete this file.
 }
 
 /* Class to animate new content
-.khoj-message-new-content {
+.alphamind-message-new-content {
     animation: fadeIn 0.3s ease-in-out;
 } */
 
-/* Override white-space for ul, ol, li under khoj-chat-message-text.khoj */
-.khoj-chat-message-text.khoj ul,
-.khoj-chat-message-text.khoj ol,
-.khoj-chat-message-text.khoj li {
+/* Override white-space for ul, ol, li under alphamind-chat-message-text.alphamind */
+.alphamind-chat-message-text.alphamind ul,
+.alphamind-chat-message-text.alphamind ol,
+.alphamind-chat-message-text.alphamind li {
     white-space: normal;
     margin-left: 0;
     padding-left: 1.2em;
 }
 
 /* fix list items display */
-.khoj-chat-message-text ul,
-.khoj-chat-message-text ol {
+.alphamind-chat-message-text ul,
+.alphamind-chat-message-text ol {
     padding-left: 1.2em;
     margin: 8px 0;
 }
 
-.khoj-chat-message-text li {
+.alphamind-chat-message-text li {
     margin-bottom: 4px;
 }
 
-/* add left protrusion to khoj chat bubble */
-.khoj-chat-message-text.khoj:after {
+/* add left protrusion to alphamind chat bubble */
+.alphamind-chat-message-text.alphamind:after {
     content: '';
     position: absolute;
     bottom: -2px;
@@ -176,14 +176,14 @@ If your plugin does not need CSS, delete this file.
 }
 
 /* color chat bubble by you dark grey */
-.khoj-chat-message-text.you {
+.alphamind-chat-message-text.you {
     color: var(--text-normal);
     margin-left: auto;
     background-color: var(--background-modifier-cover);
 }
 
 /* add right protrusion to you chat bubble */
-.khoj-chat-message-text.you:after {
+.alphamind-chat-message-text.you:after {
     content: '';
     position: absolute;
     top: 91%;
@@ -292,7 +292,7 @@ button.reference-button[aria-expanded="true"]::before {
 
 button.reference-expand-button {
     background-color: transparent;
-    border: 1px solid var(--khoj-storm-grey);
+    border: 1px solid var(--alphamind-storm-grey);
     border-radius: 5px;
     padding: 8px;
     margin-top: 8px;
@@ -316,8 +316,8 @@ a.inline-chat-link {
 }
 
 .reference-link {
-    color: var(--khoj-storm-grey);
-    border-bottom: 1px dotted var(--khoj-storm-grey);
+    color: var(--alphamind-storm-grey);
+    border-bottom: 1px dotted var(--alphamind-storm-grey);
 }
 
 img {
@@ -343,7 +343,7 @@ div.conversation-header-title {
 
 div.conversation-session {
     color: var(--color-base-90);
-    border: 1px solid var(--khoj-storm-grey);
+    border: 1px solid var(--alphamind-storm-grey);
     border-radius: 5px;
     margin-top: 8px;
     padding: 5px;
@@ -396,7 +396,7 @@ div.selected-conversation {
     background: var(--background-modifier-active-hover) !important;
 }
 
-#khoj-chat-footer {
+#alphamind-chat-footer {
     position: relative;
     bottom: 0;
     width: 100%;
@@ -409,7 +409,7 @@ div.selected-conversation {
     /* Prevent footer from shrinking */
 }
 
-.khoj-input-row {
+.alphamind-input-row {
     display: flex;
     flex-wrap: nowrap;
     align-items: center;
@@ -426,13 +426,13 @@ div.selected-conversation {
 }
 
 /* Add focus effect */
-.khoj-input-row:focus-within {
+.alphamind-input-row:focus-within {
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
     background-color: var(--background-secondary-alt, var(--background-secondary));
 }
 
 
-#khoj-chat-input {
+#alphamind-chat-input {
     flex: 1;
     min-width: 100px;
     border: none;
@@ -452,7 +452,7 @@ div.selected-conversation {
     align-self: flex-start;
 }
 
-.khoj-input-row-button {
+.alphamind-input-row-button {
     border-radius: 50%;
     padding: 4px;
     --icon-size: var(--icon-size);
@@ -467,21 +467,21 @@ div.selected-conversation {
     flex-shrink: 0;
 }
 
-#khoj-chat-send {
+#alphamind-chat-send {
     padding: 0;
     position: relative;
 }
 
-#khoj-chat-send .lucide-arrow-up-circle {
+#alphamind-chat-send .lucide-arrow-up-circle {
     background: var(--background-modifier-active-hover);
     border-radius: 50%;
 }
 
-#khoj-chat-send .lucide-stop-circle {
+#alphamind-chat-send .lucide-stop-circle {
     transform: rotateY(-180deg) rotateZ(-90deg);
 }
 
-#khoj-chat-send .lucide-stop-circle circle {
+#alphamind-chat-send .lucide-stop-circle circle {
     stroke-dasharray: 62px;
     /* The circumference of the circle with 7px radius */
     stroke-dashoffset: 0px;
@@ -504,13 +504,13 @@ div.selected-conversation {
 
 @media (pointer: coarse),
 (hover: none) {
-    #khoj-chat-body.abbr[title] {
+    #alphamind-chat-body.abbr[title] {
         position: relative;
         padding-left: 4px;
         /* space references out to ease tapping */
     }
 
-    #khoj-chat-body.abbr[title]:focus:after {
+    #alphamind-chat-body.abbr[title]:focus:after {
         content: attr(title);
 
         /* position tooltip */
@@ -531,19 +531,19 @@ div.selected-conversation {
     }
 }
 
-.khoj-result-file {
+.alphamind-result-file {
     font-weight: 600;
 }
 
-.khoj-result-file.in-vault {
+.alphamind-result-file.in-vault {
     color: var(--color-green);
 }
 
-.khoj-result-file.not-in-vault {
+.alphamind-result-file.not-in-vault {
     color: var(--color-blue);
 }
 
-.khoj-result-entry {
+.alphamind-result-entry {
     color: var(--text-muted);
     margin-left: 2em;
     padding-left: 0.5em;
@@ -555,21 +555,21 @@ div.selected-conversation {
     white-space: normal;
 }
 
-.khoj-result-entry>* {
+.alphamind-result-entry>* {
     font-size: var(--font-ui-medium);
 }
 
-.khoj-result-entry>p {
+.alphamind-result-entry>p {
     margin-top: 0.2em;
     margin-bottom: 0.2em;
 }
 
-.khoj-result-entry p br {
+.alphamind-result-entry p br {
     display: none;
 }
 
 /* Improved header styles for a more modern look */
-div.khoj-header {
+div.alphamind-header {
     display: grid;
     grid-auto-flow: row;
     padding: 12px 12px;
@@ -583,7 +583,7 @@ div.khoj-header {
     z-index: 10;
     /* Allow elements to wrap on smaller screens */
 }
-div.khoj-header-title-pane {
+div.alphamind-header-title-pane {
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -591,15 +591,15 @@ div.khoj-header-title-pane {
 }
 
 /* Keeps the navigation menu clickable */
-a.khoj-nav {
+a.alphamind-nav {
     -webkit-app-region: no-drag;
 }
 
-div.khoj-nav {
+div.alphamind-nav {
     -webkit-app-region: no-drag;
 }
 
-nav.khoj-nav {
+nav.alphamind-nav {
     display: grid;
     grid-auto-flow: column;
     grid-gap: 36px;
@@ -609,7 +609,7 @@ nav.khoj-nav {
     padding: 4px 0;
 }
 
-a.khoj-nav {
+a.alphamind-nav {
     display: flex;
     align-items: center;
     text-decoration: none;
@@ -623,18 +623,18 @@ a.khoj-nav {
     transition: all 0.2s ease;
 }
 
-div.khoj-logo {
+div.alphamind-logo {
     justify-self: left;
     font-size: large;
     transition: transform 0.2s ease;
 }
 
-div.khoj-logo:hover {
+div.alphamind-logo:hover {
     transform: scale(1.05);
 }
 
 /* Container for New Chat button and agent selector */
-.khoj-header-right-container {
+.alphamind-header-right-container {
     display: flex;
     align-items: center;
     gap: 12px;
@@ -643,7 +643,7 @@ div.khoj-logo:hover {
 }
 
 /* New Chat button in header */
-.khoj-header-new-chat-button {
+.alphamind-header-new-chat-button {
     display: flex;
     align-items: center;
     gap: 8px;
@@ -665,7 +665,7 @@ div.khoj-logo:hover {
 
 /* Media queries for responsive design */
 @media only screen and (max-width: 600px) {
-    div.khoj-header {
+    div.alphamind-header {
         display: grid;
         grid-template-columns: 1fr;
         grid-template-rows: auto auto auto;
@@ -674,18 +674,18 @@ div.khoj-logo:hover {
         margin: 0 0 16px 0;
     }
 
-    div.khoj-header h3 {
+    div.alphamind-header h3 {
         text-align: center;
         margin-bottom: 8px;
     }
 
-    nav.khoj-nav {
+    nav.alphamind-nav {
         grid-gap: 8px;
         justify-content: center;
         order: 3;
     }
 
-    .khoj-header-right-container {
+    .alphamind-header-right-container {
         flex-direction: column;
         align-items: center;
         gap: 8px;
@@ -693,18 +693,18 @@ div.khoj-logo:hover {
         margin: 0 auto;
     }
 
-    #khoj-header-agent-select {
+    #alphamind-header-agent-select {
         width: 100%;
         max-width: 250px;
     }
 
-    .khoj-header-new-chat-button {
+    .alphamind-header-new-chat-button {
         width: 100%;
         max-width: 250px;
         justify-content: center;
     }
 
-    .khoj-chat-message-text {
+    .alphamind-chat-message-text {
         max-width: 95%;
         font-size: 0.9em;
     }
@@ -717,33 +717,33 @@ div.khoj-logo:hover {
         max-width: 70%;
     }
 
-    .khoj-edit-accordion summary {
+    .alphamind-edit-accordion summary {
         padding: 8px 10px;
     }
 
-    .khoj-edit-content pre {
+    .alphamind-edit-content pre {
         padding: 8px;
     }
 }
 
 /* Additional media query for very narrow screens */
 @media only screen and (max-width: 400px) {
-    div.khoj-header {
+    div.alphamind-header {
         grid-template-columns: 1fr;
         grid-template-rows: auto auto auto;
         gap: 12px;
         padding: 14px 10px 12px;
     }
 
-    div.khoj-logo {
+    div.alphamind-logo {
         justify-self: center;
     }
 
-    nav.khoj-nav {
+    nav.alphamind-nav {
         justify-self: center;
     }
 
-    .khoj-header-right-container {
+    .alphamind-header-right-container {
         justify-self: center;
         width: 100%;
         flex-direction: row;
@@ -751,23 +751,23 @@ div.khoj-logo:hover {
         justify-content: center;
     }
 
-    .khoj-agent-select {
+    .alphamind-agent-select {
         min-width: 120px;
         font-size: 12px;
     }
 
-    .khoj-header-new-chat-button {
+    .alphamind-header-new-chat-button {
         font-size: 12px;
         padding: 4px 10px;
     }
 
-    .khoj-chat-message-text {
+    .alphamind-chat-message-text {
         max-width: 98%;
         padding: 10px 12px;
         font-size: 0.85em;
     }
 
-    span.khoj-nav-item-text {
+    span.alphamind-nav-item-text {
         font-size: 12px;
     }
 
@@ -776,18 +776,18 @@ div.khoj-logo:hover {
         height: 24px;
     }
 
-    .khoj-input-row {
+    .alphamind-input-row {
         padding: 8px;
     }
 
-    #khoj-chat-input {
+    #alphamind-chat-input {
         padding: 8px;
         min-height: 32px;
         max-height: 300px;
         /* Reduced maximum size for mobile */
     }
 
-    .khoj-input-row-button {
+    .alphamind-input-row-button {
         width: 28px;
         height: 28px;
         align-self: center;
@@ -796,11 +796,11 @@ div.khoj-logo:hover {
         /* Prevents buttons from shrinking on mobile */
     }
 
-    #khoj-chat-send {
+    #alphamind-chat-send {
         width: 28px;
     }
 
-    .khoj-input-row-button {
+    .alphamind-input-row-button {
         width: 28px;
         height: 28px;
     }
@@ -810,30 +810,30 @@ div.khoj-logo:hover {
     }
 }
 
-.khoj-header-new-chat-button:hover {
+.alphamind-header-new-chat-button:hover {
     background-color: var(--text-accent);
     color: var(--background-primary);
     transform: translateY(-2px);
     box-shadow: 0 3px 6px rgba(0, 0, 0, 0.15);
 }
 
-.khoj-header-new-chat-button:active {
+.alphamind-header-new-chat-button:active {
     transform: translateY(-1px);
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
 }
 
-.khoj-header-new-chat-button .lucide-plus-circle {
+.alphamind-header-new-chat-button .lucide-plus-circle {
     width: 16px;
     height: 16px;
     transition: transform 0.2s ease;
 }
 
-.khoj-header-new-chat-button:hover .lucide-plus-circle {
+.alphamind-header-new-chat-button:hover .lucide-plus-circle {
     transform: rotate(90deg);
 }
 
 /* Agent selector in header */
-.khoj-header-agent-container {
+.alphamind-header-agent-container {
     display: flex;
     flex-direction: column;
     z-index: 10;
@@ -841,12 +841,12 @@ div.khoj-logo:hover {
     width: 160px;
 }
 
-.khoj-header-agent-select {
+.alphamind-header-agent-select {
     font-family: inherit;
     font-size: 14px;
     padding: 4px 8px;
     border-radius: 4px;
-    border: 1px solid var(--khoj-storm-grey);
+    border: 1px solid var(--alphamind-storm-grey);
     background-color: var(--background-primary);
     color: var(--text-normal);
     cursor: pointer;
@@ -856,23 +856,23 @@ div.khoj-logo:hover {
     width: 100%;
 }
 
-.khoj-header-agent-select:hover {
+.alphamind-header-agent-select:hover {
     border-color: var(--text-accent);
 }
 
-.khoj-header-agent-select:focus {
+.alphamind-header-agent-select:focus {
     outline: none;
     border-color: var(--text-accent);
     box-shadow: 0 0 0 2px rgba(var(--text-accent-rgb), 0.1);
 }
 
-.khoj-header-agent-select option {
+.alphamind-header-agent-select option {
     background-color: var(--background-primary);
     color: var(--text-normal);
     padding: 8px;
 }
 
-.khoj-nav a {
+.alphamind-nav a {
     color: var(--text-normal);
     text-decoration: none;
     font-size: small;
@@ -884,17 +884,17 @@ div.khoj-logo:hover {
     transition: all 0.2s ease;
 }
 
-.khoj-nav a:hover {
+.alphamind-nav a:hover {
     background-color: var(--background-modifier-hover);
     color: var(--text-accent);
     transform: translateY(-1px);
 }
 
-.khoj-nav a:active {
+.alphamind-nav a:active {
     transform: translateY(0);
 }
 
-a.khoj-nav-selected {
+a.alphamind-nav-selected {
     background-color: var(--background-modifier-active-hover);
     color: var(--text-accent);
     font-weight: 500;
@@ -902,26 +902,26 @@ a.khoj-nav-selected {
 }
 
 #similar-nav-icon-svg,
-.khoj-nav-icon {
+.alphamind-nav-icon {
     width: 24px;
     height: 24px;
     transition: transform 0.2s ease;
 }
 
-.khoj-nav a:hover .khoj-nav-icon,
-.khoj-nav a:hover #similar-nav-icon-svg {
+.alphamind-nav a:hover .alphamind-nav-icon,
+.alphamind-nav a:hover #similar-nav-icon-svg {
     transform: scale(1.1);
 }
 
-.khoj-nav-icon-chat {
+.alphamind-nav-icon-chat {
     background-image: var(--chat-icon);
 }
 
-.khoj-nav-icon-search {
+.alphamind-nav-icon-search {
     background-image: var(--search-icon);
 }
 
-span.khoj-nav-item-text {
+span.alphamind-nav-item-text {
     padding-left: 8px;
 }
 
@@ -931,7 +931,7 @@ button.chat-action-button {
     border-radius: 6px;
     color: var(--text-muted);
     background-color: transparent;
-    border: 1px solid var(--khoj-storm-grey);
+    border: 1px solid var(--alphamind-storm-grey);
     text-align: center;
     font-size: 16px;
     transition: all 0.3s;
@@ -950,7 +950,7 @@ button.chat-action-button span {
     transition: 0.3s;
 }
 
-.khoj-chat-message:hover button.chat-action-button {
+.alphamind-chat-message:hover button.chat-action-button {
     opacity: 0.9;
 }
 
@@ -1009,7 +1009,7 @@ img.copy-icon {
     }
 }
 
-.khoj-chat-message {
+.alphamind-chat-message {
     display: flex;
     flex-direction: column;
     margin: 0;
@@ -1017,7 +1017,7 @@ img.copy-icon {
     overflow-wrap: break-word;
 }
 
-.khoj-chat-message.deleting {
+.alphamind-chat-message.deleting {
     opacity: 0;
     transform: translateX(20px);
 }
@@ -1244,23 +1244,23 @@ img.copy-icon {
 }
 
 /* Loading animation */
-.khoj-loading {
+.alphamind-loading {
     display: flex;
     justify-content: center;
     align-items: center;
     padding: 20px;
 }
 
-.khoj-loading-spinner {
+.alphamind-loading-spinner {
     width: 24px;
     height: 24px;
     border: 3px solid var(--background-modifier-border);
     border-top: 3px solid var(--text-accent);
     border-radius: 50%;
-    animation: khoj-spin 1s linear infinite;
+    animation: alphamind-spin 1s linear infinite;
 }
 
-@keyframes khoj-spin {
+@keyframes alphamind-spin {
     0% {
         transform: rotate(0deg);
     }
@@ -1300,12 +1300,12 @@ img.copy-icon {
     }
 }
 
-.khoj-file-suggestion {
+.alphamind-file-suggestion {
     padding: 8px;
     color: var(--text-muted);
 }
 
-.khoj-similar-message {
+.alphamind-similar-message {
     text-align: center;
     padding: 20px;
     color: var(--text-muted);
@@ -1317,15 +1317,15 @@ img.copy-icon {
 }
 
 /* Chat Mode Selector Styles - Using dropdown only */
-/* Removed the .khoj-mode-row, .khoj-mode-container, .khoj-mode-input, and .khoj-mode-label classes */
+/* Removed the .alphamind-mode-row, .alphamind-mode-container, .alphamind-mode-input, and .alphamind-mode-label classes */
 
 /* Chat Agent Selector Styles */
-.khoj-agent-select {
+.alphamind-agent-select {
     font-family: inherit;
     font-size: 14px;
     padding: 4px 8px;
     border-radius: 4px;
-    border: 1px solid var(--khoj-storm-grey);
+    border: 1px solid var(--alphamind-storm-grey);
     background-color: var(--background-primary);
     color: var(--text-normal);
     cursor: pointer;
@@ -1335,36 +1335,36 @@ img.copy-icon {
     width: 100%;
 }
 
-.khoj-agent-select:hover {
+.alphamind-agent-select:hover {
     border-color: var(--text-accent);
 }
 
-.khoj-agent-select:focus {
+.alphamind-agent-select:focus {
     outline: none;
     border-color: var(--text-accent);
     box-shadow: 0 0 0 2px rgba(var(--text-accent-rgb), 0.1);
 }
 
-.khoj-agent-select option {
+.alphamind-agent-select option {
     background-color: var(--background-primary);
     color: var(--text-normal);
     padding: 8px;
 }
 
-.khoj-agent-container {
+.alphamind-agent-container {
     display: flex;
     flex-direction: column;
     flex: 1;
     max-width: 200px;
 }
 
-.khoj-agent-label {
+.alphamind-agent-label {
     font-size: 12px;
     color: var(--text-muted);
     margin-bottom: 4px;
 }
 
-.khoj-agent-hint {
+.alphamind-agent-hint {
     width: 100%;
     font-size: 12px;
     color: var(--text-muted);
@@ -1375,7 +1375,7 @@ img.copy-icon {
     transition: opacity 0.3s ease;
 }
 
-.khoj-agent-hint.visible {
+.alphamind-agent-hint.visible {
     display: block;
     opacity: 1;
     animation: fadeIn 0.3s ease-in-out;
@@ -1465,8 +1465,8 @@ img.copy-icon {
     }
 }
 
-/* Khoj Edit Accordion Styles */
-.khoj-edit-accordion {
+/* AlphaMind Edit Accordion Styles */
+.alphamind-edit-accordion {
     margin: 1em 0;
     border: 1px solid var(--background-modifier-border);
     border-radius: 4px;
@@ -1474,7 +1474,7 @@ img.copy-icon {
     transition: all 0.2s ease;
 }
 
-.khoj-edit-accordion summary {
+.alphamind-edit-accordion summary {
     padding: 8px 12px;
     background-color: var(--background-secondary);
     cursor: pointer;
@@ -1485,17 +1485,17 @@ img.copy-icon {
 }
 
 /* Success state */
-.khoj-edit-accordion.success {
+.alphamind-edit-accordion.success {
     border-color: rgba(52, 199, 89, 0.5);
     background-color: rgba(52, 199, 89, 0.05);
 }
 
-.khoj-edit-accordion.success summary {
+.alphamind-edit-accordion.success summary {
     background-color: rgba(52, 199, 89, 0.1);
     color: rgb(39, 149, 67);
 }
 
-.khoj-edit-file {
+.alphamind-edit-file {
     margin-left: auto;
     font-size: 0.9em;
     opacity: 0.8;
@@ -1503,34 +1503,34 @@ img.copy-icon {
 }
 
 /* Error state */
-.khoj-edit-accordion.error {
+.alphamind-edit-accordion.error {
     border-color: rgba(239, 68, 68, 0.5);
     background-color: rgba(239, 68, 68, 0.05);
 }
 
-.khoj-edit-accordion.error summary {
+.alphamind-edit-accordion.error summary {
     background-color: rgba(239, 68, 68, 0.15);
     color: rgb(185, 28, 28);
 }
 
 /* Hover effects */
-.khoj-edit-accordion.success:hover {
+.alphamind-edit-accordion.success:hover {
     border-color: rgba(52, 199, 89, 0.8);
     background-color: rgba(52, 199, 89, 0.1);
 }
 
-.khoj-edit-accordion.error:hover {
+.alphamind-edit-accordion.error:hover {
     border-color: rgba(239, 68, 68, 0.8);
     background-color: rgba(239, 68, 68, 0.1);
 }
 
 /* Content area */
-.khoj-edit-content {
+.alphamind-edit-content {
     padding: 12px;
     background-color: var(--background-primary);
 }
 
-.khoj-edit-content pre {
+.alphamind-edit-content pre {
     margin: 0;
     padding: 12px;
     background-color: var(--background-secondary);
@@ -1541,20 +1541,20 @@ img.copy-icon {
     font-size: 0.95em;
 }
 
-.khoj-edit-content code.error {
+.alphamind-edit-content code.error {
     color: rgb(185, 28, 28);
 }
 
 /* Animations */
-.khoj-edit-accordion[open] summary {
+.alphamind-edit-accordion[open] summary {
     border-bottom: 1px solid var(--background-modifier-border);
 }
 
-.khoj-edit-accordion:not([open]) summary:hover {
+.alphamind-edit-accordion:not([open]) summary:hover {
     background-color: var(--background-modifier-hover);
 }
 
-.khoj-edit-accordion[open] .khoj-edit-content {
+.alphamind-edit-accordion[open] .alphamind-edit-content {
     animation: slideDown 0.2s ease-out;
 }
 
@@ -1570,15 +1570,15 @@ img.copy-icon {
     }
 }
 
-/* Khoj Edit Block in Chat */
-.khoj-chat-message-text .khoj-edit-accordion {
+/* AlphaMind Edit Block in Chat */
+.alphamind-chat-message-text .alphamind-edit-accordion {
     margin: 0.3em 0;
     border: 1px solid rgba(147, 112, 219, 0.3);
     border-radius: 4px;
     background-color: rgba(147, 112, 219, 0.05);
 }
 
-.khoj-chat-message-text .khoj-edit-accordion summary {
+.alphamind-chat-message-text .alphamind-edit-accordion summary {
     cursor: pointer;
     padding: 0.5em;
     font-weight: 500;
@@ -1588,24 +1588,24 @@ img.copy-icon {
     user-select: none;
 }
 
-.khoj-chat-message-text .khoj-edit-accordion summary:hover {
+.alphamind-chat-message-text .alphamind-edit-accordion summary:hover {
     background-color: rgba(147, 112, 219, 0.1);
 }
 
-.khoj-chat-message-text .khoj-edit-content {
+.alphamind-chat-message-text .alphamind-edit-content {
     padding: 0.5em;
     margin: 0;
     background-color: var(--background-primary);
     border-top: 1px solid rgba(147, 112, 219, 0.3);
 }
 
-.khoj-chat-message-text .khoj-edit-content pre {
+.alphamind-chat-message-text .alphamind-edit-content pre {
     margin: 0;
     padding: 0;
     background-color: transparent;
 }
 
-.khoj-chat-message-text .khoj-edit-content code {
+.alphamind-chat-message-text .alphamind-edit-content code {
     display: block;
     white-space: pre-wrap;
     font-family: var(--font-monospace);
@@ -1613,7 +1613,7 @@ img.copy-icon {
 }
 
 /* Retry badge container */
-.khoj-retry-container {
+.alphamind-retry-container {
     display: flex;
     justify-content: center;
     width: 100%;
@@ -1622,7 +1622,7 @@ img.copy-icon {
 }
 
 /* Retry badge styles */
-.khoj-retry-badge {
+.alphamind-retry-badge {
     display: inline-flex;
     align-items: center;
     gap: 8px;
@@ -1638,11 +1638,11 @@ img.copy-icon {
     width: fit-content;
 }
 
-.khoj-retry-badge .retry-icon {
+.alphamind-retry-badge .retry-icon {
     font-size: 0.9em;
 }
 
-.khoj-retry-badge .retry-count {
+.alphamind-retry-badge .retry-count {
     background: rgba(255, 255, 255, 0.25);
     padding: 2px 10px;
     border-radius: 12px;
@@ -1698,90 +1698,90 @@ button.reference-button:hover {
 }
 
 /* Improved list formatting in messages */
-.khoj-chat-message-text ul li,
-.khoj-chat-message-text ol li {
+.alphamind-chat-message-text ul li,
+.alphamind-chat-message-text ol li {
     margin-bottom: 8px;
     line-height: 1.6;
 }
 
-.khoj-chat-message-text ul {
+.alphamind-chat-message-text ul {
     list-style-type: disc;
 }
 
-.khoj-chat-message-text ol {
+.alphamind-chat-message-text ol {
     list-style-type: decimal;
 }
 
 /* Improved scrollbar */
-.khoj-chat::-webkit-scrollbar {
+.alphamind-chat::-webkit-scrollbar {
     width: 8px;
 }
 
-.khoj-chat::-webkit-scrollbar-track {
+.alphamind-chat::-webkit-scrollbar-track {
     background: transparent;
 }
 
-.khoj-chat::-webkit-scrollbar-thumb {
+.alphamind-chat::-webkit-scrollbar-thumb {
     background-color: var(--scrollbar-thumb-bg);
     border-radius: 4px;
 }
 
-.khoj-chat::-webkit-scrollbar-thumb:hover {
+.alphamind-chat::-webkit-scrollbar-thumb:hover {
     background-color: var(--scrollbar-active-thumb-bg);
 }
 
 /* Improved message spacing */
-.khoj-chat-message {
+.alphamind-chat-message {
     margin-bottom: 8px;
     max-width: 92%;
 }
 
-.khoj-chat-message.you {
+.alphamind-chat-message.you {
     margin-left: 8%;
     margin-right: 0;
 }
 
-.khoj-chat-message.khoj {
+.alphamind-chat-message.alphamind {
     margin-right: 8%;
     margin-left: 0;
 }
 
 /* Modification of pre elements to avoid overflow */
-.khoj-chat-message-text pre {
+.alphamind-chat-message-text pre {
     max-width: 100%;
     overflow-x: auto;
     white-space: pre-wrap;
     font-size: 0.95em;
 }
 
-.khoj-chat-message-text code {
+.alphamind-chat-message-text code {
     font-size: 0.95em;
 }
 
 /* Selectors for visual elements in messages */
-.khoj-chat-message-text ul,
-.khoj-chat-message-text ol {
+.alphamind-chat-message-text ul,
+.alphamind-chat-message-text ol {
     font-size: 0.95em;
 }
 
-.khoj-chat-message-text h1,
-.khoj-chat-message-text h2,
-.khoj-chat-message-text h3,
-.khoj-chat-message-text h4,
-.khoj-chat-message-text h5,
-.khoj-chat-message-text h6 {
+.alphamind-chat-message-text h1,
+.alphamind-chat-message-text h2,
+.alphamind-chat-message-text h3,
+.alphamind-chat-message-text h4,
+.alphamind-chat-message-text h5,
+.alphamind-chat-message-text h6 {
     font-size: 1.1em;
     margin: 0.5em 0;
 }
 
 /* Ensures that images stay within the container */
-.khoj-chat-message-text img {
+.alphamind-chat-message-text img {
     max-width: 100%;
     height: auto;
 }
 
 /* Styles for the mode dropdown */
-.khoj-mode-dropdown {
+.alphamind-mode-dropdown {
     display: block;
     background-color: var(--background-primary);
     border: 1px solid var(--background-modifier-border);
@@ -1796,7 +1796,7 @@ button.reference-button:hover {
     transform-origin: bottom;
 }
 
-.khoj-mode-dropdown-option {
+.alphamind-mode-dropdown-option {
     padding: 4px 8px;
     cursor: pointer;
     display: flex;
@@ -1804,11 +1804,11 @@ button.reference-button:hover {
     min-height: 22px;
 }
 
-.khoj-mode-dropdown-option:hover {
+.alphamind-mode-dropdown-option:hover {
     background-color: var(--background-secondary);
 }
 
-.khoj-mode-dropdown-option-selected {
+.alphamind-mode-dropdown-option-selected {
     background-color: var(--background-modifier-hover);
     border-left: 3px solid var(--interactive-accent);
     font-weight: 600;
@@ -1816,44 +1816,44 @@ button.reference-button:hover {
     padding-left: 5px;
 }
 
-.khoj-mode-dropdown-emoji {
+.alphamind-mode-dropdown-emoji {
     margin-right: 8px;
     display: flex;
     align-items: center;
     justify-content: center;
 }
 
-.khoj-mode-dropdown-emoji svg {
+.alphamind-mode-dropdown-emoji svg {
     width: 16px;
     height: 16px;
 }
 
-.khoj-mode-dropdown-label {
+.alphamind-mode-dropdown-label {
     font-weight: 500;
 }
 
-.khoj-mode-dropdown-command {
+.alphamind-mode-dropdown-command {
     color: var(--text-muted);
     font-size: 0.8em;
     margin-left: 2px;
 }
 
-.khoj-similar-content-hidden {
+.alphamind-similar-content-hidden {
     display: none;
 }
 
-.khoj-similar-content-visible {
+.alphamind-similar-content-visible {
     display: block;
 }
 
-.khoj-similar-result-header {
+.alphamind-similar-result-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     padding: 8px 0;
 }
 
-.khoj-more-context-button {
+.alphamind-more-context-button {
     display: flex;
     align-items: center;
     gap: 6px;
@@ -1869,30 +1869,30 @@ button.reference-button:hover {
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-.khoj-more-context-button:hover {
+.alphamind-more-context-button:hover {
     background-color: var(--background-modifier-hover);
     color: var(--text-accent);
     transform: translateY(-2px);
     box-shadow: 0 3px 6px rgba(0, 0, 0, 0.15);
 }
 
-.khoj-more-context-button svg {
+.alphamind-more-context-button svg {
     width: 16px;
     height: 16px;
     transition: transform 0.3s ease;
 }
 
-.khoj-more-context-button:hover svg {
+.alphamind-more-context-button:hover svg {
     transform: rotate(180deg);
 }
 
-.khoj-similar-container {
+.alphamind-similar-container {
     background-color: var(--background-primary);
     padding: 16px;
     height: 100%;
 }
 
-.khoj-results-count {
+.alphamind-results-count {
     font-size: 14px;
     color: var(--text-muted);
     margin-bottom: 12px;
@@ -1902,7 +1902,7 @@ button.reference-button:hover {
     display: inline-block;
 }
 
-.khoj-similar-results-list {
+.alphamind-similar-results-list {
     max-height: 70vh;
     overflow-y: auto;
     display: flex;
@@ -1911,7 +1911,7 @@ button.reference-button:hover {
     padding: 4px;
 }
 
-.khoj-similar-result-item {
+.alphamind-similar-result-item {
     border: 1px solid var(--background-modifier-border);
     border-radius: 6px;
     padding: 10px 14px;
@@ -1921,13 +1921,13 @@ button.reference-button:hover {
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
-.khoj-similar-result-item:hover {
+.alphamind-similar-result-item:hover {
     background-color: var(--background-modifier-hover);
     transform: translateY(-2px);
     box-shadow: 0 3px 6px rgba(0, 0, 0, 0.1);
 }
 
-.khoj-similar-search-container {
+.alphamind-similar-search-container {
     display: flex;
     gap: 8px;
     margin-bottom: 16px;
@@ -1935,7 +1935,7 @@ button.reference-button:hover {
     margin-top: 8px;
 }
 
-.khoj-similar-search-input {
+.alphamind-similar-search-input {
     flex: 1;
     padding: 10px 14px;
     border-radius: 6px;
@@ -1946,7 +1946,7 @@ button.reference-button:hover {
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
-.khoj-similar-refresh-button {
+.alphamind-similar-refresh-button {
     display: flex;
     align-items: center;
     gap: 6px;
@@ -1962,24 +1962,24 @@ button.reference-button:hover {
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-.khoj-similar-refresh-button:hover {
+.alphamind-similar-refresh-button:hover {
     background-color: var(--background-modifier-hover);
     color: var(--text-accent);
     transform: translateY(-2px);
     box-shadow: 0 3px 6px rgba(0, 0, 0, 0.15);
 }
 
-.khoj-similar-refresh-button svg {
+.alphamind-similar-refresh-button svg {
     width: 16px;
     height: 16px;
     transition: transform 0.3s ease;
 }
 
-.khoj-similar-refresh-button:hover svg {
+.alphamind-similar-refresh-button:hover svg {
     transform: rotate(180deg);
 }
 
-.khoj-profile {
+.alphamind-profile {
   width: 32px;
   height: 32px;
   border-radius: 50%;
@@ -1988,7 +1988,7 @@ button.reference-button:hover {
   border-radius: 50%;
 }
 
-.khoj-profile-initial {
+.alphamind-profile-initial {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1998,7 +1998,7 @@ button.reference-button:hover {
   background-color: var(--background-primary);
 }
 
-.khoj-connect-settings-header {
+.alphamind-connect-settings-header {
   display: flex;
   align-items: center;
   /* Spread items to take available space */
@@ -2006,7 +2006,7 @@ button.reference-button:hover {
   width: 100%;
 }
 
-.khoj-connect-settings-header-status {
+.alphamind-connect-settings-header-status {
     margin-left: 8px;
     font-size: x-small;
     vertical-align: middle;

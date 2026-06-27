@@ -4,11 +4,11 @@ sidebar_position: 2
 
 # Emacs
 
-<img src="https://stable.melpa.org/packages/khoj-badge.svg" width="130" alt="Melpa Stable Badge" />
-<img src="https://melpa.org/packages/khoj-badge.svg" width="150" alt="Melpa Badge" />
+<img src="https://stable.melpa.org/packages/alphamind-badge.svg" width="130" alt="Melpa Stable Badge" />
+<img src="https://melpa.org/packages/alphamind-badge.svg" width="150" alt="Melpa Badge" />
 
-<img src="https://github.com/khoj-ai/khoj/actions/workflows/build_khoj_el.yml/badge.svg" width="150" alt="Build Badge" />
-<img src="https://github.com/khoj-ai/khoj/actions/workflows/test_khoj_el.yml/badge.svg" width="150" alt="Test Badge" />
+<img src="https://github.com/alphamind-ai/alphamind/actions/workflows/build_alphamind_el.yml/badge.svg" width="150" alt="Build Badge" />
+<img src="https://github.com/alphamind-ai/alphamind/actions/workflows/test_alphamind_el.yml/badge.svg" width="150" alt="Test Badge" />
 
 <br />
 <br />
@@ -27,91 +27,91 @@ sidebar_position: 2
 
 | Search | Chat |
 |:------:|:----:|
-| ![khoj search on emacs](/img/khoj_search_on_emacs.png) | ![khoj chat on emacs](/img/khoj_chat_on_emacs.png) |
+| ![alphamind search on emacs](/img/alphamind_search_on_emacs.png) | ![alphamind chat on emacs](/img/alphamind_chat_on_emacs.png) |
 
 ## Setup
 :::info[Self Hosting]
-If you are self-hosting the Khoj server modify the install steps below:
-- Set `khoj-server-url` to your Khoj server URL. By default, use `http://127.0.0.1:42110`.
-- Do not set `khoj-api-key` if your Khoj server runs in anonymous mode. For example, `khoj --anonymous-mode`
+If you are self-hosting the AlphaMind server modify the install steps below:
+- Set `alphamind-server-url` to your AlphaMind server URL. By default, use `http://127.0.0.1:42110`.
+- Do not set `alphamind-api-key` if your AlphaMind server runs in anonymous mode. For example, `alphamind --anonymous-mode`
 :::
 
-1. Generate an API key on the [Khoj Web App](https://app.khoj.dev/settings#clients)
+1. Generate an API key on the [AlphaMind Web App](https://app.alphamind.dev/settings#clients)
 2. Add below snippet to your Emacs config file, usually at `~/.emacs.d/init.el`
 
 
 #### **Direct Install**
-*Khoj will index your org-agenda files, by default*
+*AlphaMind will index your org-agenda files, by default*
 
 ```elisp
-;; Install Khoj.el
-M-x package-install khoj
+;; Install AlphaMind.el
+M-x package-install alphamind
 
-; Set your Khoj API key
-(setq khoj-api-key "YOUR_KHOJ_CLOUD_API_KEY")
-(setq khoj-server-url "https://app.khoj.dev")
+; Set your AlphaMind API key
+(setq alphamind-api-key "YOUR_ALPHAMIND_CLOUD_API_KEY")
+(setq alphamind-server-url "https://app.alphamind.dev")
 ```
 
 #### **Minimal Install**
-*Khoj will index your org-agenda files, by default*
+*AlphaMind will index your org-agenda files, by default*
 
 ```elisp
-;; Install Khoj client from MELPA Stable
-(use-package khoj
+;; Install AlphaMind client from MELPA Stable
+(use-package alphamind
   :ensure t
   :pin melpa-stable
-  :bind ("C-c s" . 'khoj)
-  :config (setq khoj-api-key "YOUR_KHOJ_CLOUD_API_KEY"
-                khoj-server-url "https://app.khoj.dev"))
+  :bind ("C-c s" . 'alphamind)
+  :config (setq alphamind-api-key "YOUR_ALPHAMIND_CLOUD_API_KEY"
+                alphamind-server-url "https://app.alphamind.dev"))
 ```
 
 #### **Standard Install**
-*Configures the specified org files, directories to be indexed by Khoj*
+*Configures the specified org files, directories to be indexed by AlphaMind*
 
 ```elisp
-;; Install Khoj client from MELPA Stable
-(use-package khoj
+;; Install AlphaMind client from MELPA Stable
+(use-package alphamind
   :ensure t
   :pin melpa-stable
-  :bind ("C-c s" . 'khoj)
-  :config (setq khoj-api-key "YOUR_KHOJ_CLOUD_API_KEY"
-                khoj-server-url "https://app.khoj.dev"
-                khoj-index-directories '("~/docs/org-roam" "~/docs/notes")
-                khoj-index-files '("~/docs/todo.org" "~/docs/work.org")))
+  :bind ("C-c s" . 'alphamind)
+  :config (setq alphamind-api-key "YOUR_ALPHAMIND_CLOUD_API_KEY"
+                alphamind-server-url "https://app.alphamind.dev"
+                alphamind-index-directories '("~/docs/org-roam" "~/docs/notes")
+                alphamind-index-files '("~/docs/todo.org" "~/docs/work.org")))
 ```
 
 #### **Straight.el**
-*Configures the specified org files, directories to be indexed by Khoj*
+*Configures the specified org files, directories to be indexed by AlphaMind*
 
 ```elisp
-;; Install Khoj client using Straight.el
-(use-package khoj
+;; Install AlphaMind client using Straight.el
+(use-package alphamind
   :after org
-  :straight (khoj :type git :host github :repo "khoj-ai/khoj" :files (:defaults "src/interface/emacs/khoj.el"))
-  :bind ("C-c s" . 'khoj)
-  :config (setq khoj-api-key "YOUR_KHOJ_CLOUD_API_KEY"
-                khoj-server-url "https://app.khoj.dev"
-                khoj-org-directories '("~/docs/org-roam" "~/docs/notes")
-                khoj-org-files '("~/docs/todo.org" "~/docs/work.org")))
+  :straight (alphamind :type git :host github :repo "alphamind-ai/alphamind" :files (:defaults "src/interface/emacs/alphamind.el"))
+  :bind ("C-c s" . 'alphamind)
+  :config (setq alphamind-api-key "YOUR_ALPHAMIND_CLOUD_API_KEY"
+                alphamind-server-url "https://app.alphamind.dev"
+                alphamind-org-directories '("~/docs/org-roam" "~/docs/notes")
+                alphamind-org-files '("~/docs/todo.org" "~/docs/work.org")))
 ```
 
 ## Use
 ### Search
-See [Khoj Search](/features/search) for details
-1. Hit  `C-c s s` (or `M-x khoj RET s`) to open khoj search
+See [AlphaMind Search](/features/search) for details
+1. Hit  `C-c s s` (or `M-x alphamind RET s`) to open alphamind search
 2. Enter your query in natural language<br/>
   E.g. *"What is the meaning of life?"*, *"My life goals for 2023"*
 
 ### Chat
-See [Khoj Chat](/features/chat) for details
-1. Hit `C-c s c` (or `M-x khoj RET c`) to open khoj chat
+See [AlphaMind Chat](/features/chat) for details
+1. Hit `C-c s c` (or `M-x alphamind RET c`) to open alphamind chat
 2. Ask questions in a natural, conversational style<br/>
   E.g. *"When did I file my taxes last year?"*
 
 ### Find Similar Entries
 This feature finds entries similar to the one you are currently on.
 1. Move cursor to the org-mode entry, markdown section or text paragraph you want to find similar entries for
-2. Hit `C-c s f` (or `M-x khoj RET f`) to find similar entries
+2. Hit `C-c s f` (or `M-x alphamind RET f`) to find similar entries
 
 ### Advanced Usage
 - Add [query filters](/miscellaneous/query-filters) during search to narrow down results further
@@ -123,25 +123,25 @@ This feature finds entries similar to the one you are currently on.
     The first link is the line number of the entry in the source file. This link is less robust to file changes.
   - Note: If you have [speed keys](https://orgmode.org/manual/Speed-Keys.html) enabled, `o 2` will also work
 
-### Khoj Menu
-![](/img/khoj_emacs_menu.png)
-Hit `C-c s` (or `M-x khoj`) to open the khoj menu above. Then:
-- Hit `t` until you preferred content type is selected in the khoj menu
+### AlphaMind Menu
+![](/img/alphamind_emacs_menu.png)
+Hit `C-c s` (or `M-x alphamind`) to open the alphamind menu above. Then:
+- Hit `t` until you preferred content type is selected in the alphamind menu
   `Content Type` specifies the content to perform `Search`, `Update` or `Find Similar` actions on
 - Hit `n` twice and then enter number of results you want to see
   `Results Count` is used by the `Search` and `Find Similar` actions
-- Hit `-f u` to `force` update the khoj content index
+- Hit `-f u` to `force` update the alphamind content index
   The `Force Update` switch is only used by the `Update` action
 
 ## Upgrade
-Use your Emacs package manager to upgrade `khoj.el`
+Use your Emacs package manager to upgrade `alphamind.el`
 <!-- tabs:start -->
 
 #### **With MELPA**
 1. Run `M-x package-refresh-content`
-2. Run `M-x package-reinstall khoj`
+2. Run `M-x package-reinstall alphamind`
 
 #### **With Straight.el**
-- Run `M-x straight-pull-package khoj`
+- Run `M-x straight-pull-package alphamind`
 
 <!-- tabs:end -->

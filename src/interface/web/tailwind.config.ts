@@ -59,6 +59,11 @@ const config = {
                 sans: ["var(--font-noto-sans)", "var(--font-noto-sans-arabic)"],
             },
             colors: {
+                brand: {
+                    DEFAULT: "#1D9E75",
+                    hover: "#157a5a",
+                    light: "#e6f5f0",
+                },
                 border: "hsl(var(--border))",
                 input: "hsl(var(--input))",
                 ring: "hsl(var(--ring))",

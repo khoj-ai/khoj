@@ -44,16 +44,16 @@ addSuggestionColorMap(SuggestionType.Learning, "purple");
 addSuggestionColorMap(SuggestionType.Language, "blue");
 addSuggestionColorMap(SuggestionType.PopCulture, "red");
 addSuggestionColorMap(SuggestionType.Food, "yellow");
-addSuggestionColorMap(SuggestionType.Interviewing, "orange");
+addSuggestionColorMap(SuggestionType.Interviewing, "emerald");
 addSuggestionColorMap(SuggestionType.Home, "green");
 addSuggestionColorMap(SuggestionType.Fun, "fuchsia");
 addSuggestionColorMap(SuggestionType.Code, "teal");
 addSuggestionColorMap(SuggestionType.Finance, "green");
 addSuggestionColorMap(SuggestionType.Math, "blue");
 addSuggestionColorMap(SuggestionType.Image, "red");
-addSuggestionColorMap(SuggestionType.Document, "orange");
+addSuggestionColorMap(SuggestionType.Document, "emerald");
 
-const DEFAULT_COLOR = "orange";
+const DEFAULT_COLOR = "emerald";
 
 export function convertSuggestionTitleToIconClass(title: string, color: string) {
     if (title === SuggestionType.Paint) return getIconFromIconName("Palette", color, "w-6", "h-6");

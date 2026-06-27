@@ -4,13 +4,13 @@ import urllib.parse
 import pytest
 from freezegun import freeze_time
 
-from khoj.database.models import Agent, Entry, KhojUser
-from khoj.processor.conversation import prompts
+from alphamind.database.models import Agent, Entry, AlphaMindUser
+from alphamind.processor.conversation import prompts
 from tests.helpers import ConversationFactory, generate_chat_history, get_chat_api_key
 
 # Initialize variables for tests
 api_key = get_chat_api_key()
-if api_key is None or not os.getenv("KHOJ_TEST_CHAT_PROVIDER"):
+if api_key is None or not os.getenv("ALPHAMIND_TEST_CHAT_PROVIDER"):
     pytest.skip(
         reason="Set OPENAI_API_KEY, GEMINI_API_KEY or ANTHROPIC_API_KEY environment variable to run tests below.",
         allow_module_level=True,
@@ -37,7 +37,7 @@ def test_chat_with_no_chat_history_or_retrieved_content(chat_client):
     response_message = response.json()["response"]
 
     # Assert
-    expected_responses = ["Khoj", "khoj"]
+    expected_responses = ["AlphaMind", "alphamind"]
     assert response.status_code == 200
     assert any([expected_response in response_message for expected_response in expected_responses]), (
         "Expected assistants name, [K|k]hoj, in response but got: " + response_message
@@ -84,10 +84,10 @@ def test_chat_with_online_webpage_content(chat_client):
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.django_db(transaction=True)
 @pytest.mark.chatquality
-def test_answer_from_chat_history(chat_client, default_user2: KhojUser):
+def test_answer_from_chat_history(chat_client, default_user2: AlphaMindUser):
     # Arrange
     message_list = [
-        ("Hello, my name is Testatron. Who are you?", "Hi, I am Khoj, a personal assistant. How can I help?", []),
+        ("Hello, my name is Testatron. Who are you?", "Hi, I am AlphaMind, a personal assistant. How can I help?", []),
         ("When was I born?", "You were born on 1st April 1984.", []),
     ]
     create_conversation(message_list, default_user2)
@@ -107,10 +107,10 @@ def test_answer_from_chat_history(chat_client, default_user2: KhojUser):
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.django_db(transaction=True)
 @pytest.mark.chatquality
-def test_answer_from_currently_retrieved_content(chat_client, default_user2: KhojUser):
+def test_answer_from_currently_retrieved_content(chat_client, default_user2: AlphaMindUser):
     # Arrange
     message_list = [
-        ("Hello, my name is Testatron. Who are you?", "Hi, I am Khoj, a personal assistant. How can I help?", []),
+        ("Hello, my name is Testatron. Who are you?", "Hi, I am AlphaMind, a personal assistant. How can I help?", []),
         (
             "When was I born?",
             "You were born on 1st April 1984.",
@@ -131,10 +131,10 @@ def test_answer_from_currently_retrieved_content(chat_client, default_user2: Kho
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.django_db(transaction=True)
 @pytest.mark.chatquality
-def test_answer_from_chat_history_and_previously_retrieved_content(chat_client_no_background, default_user2: KhojUser):
+def test_answer_from_chat_history_and_previously_retrieved_content(chat_client_no_background, default_user2: AlphaMindUser):
     # Arrange
     message_list = [
-        ("Hello, my name is Testatron. Who are you?", "Hi, I am Khoj, a personal assistant. How can I help?", []),
+        ("Hello, my name is Testatron. Who are you?", "Hi, I am AlphaMind, a personal assistant. How can I help?", []),
         (
             "When was I born?",
             "You were born on 1st April 1984.",
@@ -158,10 +158,10 @@ def test_answer_from_chat_history_and_previously_retrieved_content(chat_client_n
 @pytest.mark.xfail(AssertionError, reason="Chat director not capable of answering this question yet")
 @pytest.mark.django_db(transaction=True)
 @pytest.mark.chatquality
-def test_answer_from_chat_history_and_currently_retrieved_content(chat_client, default_user2: KhojUser):
+def test_answer_from_chat_history_and_currently_retrieved_content(chat_client, default_user2: AlphaMindUser):
     # Arrange
     message_list = [
-        ("Hello, my name is Xi Li. Who are you?", "Hi, I am Khoj, a personal assistant. How can I help?", []),
+        ("Hello, my name is Xi Li. Who are you?", "Hi, I am AlphaMind, a personal assistant. How can I help?", []),
         ("When was I born?", "You were born on 1st April 1984.", []),
     ]
     create_conversation(message_list, default_user2)
@@ -182,11 +182,11 @@ def test_answer_from_chat_history_and_currently_retrieved_content(chat_client, d
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.django_db(transaction=True)
 @pytest.mark.chatquality
-def test_no_answer_in_chat_history_or_retrieved_content(chat_client, default_user2: KhojUser):
+def test_no_answer_in_chat_history_or_retrieved_content(chat_client, default_user2: AlphaMindUser):
     "Chat director should say don't know as not enough contexts in chat history or retrieved to answer question"
     # Arrange
     message_list = [
-        ("Hello, my name is Testatron. Who are you?", "Hi, I am Khoj, a personal assistant. How can I help?", []),
+        ("Hello, my name is Testatron. Who are you?", "Hi, I am AlphaMind, a personal assistant. How can I help?", []),
         ("When was I born?", "You were born on 1st April 1984.", []),
     ]
     create_conversation(message_list, default_user2)
@@ -215,7 +215,7 @@ def test_no_answer_in_chat_history_or_retrieved_content(chat_client, default_use
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.django_db(transaction=True)
 @pytest.mark.chatquality
-def test_answer_using_general_command(chat_client, default_user2: KhojUser):
+def test_answer_using_general_command(chat_client, default_user2: AlphaMindUser):
     # Arrange
     query = "/general Where was Xi Li born?"
     message_list = []
@@ -233,7 +233,7 @@ def test_answer_using_general_command(chat_client, default_user2: KhojUser):
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.django_db(transaction=True)
 @pytest.mark.chatquality
-def test_answer_from_retrieved_content_using_notes_command(chat_client, default_user2: KhojUser):
+def test_answer_from_retrieved_content_using_notes_command(chat_client, default_user2: AlphaMindUser):
     # Arrange
     query = "/notes Where was Xi Li born?"
     message_list = []
@@ -251,7 +251,7 @@ def test_answer_from_retrieved_content_using_notes_command(chat_client, default_
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.django_db(transaction=True)
 @pytest.mark.chatquality
-def test_answer_not_known_using_notes_command(chat_client_no_background, default_user2: KhojUser):
+def test_answer_not_known_using_notes_command(chat_client_no_background, default_user2: AlphaMindUser):
     # Arrange
     query = "/notes Where was Testatron born?"
     message_list = []
@@ -269,7 +269,7 @@ def test_answer_not_known_using_notes_command(chat_client_no_background, default
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.django_db(transaction=True)
 @pytest.mark.chatquality
-def test_summarize_one_file(chat_client, default_user2: KhojUser):
+def test_summarize_one_file(chat_client, default_user2: AlphaMindUser):
     message_list = []
     conversation = create_conversation(message_list, default_user2)
     # post "Xi Li.markdown" file to the file filters
@@ -300,7 +300,7 @@ def test_summarize_one_file(chat_client, default_user2: KhojUser):
 
 @pytest.mark.django_db(transaction=True)
 @pytest.mark.chatquality
-def test_summarize_extra_text(chat_client, default_user2: KhojUser):
+def test_summarize_extra_text(chat_client, default_user2: AlphaMindUser):
     message_list = []
     conversation = create_conversation(message_list, default_user2)
     # post "Xi Li.markdown" file to the file filters
@@ -331,7 +331,7 @@ def test_summarize_extra_text(chat_client, default_user2: KhojUser):
 
 @pytest.mark.django_db(transaction=True)
 @pytest.mark.chatquality
-def test_summarize_multiple_files(chat_client, default_user2: KhojUser):
+def test_summarize_multiple_files(chat_client, default_user2: AlphaMindUser):
     message_list = []
     conversation = create_conversation(message_list, default_user2)
     # post "Xi Li.markdown" file to the file filters
@@ -358,7 +358,7 @@ def test_summarize_multiple_files(chat_client, default_user2: KhojUser):
 
 @pytest.mark.django_db(transaction=True)
 @pytest.mark.chatquality
-def test_summarize_no_files(chat_client, default_user2: KhojUser):
+def test_summarize_no_files(chat_client, default_user2: AlphaMindUser):
     # Arrange
     message_list = []
     conversation = create_conversation(message_list, default_user2)
@@ -374,7 +374,7 @@ def test_summarize_no_files(chat_client, default_user2: KhojUser):
 
 @pytest.mark.django_db(transaction=True)
 @pytest.mark.chatquality
-def test_summarize_different_conversation(chat_client, default_user2: KhojUser):
+def test_summarize_different_conversation(chat_client, default_user2: AlphaMindUser):
     # Arrange
     message_list = []
     conversation1 = create_conversation(message_list, default_user2)
@@ -421,7 +421,7 @@ def test_summarize_different_conversation(chat_client, default_user2: KhojUser):
 
 @pytest.mark.django_db(transaction=True)
 @pytest.mark.chatquality
-def test_summarize_nonexistant_file(chat_client, default_user2: KhojUser):
+def test_summarize_nonexistant_file(chat_client, default_user2: AlphaMindUser):
     message_list = []
     conversation = create_conversation(message_list, default_user2)
     # post "imaginary.markdown" file to the file filters
@@ -438,7 +438,7 @@ def test_summarize_nonexistant_file(chat_client, default_user2: KhojUser):
 
 @pytest.mark.django_db(transaction=True)
 @pytest.mark.chatquality
-def test_summarize_diff_user_file(chat_client, default_user: KhojUser, pdf_configured_user1, default_user2: KhojUser):
+def test_summarize_diff_user_file(chat_client, default_user: AlphaMindUser, pdf_configured_user1, default_user2: AlphaMindUser):
     # Arrange
     message_list = []
     conversation = create_conversation(message_list, default_user2)
@@ -507,10 +507,10 @@ def test_answer_requires_date_aware_aggregation_across_provided_notes(chat_clien
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.django_db(transaction=True)
 @pytest.mark.chatquality
-def test_answer_general_question_not_in_chat_history_or_retrieved_content(chat_client, default_user2: KhojUser):
+def test_answer_general_question_not_in_chat_history_or_retrieved_content(chat_client, default_user2: AlphaMindUser):
     # Arrange
     message_list = [
-        ("Hello, my name is Testatron. Who are you?", "Hi, I am Khoj, a personal assistant. How can I help?", []),
+        ("Hello, my name is Testatron. Who are you?", "Hi, I am AlphaMind, a personal assistant. How can I help?", []),
         ("When was I born?", "You were born on 1st April 1984.", []),
         ("Where was I born?", "You were born Testville.", []),
     ]
@@ -560,10 +560,10 @@ def test_ask_for_clarification_if_not_enough_context_in_question(chat_client_no_
 @pytest.mark.xfail(reason="Chat director not capable of answering this question yet")
 @pytest.mark.django_db(transaction=True)
 @pytest.mark.chatquality
-def test_answer_in_chat_history_beyond_lookback_window(chat_client, default_user2: KhojUser):
+def test_answer_in_chat_history_beyond_lookback_window(chat_client, default_user2: AlphaMindUser):
     # Arrange
     message_list = [
-        ("Hello, my name is Testatron. Who are you?", "Hi, I am Khoj, a personal assistant. How can I help?", []),
+        ("Hello, my name is Testatron. Who are you?", "Hi, I am AlphaMind, a personal assistant. How can I help?", []),
         ("When was I born?", "You were born on 1st April 1984.", []),
         ("Where was I born?", "You were born Testville.", []),
     ]
@@ -585,16 +585,16 @@ def test_answer_in_chat_history_beyond_lookback_window(chat_client, default_user
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.chatquality
 @pytest.mark.django_db(transaction=True)
-def test_answer_in_chat_history_by_conversation_id(chat_client, default_user2: KhojUser):
+def test_answer_in_chat_history_by_conversation_id(chat_client, default_user2: AlphaMindUser):
     # Arrange
     message_list = [
-        ("Hello, my name is Testatron. Who are you?", "Hi, I am Khoj, a personal assistant. How can I help?", []),
+        ("Hello, my name is Testatron. Who are you?", "Hi, I am AlphaMind, a personal assistant. How can I help?", []),
         ("When was I born?", "You were born on 1st April 1984.", []),
         ("What's my favorite color", "Your favorite color is green.", []),
         ("Where was I born?", "You were born Testville.", []),
     ]
     message_list2 = [
-        ("Hello, my name is Julia. Who are you?", "Hi, I am Khoj, a personal assistant. How can I help?", []),
+        ("Hello, my name is Julia. Who are you?", "Hi, I am AlphaMind, a personal assistant. How can I help?", []),
         ("When was I born?", "You were born on 14th August 1947.", []),
         ("What's my favorite color", "Your favorite color is maroon.", []),
         ("Where was I born?", "You were born in a potato farm.", []),
@@ -619,11 +619,11 @@ def test_answer_in_chat_history_by_conversation_id(chat_client, default_user2: K
 @pytest.mark.chatquality
 @pytest.mark.django_db(transaction=True)
 def test_answer_in_chat_history_by_conversation_id_with_agent(
-    chat_client, default_user2: KhojUser, openai_agent: Agent
+    chat_client, default_user2: AlphaMindUser, openai_agent: Agent
 ):
     # Arrange
     message_list = [
-        ("Hello, my name is Testatron. Who are you?", "Hi, I am Khoj, a personal assistant. How can I help?", []),
+        ("Hello, my name is Testatron. Who are you?", "Hi, I am AlphaMind, a personal assistant. How can I help?", []),
         ("When was I born?", "You were born on 1st April 1984.", []),
         ("What's my favorite color", "Your favorite color is green.", []),
         ("Where was I born?", "You were born Testville.", []),

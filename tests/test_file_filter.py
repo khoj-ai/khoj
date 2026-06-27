@@ -1,5 +1,5 @@
 # Application Packages
-from khoj.search_filter.file_filter import FileFilter
+from alphamind.search_filter.file_filter import FileFilter
 
 
 # Mock Entry class for testing

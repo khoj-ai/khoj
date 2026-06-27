@@ -572,7 +572,7 @@ export function ChatSessionActionMenu(props: ChatSessionActionMenuProps) {
                                     shareConversation(props.conversationId, setShareUrl);
                                     setShowShareUrl(true);
                                 }}
-                                className="bg-orange-500"
+                                className="bg-emerald-500"
                                 disabled
                             >
                                 <Spinner className="mr-2 h-4 w-4 animate-spin" />
@@ -757,7 +757,7 @@ function ChatSessionsModal({ data, sideBarOpen }: ChatSessionsModalProps) {
                         agentNameToStyleMapLocal = {
                             ...agentNameToStyleMapLocal,
                             [chatHistory.agent_name]: {
-                                color: chatHistory.agent_color ?? "orange",
+                                color: chatHistory.agent_color ?? "emerald",
                                 icon: chatHistory.agent_icon ?? "Lightbulb",
                             },
                         };

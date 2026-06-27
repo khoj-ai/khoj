@@ -1,7 +1,7 @@
 # Admin Panel
-> Describes the Khoj settings configurable via the admin panel
+> Describes the AlphaMind settings configurable via the admin panel
 
-By default, your admin panel is available at `http://localhost:42110/server/admin/`. You can access the admin panel by logging in with your admin credentials (this would be your `KHOJ_ADMIN_EMAIL` and `KHOJ_ADMIN_PASSWORD`). The admin panel allows you to configure various settings for your Khoj server.
+By default, your admin panel is available at `http://localhost:42110/server/admin/`. You can access the admin panel by logging in with your admin credentials (this would be your `ALPHAMIND_ADMIN_EMAIL` and `ALPHAMIND_ADMIN_PASSWORD`). The admin panel allows you to configure various settings for your AlphaMind server.
 
 ## App Settings
 ### Agents
@@ -12,7 +12,7 @@ Add all the agents you want to use for your different use-cases like Writer, Res
 - `Avatar`: Url to the agents profile picture. It helps give the agent a unique visual identity across the app.
 - `Style color`, `Style icon`: These fields help give the agent a unique, visually identifiable identity across the app.
 - `Slug`: This is the agent name to use in urls.
-- `Public`: Check this if the agent is expected to be visible to all users on this Khoj server.
+- `Public`: Check this if the agent is expected to be visible to all users on this AlphaMind server.
 - `Managed by admin`: Check this if the agent is managed by admin, not by any user.
 - `Creator`: The user who created the agent.
 - `Tools`: The list of tools available to this agent. Tools include notes, image, online. This field is not currently configurable and only supports all tools (i.e `["*"]`)
@@ -52,17 +52,17 @@ Search models are used to generate vector embeddings of your documents for natur
 <img src="/img/example_search_model_admin_settings.png" alt="Example Search Model Settings" style={{width: 500}} />
 
 ### Text to Image Model Options
-Add text to image generation models with these settings. Khoj currently supports text to image models available via OpenAI, Google or Replicate API
+Add text to image generation models with these settings. AlphaMind currently supports text to image models available via OpenAI, Google or Replicate API
 - `api-key`: Set to your OpenAI, Google AI or Replicate API key
 - `model`: Set the model name available over the selected model provider
 - `model-type`: Set to the appropriate model provider
 - `openai-config`: For image generation models available via OpenAI (compatible) API you can set the appropriate OpenAI Processor Conversation Settings instead of specifying the `api-key` field above
 
 ### Speech to Text Model Options
-Add speech to text models with these settings. Khoj currently only supports whisper speech to text model via OpenAI API or Offline
+Add speech to text models with these settings. AlphaMind currently only supports whisper speech to text model via OpenAI API or Offline
 
 ### Voice Model Options
-Add text to speech models with these settings. Khoj currently supports models from [ElevenLabs](https://elevenlabs.io/).
+Add text to speech models with these settings. AlphaMind currently supports models from [ElevenLabs](https://elevenlabs.io/).
 
 ### Reflective Questions
 This is a static list of starter question suggestions for each user. It is not currently used in any client app. It used to be shown on the web app home page. We may turn it into a dynamic list of starter questions personalized to each users, say based on their recent conversations or synced knowledge base.
@@ -74,4 +74,4 @@ This is a static list of starter question suggestions for each user. It is not c
 - Process Locks: Persistent Locks for Automations
 - Client Applications:
 
-  Client applications allow you to setup third party applications that can query your Khoj server using a client application ID + secret. The secret would go in a bearer token.
+  Client applications allow you to setup third party applications that can query your AlphaMind server using a client application ID + secret. The secret would go in a bearer token.

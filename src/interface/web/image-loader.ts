@@ -1,4 +1,4 @@
-export default function khojLoader({
+export default function alphamindLoader({
     src,
     width,
     quality,

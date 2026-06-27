@@ -7,33 +7,33 @@ console.log(`%c %s`, "font-family:monospace", `
 
 Greetings traveller,
 
-I am ✨Khoj✨, your open-source, personal AI copilot.
+I am ✨AlphaMind✨, your open-source, personal AI copilot.
 
-See my source code at https://github.com/khoj-ai/khoj
-Read my operating manual at https://docs.khoj.dev
+See my source code at https://github.com/alphamind-ai/alphamind
+Read my operating manual at https://docs.alphamind.dev
 `);
 
 
 window.appInfoAPI.getInfo((_, info) => {
-    let khojVersionElement = document.getElementById("about-page-version");
-    if (khojVersionElement) {
-        khojVersionElement.innerHTML = `<code>${info.version}</code>`;
+    let alphamindVersionElement = document.getElementById("about-page-version");
+    if (alphamindVersionElement) {
+        alphamindVersionElement.innerHTML = `<code>${info.version}</code>`;
     }
-    let khojTitleElement = document.getElementById("about-page-title");
-    if (khojTitleElement) {
-        khojTitleElement.innerHTML = '<b>Khoj for ' + (info.platform === 'win32' ? 'Windows' : info.platform === 'darwin' ? 'macOS' : 'Linux') + '</b>';
+    let alphamindTitleElement = document.getElementById("about-page-title");
+    if (alphamindTitleElement) {
+        alphamindTitleElement.innerHTML = '<b>AlphaMind for ' + (info.platform === 'win32' ? 'Windows' : info.platform === 'darwin' ? 'macOS' : 'Linux') + '</b>';
     }
 });
 
 function toggleNavMenu() {
-    let menu = document.getElementById("khoj-nav-menu");
+    let menu = document.getElementById("alphamind-nav-menu");
     menu.classList.toggle("show");
 }
 
 // Close the dropdown menu if the user clicks outside of it
 document.addEventListener('click', function (event) {
-    let menu = document.getElementById("khoj-nav-menu");
-    let menuContainer = document.getElementById("khoj-nav-menu-container");
+    let menu = document.getElementById("alphamind-nav-menu");
+    let menuContainer = document.getElementById("alphamind-nav-menu-container");
     let isClickOnMenu = menuContainer?.contains(event.target) || menuContainer === event.target;
     if (menu && isClickOnMenu === false && menu.classList.contains("show")) {
         menu.classList.remove("show");
@@ -55,31 +55,31 @@ async function populateHeaderPane() {
 
     // Populate the header element with the navigation pane
     return `
-        <a class="khoj-logo" href="/">
-            <img class="khoj-logo" src="./assets/icons/khoj_logo.png" alt="Khoj"></img>
+        <a class="alphamind-logo" href="/">
+            <img class="alphamind-logo" src="./assets/icons/alphamind_logo.png" alt="AlphaMind"></img>
         </a>
-        <nav class="khoj-nav">
+        <nav class="alphamind-nav">
         ${userInfo && userInfo.email
-            ? `<div class="khoj-status-box">
-              <span class="khoj-status-connected"></span>
-               <span class="khoj-status-text">Connected to server</span>
+            ? `<div class="alphamind-status-box">
+              <span class="alphamind-status-connected"></span>
+               <span class="alphamind-status-text">Connected to server</span>
                </div>`
-            : `<div class="khoj-status-box">
-              <span class="khoj-status-not-connected"></span>
-               <span class="khoj-status-text">Not connected to server</span>
+            : `<div class="alphamind-status-box">
+              <span class="alphamind-status-not-connected"></span>
+               <span class="alphamind-status-text">Not connected to server</span>
                </div>`
         }
             ${username ? `
-                <div id="khoj-nav-menu-container" class="khoj-nav dropdown">
+                <div id="alphamind-nav-menu-container" class="alphamind-nav dropdown">
                     ${user_photo && user_photo != "None" ? `
                         <img id="profile-picture" class="${is_active ? 'circle subscribed' : 'circle'}" src="${user_photo}" alt="${username[0].toUpperCase()}" referrerpolicy="no-referrer">
                     ` : `
                         <div id="profile-picture" class="${is_active ? 'circle user-initial subscribed' : 'circle user-initial'}" alt="${username[0].toUpperCase()}">${username[0].toUpperCase()}</div>
                     `}
-                    <div id="khoj-nav-menu" class="khoj-nav-dropdown-content">
-                        <div class="khoj-nav-username"> ${username} </div>
-                        <a onclick="window.navigateAPI.navigateToWebHome()" class="khoj-nav-link">
-                        <img class="khoj-nav-icon" src="./assets/icons/open-link.svg" alt="Open Host Url"></img>
+                    <div id="alphamind-nav-menu" class="alphamind-nav-dropdown-content">
+                        <div class="alphamind-nav-username"> ${username} </div>
+                        <a onclick="window.navigateAPI.navigateToWebHome()" class="alphamind-nav-link">
+                        <img class="alphamind-nav-icon" src="./assets/icons/open-link.svg" alt="Open Host Url"></img>
                         Open App
                         </a>
                     </div>

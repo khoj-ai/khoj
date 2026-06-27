@@ -40,7 +40,7 @@ const AgentProfileCard: React.FC<ProfileCardProps> = ({ name, avatar, link, desc
                             </a>
                             {description && (
                                 <p className="mt-2 ml-6 text-sm text-gray-600 line-clamp-2">
-                                    {description || "A Khoj agent"}
+                                    {description || "A AlphaMind agent"}
                                 </p>
                             )}
                         </div>

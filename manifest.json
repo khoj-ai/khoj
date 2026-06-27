@@ -1,10 +1,10 @@
 {
-	"id": "khoj",
-	"name": "Khoj",
+	"id": "alphamind",
+	"name": "AlphaMind",
 	"version": "2.0.0-beta.28",
 	"minAppVersion": "0.15.0",
 	"description": "Your Second Brain",
-	"author": "Khoj Inc.",
-	"authorUrl": "https://github.com/khoj-ai",
+	"author": "AlphaMind Inc.",
+	"authorUrl": "https://github.com/alphamind-ai",
 	"isDesktopOnly": false
 }

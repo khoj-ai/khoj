@@ -6,12 +6,12 @@ keywords: ["upload data", "upload files", "share data", "share files", "pdf ai",
 
 # Upload your data
 
-There are several ways you can get started with sharing your data with the Khoj AI.
+There are several ways you can get started with sharing your data with the AlphaMind AI.
 
 - Drag and drop your documents via [the web UI](/clients/web/#upload-documents). This is best if you have a one-off document you need to interact with.
-- You can use the [search page](https://app.khoj.dev/search) to upload documents that become indexed & searchable by your second brain. Click on "Add Documents" to get started.
+- You can use the [search page](https://app.alphamind.dev/search) to upload documents that become indexed & searchable by your second brain. Click on "Add Documents" to get started.
 - Use the desktop app to [upload and sync your documents](/clients/desktop). This is best if you have a lot of documents on your computer or you need the docs to stay in sync.
-- Setup the sync options for either [Obsidian](/clients/obsidian) or [Emacs](/clients/emacs) to automatically sync your documents with Khoj. This is best if you are already using these tools and want to leverage Khoj's AI capabilities.
-- Configure your [Notion](/data-sources/notion_integration) or [Github](/data-sources/github_integration) to sync with Khoj. By providing your credentials, you can keep the data synced in the background.
+- Setup the sync options for either [Obsidian](/clients/obsidian) or [Emacs](/clients/emacs) to automatically sync your documents with AlphaMind. This is best if you are already using these tools and want to leverage AlphaMind's AI capabilities.
+- Configure your [Notion](/data-sources/notion_integration) or [Github](/data-sources/github_integration) to sync with AlphaMind. By providing your credentials, you can keep the data synced in the background.
 
-![demo of dragging and dropping a file](https://assets.khoj.dev/upload_pdf_doc.gif)
+![demo of dragging and dropping a file](https://assets.alphamind.dev/upload_pdf_doc.gif)

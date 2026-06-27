@@ -3,7 +3,7 @@ import re
 
 import pytest
 
-from khoj.processor.content.pdf.pdf_to_entries import PdfToEntries
+from alphamind.processor.content.pdf.pdf_to_entries import PdfToEntries
 
 
 def test_single_page_pdf_to_jsonl():

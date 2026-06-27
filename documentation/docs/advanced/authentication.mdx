@@ -5,10 +5,10 @@ import Tabs from '@theme/Tabs';
 import TabItem from '@theme/TabItem';
 ```
 
-By default, most of the instructions for self-hosting Khoj assume a single user, and so the default configuration is to run in anonymous mode. However, if you want to enable authentication, you can do so either with with [Magic Links](#using-magic-links) or [Google OAuth](#using-google-oauth) as shown below. This can be helpful to make Khoj securely accessible to you and your team.
+By default, most of the instructions for self-hosting AlphaMind assume a single user, and so the default configuration is to run in anonymous mode. However, if you want to enable authentication, you can do so either with with [Magic Links](#using-magic-links) or [Google OAuth](#using-google-oauth) as shown below. This can be helpful to make AlphaMind securely accessible to you and your team.
 
 :::tip[Note]
-Remove the `--anonymous-mode` flag from your khoj start up command or docker-compose file to enable authentication.
+Remove the `--anonymous-mode` flag from your alphamind start up command or docker-compose file to enable authentication.
 :::
 
 ## Using Magic Links
@@ -31,7 +31,7 @@ It's still possible to use the magic links feature without Resend, but you'll ne
 
 2. You can get their magic link using the admin panel
 
-    Go to the [admin panel](http://localhost:42110/server/admin/database/khojuser/). You'll see a list of users. Search for the user you want to send a magic link to. Tick the checkbox next to their row, and use the action drop down at the top to 'Get email login URL'. This will generate a magic link that you can send to the user, which will appear at the top of the admin interface.
+    Go to the [admin panel](http://localhost:42110/server/admin/database/alphaminduser/). You'll see a list of users. Search for the user you want to send a magic link to. Tick the checkbox next to their row, and use the action drop down at the top to 'Get email login URL'. This will generate a magic link that you can send to the user, which will appear at the top of the admin interface.
 
     | Get email login URL | Retrieved login URL |
     |---------------------|---------------------|
@@ -45,30 +45,30 @@ It's still possible to use the magic links feature without Resend, but you'll ne
 
 ## Using Google OAuth
 
-For this method, you'll need to use the prod version of the Khoj package. You can install it as below:
+For this method, you'll need to use the prod version of the AlphaMind package. You can install it as below:
 
 <Tabs groupId="server" queryString>
   <TabItem value="docker" label="Docker">
   Update your `docker-compose.yml` to use the prod image
       ```bash
-      image: ghcr.io/khoj-ai/khoj-cloud:latest
+      image: ghcr.io/alphamind-ai/alphamind-cloud:latest
       ```
   </TabItem>
 
   <TabItem value="pip" label="Pip">
   ```bash
-  pip install khoj[prod]
+  pip install alphamind[prod]
   ```
   </TabItem>
 </Tabs>
 
-To set up your self-hosted Khoj with Google Auth, you need to create a project in the Google Cloud Console and enable the Google Auth API.
+To set up your self-hosted AlphaMind with Google Auth, you need to create a project in the Google Cloud Console and enable the Google Auth API.
 
 To implement this, you'll need to:
 1. [Create authorization credentials](https://developers.google.com/identity/sign-in/web/sign-in) for your application.
 2. Open your [Google cloud console](https://console.developers.google.com/apis/credentials) and create a configuration like below for the relevant `OAuth 2.0 Client IDs` project:
-![Google auth login project settings](https://github.com/khoj-ai/khoj/assets/65192171/9bcbf6f4-197d-4d0c-973a-c10b1331c892)
+![Google auth login project settings](https://github.com/alphamind-ai/alphamind/assets/65192171/9bcbf6f4-197d-4d0c-973a-c10b1331c892)
 
 3. Configure these environment variables: `GOOGLE_CLIENT_SECRET`, and `GOOGLE_CLIENT_ID`. You can find these values in the Google cloud console, in the same place where you configured the authorized origins and redirect URIs.
 
-That's it! That should be all you have to do. Now, when you reload Khoj without `--anonymous-mode`, you should be able to use your Google account to sign in.
+That's it! That should be all you have to do. Now, when you reload AlphaMind without `--anonymous-mode`, you should be able to use your Google account to sign in.

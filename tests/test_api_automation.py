@@ -3,7 +3,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from django_apscheduler.jobstores import DjangoJobStore
 from fastapi.testclient import TestClient
 
-from khoj.utils import state
+from alphamind.utils import state
 from tests.helpers import AiModelApiFactory, ChatModelFactory, get_chat_api_key
 
 

@@ -3,23 +3,23 @@ sidebar_position: 1
 ---
 
 # Self-Host
-Learn about how to self-host Khoj on your own machine.
+Learn about how to self-host AlphaMind on your own machine.
 
 Benefits to self-hosting:
-1. **Privacy**: Your data will never have to leave your private network. You can even use Khoj without an internet connection if deployed on your personal computer.
-2. **Customization**: You can customize Khoj to your liking, from models, to host URL, to feature enablement.
+1. **Privacy**: Your data will never have to leave your private network. You can even use AlphaMind without an internet connection if deployed on your personal computer.
+2. **Customization**: You can customize AlphaMind to your liking, from models, to host URL, to feature enablement.
 
 ```mdx-code-block
 import Tabs from '@theme/Tabs';
 import TabItem from '@theme/TabItem';
 ```
 
-## Setup Khoj
-These are the general setup instructions for self-hosted Khoj.
-You can install the Khoj server using either [Docker](?server=docker) or [Pip](?server=pip).
+## Setup AlphaMind
+These are the general setup instructions for self-hosted AlphaMind.
+You can install the AlphaMind server using either [Docker](?server=docker) or [Pip](?server=pip).
 
 :::info[First Run]
-Restart your Khoj server after the first run to ensure all settings are applied correctly.
+Restart your AlphaMind server after the first run to ensure all settings are applied correctly.
 :::
 
 <Tabs groupId="server" queryString>
@@ -36,18 +36,18 @@ Restart your Khoj server after the first run to ensure all settings are applied 
           brew install docker-compose
           ```
         <h3>Setup</h3>
-        1. Download the Khoj docker-compose.yml file [from Github](https://github.com/khoj-ai/khoj/blob/master/docker-compose.yml)
+        1. Download the AlphaMind docker-compose.yml file [from Github](https://github.com/alphamind-ai/alphamind/blob/master/docker-compose.yml)
            ```shell
-           mkdir ~/.khoj && cd ~/.khoj
-           wget https://raw.githubusercontent.com/khoj-ai/khoj/master/docker-compose.yml
+           mkdir ~/.alphamind && cd ~/.alphamind
+           wget https://raw.githubusercontent.com/alphamind-ai/alphamind/master/docker-compose.yml
            ```
         2. Configure the environment variables in the `docker-compose.yml`
-           - Set `KHOJ_ADMIN_PASSWORD`, `KHOJ_DJANGO_SECRET_KEY` (and optionally the `KHOJ_ADMIN_EMAIL`) to something secure. This allows you to customize Khoj later via the admin panel.
+           - Set `ALPHAMIND_ADMIN_PASSWORD`, `ALPHAMIND_DJANGO_SECRET_KEY` (and optionally the `ALPHAMIND_ADMIN_EMAIL`) to something secure. This allows you to customize AlphaMind later via the admin panel.
            - Set `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, or `GEMINI_API_KEY` to your API key if you want to use OpenAI, Anthropic or Gemini commercial chat models respectively.
            - Uncomment `OPENAI_BASE_URL` to use [Ollama](/advanced/ollama?type=first-run&server=docker#setup) running on your host machine. Or set it to the URL of your OpenAI compatible API like vLLM or [LMStudio](/advanced/lmstudio).
-        3. Start Khoj by running the following command in the same directory as your docker-compose.yml file.
+        3. Start AlphaMind by running the following command in the same directory as your docker-compose.yml file.
            ```shell
-           cd ~/.khoj
+           cd ~/.alphamind
            docker-compose up
            ```
       </TabItem>
@@ -61,20 +61,20 @@ Restart your Khoj server after the first run to ensure all settings are applied 
       2. Install [Docker Desktop](https://docs.docker.com/desktop/install/windows-install/) with **[WSL2 backend](https://docs.docker.com/desktop/wsl/#turn-on-docker-desktop-wsl-2)** (default)
 
       <h3>Setup</h3>
-      1. Download the Khoj docker-compose.yml file [from Github](https://github.com/khoj-ai/khoj/blob/master/docker-compose.yml)
+      1. Download the AlphaMind docker-compose.yml file [from Github](https://github.com/alphamind-ai/alphamind/blob/master/docker-compose.yml)
          ```shell
          # Windows users should use their WSL2 terminal to run these commands
-         mkdir ~/.khoj && cd ~/.khoj
-         wget https://raw.githubusercontent.com/khoj-ai/khoj/master/docker-compose.yml
+         mkdir ~/.alphamind && cd ~/.alphamind
+         wget https://raw.githubusercontent.com/alphamind-ai/alphamind/master/docker-compose.yml
          ```
       2. Configure the environment variables in the `docker-compose.yml`
-         - Set `KHOJ_ADMIN_PASSWORD`, `KHOJ_DJANGO_SECRET_KEY` (and optionally the `KHOJ_ADMIN_EMAIL`) to something secure. This allows you to customize Khoj later via the admin panel.
+         - Set `ALPHAMIND_ADMIN_PASSWORD`, `ALPHAMIND_DJANGO_SECRET_KEY` (and optionally the `ALPHAMIND_ADMIN_EMAIL`) to something secure. This allows you to customize AlphaMind later via the admin panel.
          - Set `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, or `GEMINI_API_KEY` to your API key if you want to use OpenAI, Anthropic or Gemini commercial chat models respectively.
          - Uncomment `OPENAI_BASE_URL` to use [Ollama](/advanced/ollama) running on your host machine. Or set it to the URL of your OpenAI compatible API like vLLM or [LMStudio](/advanced/lmstudio).
-      3. Start Khoj by running the following command in the same directory as your docker-compose.yml file.
+      3. Start AlphaMind by running the following command in the same directory as your docker-compose.yml file.
          ```shell
          # Windows users should use their WSL2 terminal to run these commands
-         cd ~/.khoj
+         cd ~/.alphamind
          docker-compose up
          ```
       </TabItem>
@@ -84,18 +84,18 @@ Restart your Khoj server after the first run to ensure all settings are applied 
         You can also use your package manager to install Docker Engine & Docker Compose.
 
         <h3>Setup</h3>
-        1. Download the Khoj docker-compose.yml file [from Github](https://github.com/khoj-ai/khoj/blob/master/docker-compose.yml)
+        1. Download the AlphaMind docker-compose.yml file [from Github](https://github.com/alphamind-ai/alphamind/blob/master/docker-compose.yml)
            ```shell
-           mkdir ~/.khoj && cd ~/.khoj
-           wget https://raw.githubusercontent.com/khoj-ai/khoj/master/docker-compose.yml
+           mkdir ~/.alphamind && cd ~/.alphamind
+           wget https://raw.githubusercontent.com/alphamind-ai/alphamind/master/docker-compose.yml
            ```
         2. Configure the environment variables in the `docker-compose.yml`
-           - Set `KHOJ_ADMIN_PASSWORD`, `KHOJ_DJANGO_SECRET_KEY` (and optionally the `KHOJ_ADMIN_EMAIL`) to something secure. This allows you to customize Khoj later via the admin panel.
+           - Set `ALPHAMIND_ADMIN_PASSWORD`, `ALPHAMIND_DJANGO_SECRET_KEY` (and optionally the `ALPHAMIND_ADMIN_EMAIL`) to something secure. This allows you to customize AlphaMind later via the admin panel.
            - Set `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, or `GEMINI_API_KEY` to your API key if you want to use OpenAI, Anthropic or Gemini commercial chat models respectively.
            - Uncomment `OPENAI_BASE_URL` to use [Ollama](/advanced/ollama) running on your host machine. Or set it to the URL of your OpenAI compatible API like vLLM or [LMStudio](/advanced/lmstudio).
-        3. Start Khoj by running the following command in the same directory as your docker-compose.yml file.
+        3. Start AlphaMind by running the following command in the same directory as your docker-compose.yml file.
            ```shell
-           cd ~/.khoj
+           cd ~/.alphamind
            docker-compose up
            ```
       </TabItem>
@@ -104,30 +104,30 @@ Restart your Khoj server after the first run to ensure all settings are applied 
 
 
 :::info[Remote Access]
-By default Khoj is only accessible on the machine it is running. To access Khoj from a remote machine see [Remote Access Docs](/advanced/remote).
+By default AlphaMind is only accessible on the machine it is running. To access AlphaMind from a remote machine see [Remote Access Docs](/advanced/remote).
 :::
 
-Your setup is complete once you see `🌖 Khoj is ready to engage` in the server logs on your terminal.
+Your setup is complete once you see `🌖 AlphaMind is ready to engage` in the server logs on your terminal.
   </TabItem>
   <TabItem value="pip" label="Pip">
 
-<h3>1. Install Khoj Server</h3>
+<h3>1. Install AlphaMind Server</h3>
 - Make sure [python](https://realpython.com/installing-python/) and [pip](https://pip.pypa.io/en/stable/installation/) are installed on your machine
 - Check [llama-cpp-python setup](https://github.com/abetlen/llama-cpp-python?tab=readme-ov-file#supported-backends) if you hit any llama-cpp issues with the installation
 
-Run the following command in your terminal to install the Khoj server.
+Run the following command in your terminal to install the AlphaMind server.
 
   <Tabs groupId="operating-systems" queryString="os">
     <TabItem value="macos" label="MacOS">
       <Tabs groupId="gpu" queryString="gpu">
         <TabItem value="arm" label="ARM/M1+">
     ```shell
-CMAKE_ARGS="-DGGML_METAL=on" python -m pip install 'khoj[local]'
+CMAKE_ARGS="-DGGML_METAL=on" python -m pip install 'alphamind[local]'
     ```
         </TabItem>
         <TabItem value="intel" label="Intel">
     ```shell
-python -m pip install 'khoj[local]'
+python -m pip install 'alphamind[local]'
     ```
         </TabItem>
       </Tabs>
@@ -137,32 +137,32 @@ python -m pip install 'khoj[local]'
       <Tabs groupId="gpu" queryString="gpu">
         <TabItem value="cpu" label="CPU">
        ```shell
- # Install Khoj
- py -m pip install 'khoj[local]'
+ # Install AlphaMind
+ py -m pip install 'alphamind[local]'
       ```
         </TabItem>
         <TabItem value="nvidia" label="NVIDIA (CUDA) GPU">
        ```shell
  # 1. To use NVIDIA (CUDA) GPU
  $env:CMAKE_ARGS = "-DGGML_CUDA=on"
- # 2. Install Khoj
- py -m pip install 'khoj[local]'
+ # 2. Install AlphaMind
+ py -m pip install 'alphamind[local]'
       ```
         </TabItem>
         <TabItem value="amd" label="AMD (ROCm) GPU">
        ```shell
  # 1. To use AMD (ROCm) GPU
  $env:CMAKE_ARGS = "-DGGML_HIPBLAS=on"
- # 2. Install Khoj
- py -m pip install 'khoj[local]'
+ # 2. Install AlphaMind
+ py -m pip install 'alphamind[local]'
       ```
         </TabItem>
         <TabItem value="vulkan" label="VULKAN GPU">
        ```shell
  # 1. To use VULCAN GPU
  $env:CMAKE_ARGS = "-DGGML_VULKAN=on"
- # 2. Install Khoj
- py -m pip install 'khoj[local]'
+ # 2. Install AlphaMind
+ py -m pip install 'alphamind[local]'
       ```
         </TabItem>
       </Tabs>
@@ -171,58 +171,58 @@ python -m pip install 'khoj[local]'
       <Tabs groupId="gpu" queryString="gpu">
         <TabItem value="cpu" label="CPU">
           ```shell
-          python -m pip install 'khoj[local]'
+          python -m pip install 'alphamind[local]'
           ```
         </TabItem>
         <TabItem value="nvidia" label="NVIDIA (CUDA) GPU">
           ```shell
-          CMAKE_ARGS="-DGGML_CUDA=on" FORCE_CMAKE=1 python -m pip install 'khoj[local]'
+          CMAKE_ARGS="-DGGML_CUDA=on" FORCE_CMAKE=1 python -m pip install 'alphamind[local]'
           ```
         </TabItem>
         <TabItem value="amd" label="AMD (ROCm) GPU">
           ```shell
-          CMAKE_ARGS="-DGGML_HIPBLAS=on" FORCE_CMAKE=1 python -m pip install 'khoj[local]'
+          CMAKE_ARGS="-DGGML_HIPBLAS=on" FORCE_CMAKE=1 python -m pip install 'alphamind[local]'
           ```
         </TabItem>
         <TabItem value="vulkan" label="VULKAN GPU">
           ```shell
-          CMAKE_ARGS="-DGGML_VULKAN=on" FORCE_CMAKE=1 python -m pip install 'khoj[local]'
+          CMAKE_ARGS="-DGGML_VULKAN=on" FORCE_CMAKE=1 python -m pip install 'alphamind[local]'
           ```
         </TabItem>
       </Tabs>
     </TabItem>
   </Tabs>
 
-<h3>2. Start Khoj Server</h3>
+<h3>2. Start AlphaMind Server</h3>
 
-Run the following command from your terminal to start the Khoj service.
+Run the following command from your terminal to start the AlphaMind service.
 
 ```shell
-USE_EMBEDDED_DB="true" khoj --anonymous-mode
+USE_EMBEDDED_DB="true" alphamind --anonymous-mode
 ```
-`--anonymous-mode` allows access to Khoj without requiring login. This is usually fine for local only, single user setups. If you need authentication follow the [authentication setup docs](/advanced/authentication).
+`--anonymous-mode` allows access to AlphaMind without requiring login. This is usually fine for local only, single user setups. If you need authentication follow the [authentication setup docs](/advanced/authentication).
 
 <h4>First Run</h4>
 On the first run of the above command, you will be prompted to:
 1. Create an admin account with an email and secure password
 2. Customize the chat models to enable
    - Keep your [OpenAI](https://platform.openai.com/api-keys), [Anthropic](https://console.anthropic.com/account/keys), [Gemini](https://aistudio.google.com/app/apikey) API keys and [OpenAI](https://platform.openai.com/docs/models), [Anthropic](https://docs.anthropic.com/en/docs/about-claude/models#model-names), [Gemini](https://cloud.google.com/vertex-ai/generative-ai/docs/learn/models#gemini-models), [Offline](https://huggingface.co/models?pipeline_tag=text-generation&library=gguf) chat model names handy to set any of them up during first run.
-3. Your setup is complete once you see `🌖 Khoj is ready to engage` in the server logs on your terminal!
+3. Your setup is complete once you see `🌖 AlphaMind is ready to engage` in the server logs on your terminal!
 
 
 :::tip[Auto Start]
-To start Khoj automatically in the background use [Task scheduler](https://www.windowscentral.com/how-create-automated-task-using-task-scheduler-windows-10) on Windows or [Cron](https://en.wikipedia.org/wiki/Cron) on Mac, Linux (e.g. with `@reboot khoj`)
+To start AlphaMind automatically in the background use [Task scheduler](https://www.windowscentral.com/how-create-automated-task-using-task-scheduler-windows-10) on Windows or [Cron](https://en.wikipedia.org/wiki/Cron) on Mac, Linux (e.g. with `@reboot alphamind`)
 :::
   </TabItem>
 </Tabs>
 
-## Use Khoj
+## Use AlphaMind
 
 You can now open the web app at http://localhost:42110 and start interacting!<br />
 Nothing else is necessary, but you can customize your setup further by following the steps below.
 
 ### Add Chat Models
-<h4>Login to the Khoj Admin Panel</h4>
+<h4>Login to the AlphaMind Admin Panel</h4>
 Go to http://localhost:42110/server/admin and login with the admin credentials you setup during installation.
 
 :::info[CSRF Error]
@@ -230,13 +230,13 @@ Ensure you are using **localhost, not 127.0.0.1**, to access the admin panel to 
 :::
 
 :::info[CSRF Trusted Origin or Unset Cookie Error]
-If using a load balancer/reverse_proxy in front of your Khoj server: Set the environment variable KHOJ_ALLOWED_DOMAIN=your-internal-ip-or-domain to avoid this error.
-If unset, it defaults to KHOJ_DOMAIN.
+If using a load balancer/reverse_proxy in front of your AlphaMind server: Set the environment variable ALPHAMIND_ALLOWED_DOMAIN=your-internal-ip-or-domain to avoid this error.
+If unset, it defaults to ALPHAMIND_DOMAIN.
 :::
 
 :::info[DISALLOWED HOST or Bad Request (400) Error]
-You may hit this if you try access Khoj exposed on a custom domain (e.g. 192.168.12.3 or example.com) or over HTTP.
-Set the environment variables KHOJ_DOMAIN=your-external-ip-or-domain and KHOJ_NO_HTTPS=True if required to avoid this error.
+You may hit this if you try access AlphaMind exposed on a custom domain (e.g. 192.168.12.3 or example.com) or over HTTP.
+Set the environment variables ALPHAMIND_DOMAIN=your-external-ip-or-domain and ALPHAMIND_NO_HTTPS=True if required to avoid this error.
 :::
 
 :::tip[Note]
@@ -244,7 +244,7 @@ Using Safari on Mac? You might not be able to login to the admin panel. Try usin
 :::
 
 <h4>Configure Chat Model</h4>
-Setup which chat model you'd want to use. Khoj supports local and online chat models.
+Setup which chat model you'd want to use. AlphaMind supports local and online chat models.
 
 <Tabs groupId="chatmodel" queryString>
   <TabItem value="openai" label="OpenAI">
@@ -296,7 +296,7 @@ Offline chat stays completely private and can work without internet using any op
 1. Install any Openai API compatible local ai model server like [llama-cpp-server](https://github.com/ggml-org/llama.cpp/tree/master/tools/server), Ollama, vLLM etc.
 2. Add an [ai model api](http://localhost:42110/server/admin/database/aimodelapi/add/) on the admin panel
    - Set the `api url` field to the url of your local ai model provider like `http://localhost:11434/v1/` for Ollama
-3. Restart the Khoj server to load models available on your local ai model provider
+3. Restart the AlphaMind server to load models available on your local ai model provider
    - If that doesn't work, you'll need to manually add available [chat model](http://localhost:42110/server/admin/database/chatmodel/add) in the admin panel.
 4. Set the newly added chat model as your preferred model in your [User chat settings](http://localhost:42110/settings)
 5. [Start chatting](http://localhost:42110) with your local AI!
@@ -305,7 +305,7 @@ Offline chat stays completely private and can work without internet using any op
 
 :::tip[Multiple Chat Models]
 Set your preferred default chat model in the `Default`, `Advanced` fields of your [ServerChatSettings](http://localhost:42110/server/admin/database/serverchatsettings/).
-Khoj uses these chat model for all intermediate steps like intent detection, web search etc.
+AlphaMind uses these chat model for all intermediate steps like intent detection, web search etc.
 :::
 
 :::info[Chat Model Fields]
@@ -315,31 +315,31 @@ Khoj uses these chat model for all intermediate steps like intent detection, web
 
 ### Sync your Knowledge
 
-- You can chat with your notes and documents using Khoj.
-- Khoj can keep your files and folders synced using the Khoj [Desktop](/clients/desktop#setup), [Obsidian](/clients/obsidian#setup) or [Emacs](/clients/emacs#setup) clients.
+- You can chat with your notes and documents using AlphaMind.
+- AlphaMind can keep your files and folders synced using the AlphaMind [Desktop](/clients/desktop#setup), [Obsidian](/clients/obsidian#setup) or [Emacs](/clients/emacs#setup) clients.
 - Your [Notion workspace](/data-sources/notion_integration) can be directly synced from the web app.
 - You can also just drag and drop specific files you want to chat with on the [Web app](/clients/web#upload-documents).
 
-### Setup Khoj Clients
-The Khoj web app is available by default to chat, search and configure Khoj.<br />
-You can also install a Khoj client to easily access it from Obsidian, Emacs, Whatsapp or your OS and keep your documents synced with Khoj.
+### Setup AlphaMind Clients
+The AlphaMind web app is available by default to chat, search and configure AlphaMind.<br />
+You can also install a AlphaMind client to easily access it from Obsidian, Emacs, Whatsapp or your OS and keep your documents synced with AlphaMind.
 
 :::info[Note]
-Set the host URL on your clients settings page to your Khoj server URL. By default, use `http://127.0.0.1:42110` or `http://localhost:42110`. Note that `localhost` may not work in all cases.
+Set the host URL on your clients settings page to your AlphaMind server URL. By default, use `http://127.0.0.1:42110` or `http://localhost:42110`. Note that `localhost` may not work in all cases.
 :::
 
 <Tabs groupId="client" queryString>
   <TabItem value="desktop" label="Desktop">
-  - Read the Khoj Desktop app [setup docs](/clients/desktop#setup).
+  - Read the AlphaMind Desktop app [setup docs](/clients/desktop#setup).
   </TabItem>
   <TabItem value="emacs" label="Emacs">
-  - Read the Khoj Emacs package [setup docs](/clients/emacs#setup).
+  - Read the AlphaMind Emacs package [setup docs](/clients/emacs#setup).
   </TabItem>
   <TabItem value="obsidian" label="Obsidian">
-  - Read the Khoj Obsidian plugin [setup docs](/clients/obsidian#setup).
+  - Read the AlphaMind Obsidian plugin [setup docs](/clients/obsidian#setup).
   </TabItem>
   <TabItem value="whatsapp" label="Whatsapp">
-  - Read the Khoj Whatsapp app [setup docs](/clients/whatsapp).
+  - Read the AlphaMind Whatsapp app [setup docs](/clients/whatsapp).
   </TabItem>
 </Tabs>
 
@@ -349,16 +349,16 @@ Set the host URL on your clients settings page to your Khoj server URL. By defau
   <Tabs groupId="server" queryString>
     <TabItem value="pip" label="Pip">
       ```shell
-      pip install --upgrade khoj
+      pip install --upgrade alphamind
       ```
-      *Note: To upgrade to the latest pre-release version of the khoj server run below command*
+      *Note: To upgrade to the latest pre-release version of the alphamind server run below command*
     </TabItem>
     <TabItem value="docker" label="Docker">
       Run the commands below from the same directory where you have your `docker-compose.yml` file.
       This will fetch the latest build and upgrade your server.
       ```shell
       # Windows users should use their WSL2 terminal to run these commands
-      cd ~/.khoj  # assuming your khoj docker-compose.yml file is here
+      cd ~/.alphamind  # assuming your alphamind docker-compose.yml file is here
       docker-compose up --build
       ```
     </TabItem>
@@ -368,15 +368,15 @@ Set the host URL on your clients settings page to your Khoj server URL. By defau
   <Tabs groupId="client" queryString>
     <TabItem value="desktop" label="Desktop">
       - The Desktop app automatically updates to the latest released version on restart.
-      - You can manually download the latest version from the [Khoj Website](https://khoj.dev/downloads).
+      - You can manually download the latest version from the [AlphaMind Website](https://alphamind.dev/downloads).
     </TabItem>
     <TabItem value="emacs" label="Emacs">
     - Use your Emacs Package Manager to Upgrade
-    - See [khoj.el package setup](/clients/emacs#setup) for details
+    - See [alphamind.el package setup](/clients/emacs#setup) for details
     </TabItem>
     <TabItem value="obsidian" label="Obsidian">
       - Upgrade via the Community plugins tab on the settings pane in the Obsidian app
-      - See the [khoj plugin setup](/clients/obsidian#setup) for details
+      - See the [alphamind plugin setup](/clients/obsidian#setup) for details
     </TabItem>
   </Tabs>
 
@@ -385,11 +385,11 @@ Set the host URL on your clients settings page to your Khoj server URL. By defau
   <Tabs groupId="server" queryString>
     <TabItem value="pip" label="Pip">
     ```shell
-    # uninstall khoj server
-    pip uninstall khoj
+    # uninstall alphamind server
+    pip uninstall alphamind
 
-    # delete khoj postgres db
-    dropdb khoj -U postgres
+    # delete alphamind postgres db
+    dropdb alphamind -U postgres
     ```
     </TabItem>
     <TabItem value="docker" label="Docker">
@@ -405,10 +405,10 @@ Set the host URL on your clients settings page to your Khoj server URL. By defau
 ### Uninstall Clients
   <Tabs groupId="client" queryString>
     <TabItem value="desktop" label="Desktop">
-    Uninstall the Khoj Desktop client in the standard way from your OS.
+    Uninstall the AlphaMind Desktop client in the standard way from your OS.
     </TabItem>
     <TabItem value="emacs" label="Emacs">
-    Uninstall the Khoj Emacs package in the standard way from Emacs.
+    Uninstall the AlphaMind Emacs package in the standard way from Emacs.
     </TabItem>
     <TabItem value="obsidian" label="Obsidian">
     Uninstall via the Community plugins tab on the settings pane in the Obsidian app
@@ -417,27 +417,27 @@ Set the host URL on your clients settings page to your Khoj server URL. By defau
 
 ## Troubleshoot
 
-#### Dependency conflict when trying to install Khoj python package with pip
-- **Reason**: When conflicting dependency versions are required by Khoj vs other python packages installed on your system
-- **Fix**: Install Khoj in a python virtual environment using [venv](https://docs.python.org/3/library/venv.html) or [pipx](https://pypa.github.io/pipx) to avoid this dependency conflicts
+#### Dependency conflict when trying to install AlphaMind python package with pip
+- **Reason**: When conflicting dependency versions are required by AlphaMind vs other python packages installed on your system
+- **Fix**: Install AlphaMind in a python virtual environment using [venv](https://docs.python.org/3/library/venv.html) or [pipx](https://pypa.github.io/pipx) to avoid this dependency conflicts
 - **Process**:
   1. Install [pipx](https://pypa.github.io/pipx/#install-pipx)
-  2. Use `pipx` to install Khoj to avoid dependency conflicts with other python packages.
+  2. Use `pipx` to install AlphaMind to avoid dependency conflicts with other python packages.
      ```shell
-     pipx install khoj
+     pipx install alphamind
      ```
-  3. Now start `khoj` using the standard steps described earlier
+  3. Now start `alphamind` using the standard steps described earlier
 
 #### Install fails while building Tokenizer dependency
-- **Details**: `pip install khoj` fails while building the `tokenizers` dependency. Complains about Rust.
+- **Details**: `pip install alphamind` fails while building the `tokenizers` dependency. Complains about Rust.
 - **Fix**: Install Rust to build the tokenizers package. For example on Mac run:
     ```shell
     brew install rustup
     rustup-init
     source ~/.cargo/env
     ```
-- **Refer**: [Issue with Fix](https://github.com/khoj-ai/khoj/issues/82#issuecomment-1241890946) for more details
+- **Refer**: [Issue with Fix](https://github.com/alphamind-ai/alphamind/issues/82#issuecomment-1241890946) for more details
 
-#### Khoj in Docker errors out with \"Killed\" in error message
+#### AlphaMind in Docker errors out with \"Killed\" in error message
 - **Fix**: Increase RAM available to Docker Containers in Docker Settings
 - **Refer**: [StackOverflow Solution](https://stackoverflow.com/a/50770267), [Configure Resources on Docker for Mac](https://docs.docker.com/desktop/mac/#resources)

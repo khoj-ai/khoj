@@ -1,5 +1,5 @@
 import { App, Notice, PluginSettingTab, Setting, TFile, SuggestModal } from 'obsidian';
-import Khoj from 'src/main';
+import AlphaMind from 'src/main';
 import { canConnectToBackend, fetchChatModels, fetchUserServerSettings, getBackendStatusMessage, updateContentIndex, updateServerChatModel } from './utils';
 
 export interface UserInfo {
@@ -26,10 +26,10 @@ export interface ServerUserConfig {
     // Add other fields from UserConfig if needed by the plugin elsewhere
 }
 
-export interface KhojSetting {
+export interface AlphaMindSetting {
     resultsCount: number;
-    khojUrl: string;
-    khojApiKey: string;
+    alphamindUrl: string;
+    alphamindApiKey: string;
     connectedToBackend: boolean;
     autoConfigure: boolean;
     lastSync: Map<TFile, number>;
@@ -44,10 +44,10 @@ export interface KhojSetting {
     availableChatModels: ModelOption[];
 }
 
-export const DEFAULT_SETTINGS: KhojSetting = {
+export const DEFAULT_SETTINGS: AlphaMindSetting = {
     resultsCount: 15,
-    khojUrl: 'https://app.khoj.dev',
-    khojApiKey: '',
+    alphamindUrl: 'https://app.alphamind.dev',
+    alphamindApiKey: '',
     connectedToBackend: false,
     autoConfigure: true,
     lastSync: new Map(),
@@ -66,13 +66,13 @@ export const DEFAULT_SETTINGS: KhojSetting = {
     availableChatModels: [],
 }
 
-export class KhojSettingTab extends PluginSettingTab {
-    plugin: Khoj;
+export class AlphaMindSettingTab extends PluginSettingTab {
+    plugin: AlphaMind;
     private chatModelSetting: Setting | null = null;
     private storageProgressEl: HTMLProgressElement | null = null;
     private storageProgressText: HTMLSpanElement | null = null;
 
-    constructor(app: App, plugin: Khoj) {
+    constructor(app: App, plugin: AlphaMind) {
         super(app, plugin);
         this.plugin = plugin;
     }
@@ -82,30 +82,30 @@ export class KhojSettingTab extends PluginSettingTab {
         containerEl.empty();
         this.chatModelSetting = null; // Reset when display is called
 
-        // Add notice whether able to connect to khoj backend or not
+        // Add notice whether able to connect to alphamind backend or not
         let backendStatusMessage = getBackendStatusMessage(
             this.plugin.settings.connectedToBackend,
             this.plugin.settings.userInfo?.email,
-            this.plugin.settings.khojUrl,
-            this.plugin.settings.khojApiKey
+            this.plugin.settings.alphamindUrl,
+            this.plugin.settings.alphamindApiKey
         );
 
         const connectHeaderEl = containerEl.createEl('h3', { title: backendStatusMessage });
-        const connectHeaderContentEl = connectHeaderEl.createSpan({ cls: 'khoj-connect-settings-header' });
+        const connectHeaderContentEl = connectHeaderEl.createSpan({ cls: 'alphamind-connect-settings-header' });
         const connectTitleEl = connectHeaderContentEl.createSpan({ text: 'Connect' });
-        const backendStatusEl = connectTitleEl.createSpan({ text: this.connectStatusIcon(), cls: 'khoj-connect-settings-header-status' });
+        const backendStatusEl = connectTitleEl.createSpan({ text: this.connectStatusIcon(), cls: 'alphamind-connect-settings-header-status' });
         if (this.plugin.settings.userInfo && this.plugin.settings.connectedToBackend) {
             if (this.plugin.settings.userInfo.photo) {
                 const profilePicEl = connectHeaderContentEl.createEl('img', {
                     attr: { src: this.plugin.settings.userInfo.photo },
-                    cls: 'khoj-profile'
+                    cls: 'alphamind-profile'
                 });
                 profilePicEl.addEventListener('click', () => { new Notice(backendStatusMessage); });
             } else if (this.plugin.settings.userInfo.email) {
                 const initial = this.plugin.settings.userInfo.email[0].toUpperCase();
                 const profilePicEl = connectHeaderContentEl.createDiv({
                     text: initial,
-                    cls: 'khoj-profile khoj-profile-initial'
+                    cls: 'alphamind-profile alphamind-profile-initial'
                 });
                 profilePicEl.addEventListener('click', () => { new Notice(backendStatusMessage); });
             }
@@ -116,18 +116,18 @@ export class KhojSettingTab extends PluginSettingTab {
                 : `Signed in as ${this.plugin.settings.userInfo.email}`;
         }
 
-        // Add khoj settings configurable from the plugin settings tab
+        // Add alphamind settings configurable from the plugin settings tab
         const apiKeySetting = new Setting(containerEl)
-            .setName('Khoj API Key')
+            .setName('AlphaMind API Key')
             .addText(text => text
-                .setValue(`${this.plugin.settings.khojApiKey}`)
+                .setValue(`${this.plugin.settings.alphamindApiKey}`)
                 .onChange(async (value) => {
-                    this.plugin.settings.khojApiKey = value.trim();
+                    this.plugin.settings.alphamindApiKey = value.trim();
                     ({
                         connectedToBackend: this.plugin.settings.connectedToBackend,
                         userInfo: this.plugin.settings.userInfo,
                         statusMessage: backendStatusMessage,
-                    } = await canConnectToBackend(this.plugin.settings.khojUrl, this.plugin.settings.khojApiKey));
+                    } = await canConnectToBackend(this.plugin.settings.alphamindUrl, this.plugin.settings.alphamindApiKey));
 
                     if (!this.plugin.settings.connectedToBackend) {
                         this.plugin.settings.availableChatModels = [];
@@ -141,26 +141,26 @@ export class KhojSettingTab extends PluginSettingTab {
 
         // Add API key setting description with link to get API key
         apiKeySetting.descEl.createEl('span', {
-            text: 'Connect your Khoj Cloud account. ',
+            text: 'Connect your AlphaMind Cloud account. ',
         });
         apiKeySetting.descEl.createEl('a', {
             text: 'Get your API Key',
-            href: `${this.plugin.settings.khojUrl}/settings#clients`,
+            href: `${this.plugin.settings.alphamindUrl}/settings#clients`,
             attr: { target: '_blank' }
         });
 
         new Setting(containerEl)
-            .setName('Khoj URL')
-            .setDesc('The URL of the Khoj backend.')
+            .setName('AlphaMind URL')
+            .setDesc('The URL of the AlphaMind backend.')
             .addText(text => text
-                .setValue(`${this.plugin.settings.khojUrl}`)
+                .setValue(`${this.plugin.settings.alphamindUrl}`)
                 .onChange(async (value) => {
-                    this.plugin.settings.khojUrl = value.trim().replace(/\/$/, '');
+                    this.plugin.settings.alphamindUrl = value.trim().replace(/\/$/, '');
                     ({
                         connectedToBackend: this.plugin.settings.connectedToBackend,
                         userInfo: this.plugin.settings.userInfo,
                         statusMessage: backendStatusMessage,
-                    } = await canConnectToBackend(this.plugin.settings.khojUrl, this.plugin.settings.khojApiKey));
+                    } = await canConnectToBackend(this.plugin.settings.alphamindUrl, this.plugin.settings.alphamindApiKey));
 
                     if (!this.plugin.settings.connectedToBackend) {
                         this.plugin.settings.availableChatModels = [];
@@ -214,7 +214,7 @@ export class KhojSettingTab extends PluginSettingTab {
 
         new Setting(containerEl)
             .setName('Auto Sync')
-            .setDesc('Automatically index your vault with Khoj.')
+            .setDesc('Automatically index your vault with AlphaMind.')
             .addToggle(toggle => toggle
                 .setValue(this.plugin.settings.autoConfigure)
                 .onChange(async (value) => {
@@ -225,7 +225,7 @@ export class KhojSettingTab extends PluginSettingTab {
         // Add setting to sync markdown notes
         new Setting(containerEl)
             .setName('Sync Notes')
-            .setDesc('Index Markdown files in your vault with Khoj.')
+            .setDesc('Index Markdown files in your vault with AlphaMind.')
             .addToggle(toggle => toggle
                 .setValue(this.plugin.settings.syncFileType.markdown)
                 .onChange(async (value) => {
@@ -237,7 +237,7 @@ export class KhojSettingTab extends PluginSettingTab {
         // Add setting to sync images
         new Setting(containerEl)
             .setName('Sync Images')
-            .setDesc('Index images in your vault with Khoj.')
+            .setDesc('Index images in your vault with AlphaMind.')
             .addToggle(toggle => toggle
                 .setValue(this.plugin.settings.syncFileType.images)
                 .onChange(async (value) => {
@@ -249,7 +249,7 @@ export class KhojSettingTab extends PluginSettingTab {
         // Add setting to sync PDFs
         new Setting(containerEl)
             .setName('Sync PDFs')
-            .setDesc('Index PDF files in your vault with Khoj.')
+            .setDesc('Index PDF files in your vault with AlphaMind.')
             .addToggle(toggle => toggle
                 .setValue(this.plugin.settings.syncFileType.pdf)
                 .onChange(async (value) => {
@@ -334,7 +334,7 @@ export class KhojSettingTab extends PluginSettingTab {
         let indexVaultSetting = new Setting(containerEl);
         indexVaultSetting
             .setName('Force Sync')
-            .setDesc('Manually force Khoj to re-index your Obsidian Vault.')
+            .setDesc('Manually force AlphaMind to re-index your Obsidian Vault.')
             .addButton(button => button
                 .setButtonText('Update')
                 .setCta()
@@ -367,8 +367,8 @@ export class KhojSettingTab extends PluginSettingTab {
                     this.plugin.registerInterval(progress_indicator);
 
                     // Obtain sync progress elements by id (created below)
-                    const syncProgressEl = document.getElementById('khoj-sync-progress') as HTMLProgressElement | null;
-                    const syncProgressText = document.getElementById('khoj-sync-progress-text') as HTMLElement | null;
+                    const syncProgressEl = document.getElementById('alphamind-sync-progress') as HTMLProgressElement | null;
+                    const syncProgressText = document.getElementById('alphamind-sync-progress-text') as HTMLElement | null;
 
                     if (syncProgressEl && syncProgressText) {
                         syncProgressEl.style.display = '';
@@ -379,8 +379,8 @@ export class KhojSettingTab extends PluginSettingTab {
                     }
 
                     const onProgress = (progress: { processed: number, total: number }) => {
-                        const el = document.getElementById('khoj-sync-progress') as HTMLProgressElement | null;
-                        const txt = document.getElementById('khoj-sync-progress-text') as HTMLElement | null;
+                        const el = document.getElementById('alphamind-sync-progress') as HTMLProgressElement | null;
+                        const txt = document.getElementById('alphamind-sync-progress-text') as HTMLElement | null;
                         if (!el || !txt) return;
                         el.max = Math.max(progress.total, 1);
                         el.value = Math.min(progress.processed, el.max);
@@ -393,8 +393,8 @@ export class KhojSettingTab extends PluginSettingTab {
                         );
                     } finally {
                         // Cleanup: hide sync progress UI
-                        const el = document.getElementById('khoj-sync-progress') as HTMLProgressElement | null;
-                        const txt = document.getElementById('khoj-sync-progress-text') as HTMLElement | null;
+                        const el = document.getElementById('alphamind-sync-progress') as HTMLProgressElement | null;
+                        const txt = document.getElementById('alphamind-sync-progress-text') as HTMLElement | null;
                         if (el) el.style.display = 'none';
                         if (txt) txt.style.display = 'none';
                         this.refreshStorageDisplay();
@@ -425,13 +425,13 @@ export class KhojSettingTab extends PluginSettingTab {
 
         // Create progress bar for Force Sync operation (hidden by default)
         const syncProgressEl = document.createElement('progress');
-        syncProgressEl.id = 'khoj-sync-progress';
+        syncProgressEl.id = 'alphamind-sync-progress';
         syncProgressEl.value = 0;
         syncProgressEl.max = 1;
         syncProgressEl.style.width = '100%';
         syncProgressEl.style.display = 'none';
         const syncProgressText = document.createElement('span');
-        syncProgressText.id = 'khoj-sync-progress-text';
+        syncProgressText.id = 'alphamind-sync-progress-text';
         syncProgressText.textContent = '';
         syncProgressText.style.display = 'none';
         storageSetting.descEl.appendChild(syncProgressEl);
@@ -467,7 +467,7 @@ export class KhojSettingTab extends PluginSettingTab {
             this.storageProgressEl.max = metrics.totalBytes;
             this.storageProgressText.textContent = `${usedStr} / ${totalStr}`;
         } catch (err) {
-            console.error('Khoj: Failed to update storage display', err);
+            console.error('AlphaMind: Failed to update storage display', err);
             this.storageProgressText.textContent = 'Estimation unavailable';
         }
     }
@@ -489,8 +489,8 @@ export class KhojSettingTab extends PluginSettingTab {
                     serverSelectedModelId = serverModelIdStr;
                 } else {
                     // Server has a selection, but it's not in the options list (e.g. model removed, or different set of models)
-                    // In this case, we might fall back to null (Khoj Default)
-                    console.warn(`Khoj: Server's selected model ID ${serverModelIdStr} not in available models. Falling back to default.`);
+                    // In this case, we might fall back to null (AlphaMind Default)
+                    console.warn(`AlphaMind: Server's selected model ID ${serverModelIdStr} not in available models. Falling back to default.`);
                     serverSelectedModelId = null;
                 }
             } else {
@@ -520,13 +520,13 @@ export class KhojSettingTab extends PluginSettingTab {
         const modelSetting = this.chatModelSetting;
 
         if (!this.plugin.settings.connectedToBackend) {
-            modelSetting.setDesc('Connect to Khoj to load and set chat model options.');
+            modelSetting.setDesc('Connect to AlphaMind to load and set chat model options.');
             modelSetting.addText(text => text.setValue("Not connected").setDisabled(true));
             return;
         }
 
         if (this.plugin.settings.availableChatModels.length === 0 && this.plugin.settings.connectedToBackend) {
-            modelSetting.setDesc('Fetching models or no models available. Check Khoj connection or try refreshing.');
+            modelSetting.setDesc('Fetching models or no models available. Check AlphaMind connection or try refreshing.');
             modelSetting.addButton(button => button
                 .setButtonText('Refresh Models')
                 .onClick(async () => {

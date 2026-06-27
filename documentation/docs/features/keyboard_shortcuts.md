@@ -9,9 +9,9 @@ Oftentimes, having to leave your keyboard to move the mouse can break your flow.
 - **Up Arrow Key**: Move up in the list of most recent messages in your chat window.
 - **Down Arrow Key**: Move down in the list of most recent messages in your chat window.
 
-You can watch the demo to see how it works on [this sample conversation](http://app.khoj.dev/share/chat/in-particular-assess-the-prospect-for-brazil-/).
+You can watch the demo to see how it works on [this sample conversation](http://app.alphamind.dev/share/chat/in-particular-assess-the-prospect-for-brazil-/).
 
-<img src="https://assets.khoj.dev/up_down_shortcuts.gif" height="300" alt="Up/Down Arrow Keys"></img>
+<img src="https://assets.alphamind.dev/up_down_shortcuts.gif" height="300" alt="Up/Down Arrow Keys"></img>
 
 ### Enter (Chat Input)
 

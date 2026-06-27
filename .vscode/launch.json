@@ -2,10 +2,10 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Launch Khoj",
+            "name": "Launch AlphaMind",
             "type": "debugpy",
             "request": "launch",
-            "module": "src.khoj.main",
+            "module": "src.alphamind.main",
             "console": "integratedTerminal",
             "justMyCode": false,
             "sudo": false,
@@ -20,17 +20,17 @@
             ],
             "envFile": "${workspaceFolder}/.env",
             "env": {
-                "KHOJ_ADMIN_EMAIL": "admin",
-                "KHOJ_ADMIN_PASSWORD": "admin",
+                "ALPHAMIND_ADMIN_EMAIL": "admin",
+                "ALPHAMIND_ADMIN_PASSWORD": "admin",
                 "USE_EMBEDDED_DB": "true",
-                "KHOJ_DEBUG": "true",
-                "KHOJ_TELEMETRY_DISABLED": "true",
+                "ALPHAMIND_DEBUG": "true",
+                "ALPHAMIND_TELEMETRY_DISABLED": "true",
                 // Configure Code Sandbox
-                // "KHOJ_TERRARIUM_URL": "http://localhost:8080",
+                // "ALPHAMIND_TERRARIUM_URL": "http://localhost:8080",
                 // Enable Promptracer to debug prompt flows
                 // "PROMPTRACE_DIR": "\${workspaceFolder}/promptrace",
-                // Enable Khoj Operator
-                // "KHOJ_OPERATOR_ENABLED": "True",
+                // Enable AlphaMind Operator
+                // "ALPHAMIND_OPERATOR_ENABLED": "True",
             }
         },
     ]

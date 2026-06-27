@@ -1,6 +1,6 @@
 # Get Base Image
 FROM tiangolo/uvicorn-gunicorn:python3.11-slim
-LABEL org.opencontainers.image.source https://github.com/khoj-ai/khoj
+LABEL org.opencontainers.image.source https://github.com/alphamind-ai/alphamind
 
 # Install Telemetry Server Dependencies
 COPY requirements.txt /tmp/requirements.txt

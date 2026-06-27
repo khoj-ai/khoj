@@ -1,6 +1,6 @@
 import datetime
 
-from khoj.processor.content.org_mode import orgnode
+from alphamind.processor.content.org_mode import orgnode
 
 
 # Test

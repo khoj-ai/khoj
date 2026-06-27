@@ -8,8 +8,8 @@ on:
   # Allow manual triggers from GitHub UI
   workflow_dispatch:
     inputs:
-      khoj_mode:
-        description: 'Khoj Mode (general/default/research)'
+      alphamind_mode:
+        description: 'AlphaMind Mode (general/default/research)'
         required: true
         default: 'default'
         type: choice
@@ -80,7 +80,7 @@ jobs:
     strategy:
       matrix:
         # Use input from manual trigger if available, else run all combinations
-        khoj_mode: ${{ github.event_name == 'workflow_dispatch' && fromJSON(format('["{0}"]', inputs.khoj_mode)) || fromJSON('["general", "default", "research"]') }}
+        alphamind_mode: ${{ github.event_name == 'workflow_dispatch' && fromJSON(format('["{0}"]', inputs.alphamind_mode)) || fromJSON('["general", "default", "research"]') }}
         dataset: ${{ github.event_name == 'workflow_dispatch' && fromJSON(format('["{0}"]', inputs.dataset)) || fromJSON('["frames", "gpqa"]') }}
 
     services:
@@ -129,7 +129,7 @@ jobs:
           # install dependencies
           sudo apt update && sudo apt install -y git libegl1 sqlite3 libsqlite3-dev libsqlite3-0 ffmpeg libsm6 libxext6
           # install terrarium for code sandbox
-          git clone https://github.com/khoj-ai/terrarium.git && cd terrarium && npm install --legacy-peer-deps && mkdir pyodide_cache
+          git clone https://github.com/alphamind-ai/terrarium.git && cd terrarium && npm install --legacy-peer-deps && mkdir pyodide_cache
 
       - name: ⬇️ Install Application
         env:
@@ -142,16 +142,16 @@ jobs:
 
       - name: 📝 Run Eval
         env:
-          KHOJ_MODE: ${{ matrix.khoj_mode }}
+          ALPHAMIND_MODE: ${{ matrix.alphamind_mode }}
           SAMPLE_SIZE: ${{ github.event_name == 'workflow_dispatch' && inputs.sample_size || 200 }}
           BATCH_SIZE: "20"
           RANDOMIZE: ${{ github.event_name == 'workflow_dispatch' && inputs.randomize || 'true' }}
           DATASET_SEED: ${{ github.event_name == 'workflow_dispatch' && inputs.dataset_seed || github.run_id }}
-          KHOJ_LLM_SEED: "42"
-          KHOJ_URL: "http://localhost:42110"
-          KHOJ_DEFAULT_CHAT_MODEL: ${{ github.event_name == 'workflow_dispatch' && inputs.chat_model || 'gemini-2.5-flash' }}
-          KHOJ_RESEARCH_ITERATIONS: ${{ github.event_name == 'workflow_dispatch' && inputs.max_research_iterations || 10 }}
-          KHOJ_AUTO_READ_WEBPAGE: ${{ github.event_name == 'workflow_dispatch' && inputs.auto_read_webpage || 'false' }}
+          ALPHAMIND_LLM_SEED: "42"
+          ALPHAMIND_URL: "http://localhost:42110"
+          ALPHAMIND_DEFAULT_CHAT_MODEL: ${{ github.event_name == 'workflow_dispatch' && inputs.chat_model || 'gemini-2.5-flash' }}
+          ALPHAMIND_RESEARCH_ITERATIONS: ${{ github.event_name == 'workflow_dispatch' && inputs.max_research_iterations || 10 }}
+          ALPHAMIND_AUTO_READ_WEBPAGE: ${{ github.event_name == 'workflow_dispatch' && inputs.auto_read_webpage || 'false' }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           OPENAI_BASE_URL: ${{ github.event_name == 'workflow_dispatch' && inputs.openai_base_url || 'https://api.openai.com/v1' }}
           SERPER_DEV_API_KEY: ${{ matrix.dataset != 'math500' && secrets.SERPER_DEV_API_KEY || '' }}
@@ -160,23 +160,23 @@ jobs:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
           E2B_API_KEY: ${{ inputs.sandbox == 'e2b' && secrets.E2B_API_KEY || '' }}
           E2B_TEMPLATE: ${{ vars.E2B_TEMPLATE }}
-          KHOJ_ADMIN_EMAIL: khoj
-          KHOJ_ADMIN_PASSWORD: khoj
+          ALPHAMIND_ADMIN_EMAIL: alphamind
+          ALPHAMIND_ADMIN_PASSWORD: alphamind
           POSTGRES_HOST: localhost
           POSTGRES_PORT: 5432
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
           POSTGRES_DB: postgres
           USE_EMBEDDED_DB: "true"
-          KHOJ_TELEMETRY_DISABLE: "True"  # To disable telemetry for tests
+          ALPHAMIND_TELEMETRY_DISABLE: "True"  # To disable telemetry for tests
         run: |
           set -euo pipefail
 
-          # Start Khoj server in background
+          # Start AlphaMind server in background
           # Capture stdout/stderr to a log for debugging if startup fails
-          uv run khoj --anonymous-mode --non-interactive -vv > khoj_server.log 2>&1 &
-          KHOJ_PID=$!
-          echo "Started Khoj (PID=$KHOJ_PID)"
+          uv run alphamind --anonymous-mode --non-interactive -vv > alphamind_server.log 2>&1 &
+          ALPHAMIND_PID=$!
+          echo "Started AlphaMind (PID=$ALPHAMIND_PID)"
 
           # Start code sandbox
           npm install -g pm2
@@ -186,21 +186,21 @@ jobs:
           timeout=120
           while ! curl -s http://localhost:42110/api/health > /dev/null; do
             # If process died, surface logs and fail fast
-            if ! kill -0 "$KHOJ_PID" 2>/dev/null; then
-              echo "Khoj process exited before becoming healthy. Logs:" >&2
-              sed -n '1,200p' khoj_server.log >&2 || true
+            if ! kill -0 "$ALPHAMIND_PID" 2>/dev/null; then
+              echo "AlphaMind process exited before becoming healthy. Logs:" >&2
+              sed -n '1,200p' alphamind_server.log >&2 || true
               exit 1
             fi
             if [ $timeout -le 0 ]; then
-              echo "Timed out waiting for Khoj server. Partial logs:" >&2
-              sed -n '1,200p' khoj_server.log >&2 || true
+              echo "Timed out waiting for AlphaMind server. Partial logs:" >&2
+              sed -n '1,200p' alphamind_server.log >&2 || true
               exit 1
             fi
-            echo "Waiting for Khoj server... ($timeout s left)"
+            echo "Waiting for AlphaMind server... ($timeout s left)"
             sleep 2
             timeout=$((timeout-2))
           done
-          echo "Khoj server is healthy"
+          echo "AlphaMind server is healthy"
 
           # Run evals
           uv run python tests/evals/eval.py -d ${{ matrix.dataset }}
@@ -209,19 +209,19 @@ jobs:
         if: always()  # Upload results even if tests fail
         uses: actions/upload-artifact@v4
         with:
-          name: eval-results-${{ steps.hatch.outputs.version }}-${{ matrix.khoj_mode }}-${{ matrix.dataset }}
+          name: eval-results-${{ steps.hatch.outputs.version }}-${{ matrix.alphamind_mode }}-${{ matrix.dataset }}
           path: |
             *_evaluation_results_*.csv
             *_evaluation_summary_*.txt
-            khoj_server.log
+            alphamind_server.log
 
       - name: Display Results
         if: always()
         run: |
           # Read and display summary
-          echo "## Evaluation Summary of Khoj on ${{ matrix.dataset }} in ${{ matrix.khoj_mode }} mode" >> $GITHUB_STEP_SUMMARY
+          echo "## Evaluation Summary of AlphaMind on ${{ matrix.dataset }} in ${{ matrix.alphamind_mode }} mode" >> $GITHUB_STEP_SUMMARY
           echo "**$(head -n 1 *_evaluation_summary_*.txt)**" >> $GITHUB_STEP_SUMMARY
-          echo "- Khoj Version: ${{ steps.hatch.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "- AlphaMind Version: ${{ steps.hatch.outputs.version }}" >> $GITHUB_STEP_SUMMARY
           echo "- Chat Model: ${{ inputs.chat_model || 'gemini-2.5-flash' }}" >> $GITHUB_STEP_SUMMARY
           echo "- Code Sandbox: ${{ inputs.sandbox || 'terrarium' }}" >> $GITHUB_STEP_SUMMARY
           echo "\`\`\`" >> $GITHUB_STEP_SUMMARY

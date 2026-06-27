@@ -4,7 +4,7 @@ sidebar_position: 4
 
 # Agents
 
-You can use agents to setup custom system prompts with Khoj. The server host can setup their own agents, which are accessible to all users. You can see ours at https://app.khoj.dev/agents.
+You can use agents to setup custom system prompts with AlphaMind. The server host can setup their own agents, which are accessible to all users. You can see ours at https://app.alphamind.dev/agents.
 
 ![Demo](/img/agents_page_full.png)
 

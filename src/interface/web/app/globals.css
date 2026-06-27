@@ -10,7 +10,7 @@
         --card-foreground: 224 71.4% 4.1%;
         --popover: 0 0% 100%;
         --popover-foreground: 224 71.4% 4.1%;
-        --primary: 24.6 95% 53.1%;
+        --primary: 161 82% 37%;
         --primary-foreground: 60 9.1% 97.8%;
         --secondary: 220 14.3% 95.9%;
         --secondary-foreground: 220.9 39.3% 11%;
@@ -22,12 +22,12 @@
         --destructive-foreground: 210 20% 98%;
         --border: 220 13% 91%;
         --input: 220 13% 91%;
-        --ring: 24.6 95% 53.1%;
+        --ring: 161 82% 37%;
         --radius: 0.5rem;
         --font-family: var(--font-noto-sans), var(--font-noto-sans-arabic), sans-serif !important;
 
-        /* Khoj Custom Colors */
-        --frosted-background-color: 20 13% 95%;
+        /* AlphaMind Custom Colors */
+        --frosted-background-color: 37 21% 93%;
         --border-color: #e2e2e2;
 
         /* Imported from Highlight.js */
@@ -202,7 +202,7 @@
         --destructive-foreground: 210 20% 98%;
         --border: 0 0% 9%;
         --input: 0 0% 9%;
-        --ring: 20.5 90.2% 48.2%;
+        --ring: 161 82% 37%;
         --font-family: var(--font-noto-sans), var(--font-noto-sans-arabic), sans-serif !important;
 
         /* Imported from highlight.js */

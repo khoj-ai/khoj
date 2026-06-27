@@ -3,7 +3,7 @@ requires = ["hatchling", "hatch-vcs"]
 build-backend = "hatchling.build"
 
 [project]
-name = "khoj"
+name = "alphamind"
 description = "Your Second Brain"
 readme = "README.md"
 license = "AGPL-3.0-or-later"
@@ -43,6 +43,7 @@ dependencies = [
     "python-multipart >= 0.0.31",
     "jinja2 == 3.1.6",
     "openai >= 2.0.0, < 3.0.0",
+    "groq >= 0.9.0",
     "tiktoken >= 0.3.2",
     "tenacity >= 9.0.0",
     "magika ~= 0.5.1",
@@ -99,12 +100,12 @@ dependencies = [
 dynamic = ["version"]
 
 [project.urls]
-Homepage = "https://khoj.dev"
-Documentation = "https://docs.khoj.dev"
-Code = "https://github.com/khoj-ai/khoj"
+Homepage = "https://alphamind.dev"
+Documentation = "https://docs.alphamind.dev"
+Code = "https://github.com/alphamind-ai/alphamind"
 
 [project.scripts]
-khoj = "khoj.main:run"
+alphamind = "alphamind.main:run"
 
 [project.optional-dependencies]
 prod = [
@@ -117,7 +118,7 @@ local = [
     "pgserver == 0.1.4",
 ]
 dev = [
-    "khoj[prod,local]",
+    "alphamind[prod,local]",
     "pytest >= 7.1.2",
     "pytest-xdist[psutil]",
     "pytest-django == 4.5.2",
@@ -137,13 +138,13 @@ source = "vcs"
 raw-options.local_scheme = "no-local-version"  # PEP440 compliant version for PyPi
 
 [tool.hatch.build.targets.sdist]
-include = ["src/khoj"]
+include = ["src/alphamind"]
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/khoj"]
+packages = ["src/alphamind"]
 
 [tool.mypy]
-files = "src/khoj"
+files = "src/alphamind"
 pretty = true
 strict_optional = false
 install_types = true
@@ -165,7 +166,7 @@ ignore = [
 unfixable = ["F841"]  # Don't auto-remove unused variables
 exclude = [ "tests/*.py" ]
 [tool.ruff.lint.per-file-ignores]
-"src/khoj/main.py" = [
+"src/alphamind/main.py" = [
     "I001",  # Ignore Import order
     "I002",  # Ignore Import not at top of file
     "E402",  # Ignore module level import not at top of file
@@ -176,7 +177,7 @@ quote-style = "double"
 indent-style = "space"
 
 [tool.ruff.lint.isort]
-known-first-party = ["khoj"]
+known-first-party = ["alphamind"]
 
 [tool.uv]
 build-constraint-dependencies = ["setuptools>=61.2,<82"]

@@ -1,7 +1,7 @@
-* Khoj
+* AlphaMind
   /Allow natural language search on user content like notes, images using transformer based models/
 
-  All data is processed locally. User can interface with khoj app via [[./interface/emacs/khoj.el][Emacs]], API or Commandline
+  All data is processed locally. User can interface with alphamind app via [[./interface/emacs/alphamind.el][Emacs]], API or Commandline
 
 ** Dependencies [[id:123-421-121-12]]  :TAG1:@TAG1_1:
    - Python3
@@ -9,9 +9,9 @@
 
 ** Install
    #+begin_src shell
-   git clone https://github.com/khoj-ai/khoj && cd khoj
+   git clone https://github.com/alphamind-ai/alphamind && cd alphamind
    conda env create -f environment.yml
-   conda activate khoj
+   conda activate alphamind
    #+end_src
 
 ** Run
@@ -22,16 +22,16 @@
    #+end_src
 
 ** Use
-*** *Khoj via Emacs*  [[https://khoj.dev][link to khoj website]]  :@EMACS:CLIENT_1:KHOJ:
-     - [[https://github.com/khoj-ai/khoj/tree/master/interface/emacs#installation][Install]] [[./interface/emacs/khoj.el][khoj.el]]
-     - Run ~M-x khoj <user-query>~ or Call ~C-c C-s~
+*** *AlphaMind via Emacs*  [[https://alphamind.dev][link to alphamind website]]  :@EMACS:CLIENT_1:ALPHAMIND:
+     - [[https://github.com/alphamind-ai/alphamind/tree/master/interface/emacs#installation][Install]] [[./interface/emacs/alphamind.el][alphamind.el]]
+     - Run ~M-x alphamind <user-query>~ or Call ~C-c C-s~
 
-*** *Khoj via API*
+*** *AlphaMind via API*
      - Query: ~GET~ [[http://localhost:42110/api/search?q=%22what%20is%20the%20meaning%20of%20life%22][http://localhost:42110/api/search?q="What is the meaning of life"]]
      - Update Index: ~GET~ [[http://localhost:42110/api/update][http://localhost:42110/api/update]]
-     - [[http://localhost:42110/docs][Khoj API Docs]]
+     - [[http://localhost:42110/docs][AlphaMind API Docs]]
 
-*** *Call Khoj via Python Script Directly*
+*** *Call AlphaMind via Python Script Directly*
      #+begin_src shell
      python3 search_types/asymmetric.py \
      --compressed-jsonl .notes.jsonl.gz \

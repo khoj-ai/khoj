@@ -1,5 +1,5 @@
 name: "🙋 Feature Request"
-description: "Use this template to request new feature or suggest an idea for Khoj"
+description: "Use this template to request new feature or suggest an idea for AlphaMind"
 labels: ["upgrade"]
 body:
     - type: "markdown"
@@ -8,7 +8,7 @@ body:
               > [!IMPORTANT]
               > To save time for both you and us, try follow these guidelines before submitting a feature request:
               > 1. Check if there is an existing feature request that is similar to your on our Github.
-              > 2. We encourage you to first discuss your idea on a [Github discussion](https://github.com/khoj-ai/khoj/discussions/categories/ideas) or the **#ideas** channel of our [Discord server](https://discord.gg/b6gUdpKr).
+              > 2. We encourage you to first discuss your idea on a [Github discussion](https://github.com/alphamind-ai/alphamind/discussions/categories/ideas) or the **#ideas** channel of our [Discord server](https://discord.gg/b6gUdpKr).
               > This step helps in understanding the new feature and determining if it's can be implemented at all.
               Only proceed with this report if your idea was approved after the GitHub/Discord discussion.
 

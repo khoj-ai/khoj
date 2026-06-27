@@ -6,12 +6,12 @@ import psutil
 import pytest
 from scipy.stats import linregress
 
-from khoj.processor.embeddings import EmbeddingsModel
-from khoj.processor.tools.online_search import (
+from alphamind.processor.embeddings import EmbeddingsModel
+from alphamind.processor.tools.online_search import (
     read_webpage_at_url,
     read_webpage_with_olostep,
 )
-from khoj.utils import helpers
+from alphamind.utils import helpers
 
 
 def test_get_from_null_dict():

@@ -9,7 +9,7 @@ export interface UserProfile {
     is_active: boolean;
     has_documents: boolean;
     detail: string;
-    khoj_version: string;
+    alphamind_version: string;
 }
 
 const fetcher = (url: string) =>
@@ -79,11 +79,11 @@ export interface UserConfig {
     subscription_renewal_date: string | undefined;
     subscription_enabled_trial_at: string | undefined;
     // server settings
-    khoj_cloud_subscription_url: string | undefined;
+    alphamind_cloud_subscription_url: string | undefined;
     billing_enabled: boolean;
     is_eleven_labs_enabled: boolean;
     is_twilio_enabled: boolean;
-    khoj_version: string;
+    alphamind_version: string;
     anonymous_mode: boolean;
     notion_oauth_url: string;
     detail: string;

@@ -39,7 +39,7 @@ import { formatDateTime, useIsMobileWidth } from "../common/utils";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "../components/appSidebar/appSidebar";
 import { Separator } from "@/components/ui/separator";
-import { KhojLogoType } from "../components/logo/khojLogo";
+import { AlphaMindLogoType } from "../components/logo/alphamindLogo";
 import { InlineLoading } from "../components/loading/loading";
 import {
     Dialog,
@@ -246,7 +246,7 @@ function Note(props: NoteResultProps) {
                 <Button
                     onClick={() => props.setFocusSearchResult(note)}
                     variant={"ghost"}
-                    className="p-0 mt-2 text-orange-400 hover:bg-inherit"
+                    className="p-0 mt-2 text-emerald-500 hover:bg-inherit"
                 >
                     See content
                     <ArrowRight className="inline ml-2" />
@@ -378,7 +378,7 @@ const UploadFiles: React.FC<{
                 <DialogHeader>
                     <DialogTitle>Build Your Knowledge Base</DialogTitle>
                     <DialogDescription>
-                        Add context for your Khoj knowledge base. Quickly search and get
+                        Add context for your AlphaMind knowledge base. Quickly search and get
                         personalized answers from your documents.
                     </DialogDescription>
                 </DialogHeader>
@@ -779,7 +779,7 @@ export default function Search() {
                     <Separator orientation="vertical" className="mr-2 h-4" />
                     {isMobileWidth ? (
                         <Link className="p-0 no-underline" href="/">
-                            <KhojLogoType className="h-auto w-16" />
+                            <AlphaMindLogoType className="h-auto w-16" />
                         </Link>
                     ) : (
                         <h2 className="text-lg">Search Your Knowledge Base</h2>
@@ -915,7 +915,7 @@ export default function Search() {
                                                                 &quot;Add Documents&quot; button.
                                                             </div>
                                                             <Link
-                                                                href="https://docs.khoj.dev/data-sources/share_your_data"
+                                                                href="https://docs.alphamind.dev/data-sources/share_your_data"
                                                                 className="no-underline"
                                                             >
                                                                 <div className="mt-4 text-center text-secondary-foreground bg-secondary w-fit m-auto p-2 rounded-lg">

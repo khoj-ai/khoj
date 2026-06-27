@@ -4,9 +4,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Khoj - Settings</title>
+    <title>AlphaMind - Settings</title>
     <link rel="icon" type="image/png" sizes="128x128" href="./assets/icons/favicon-128x128.png">
-    <link rel="stylesheet" href="./assets/khoj.css">
+    <link rel="stylesheet" href="./assets/alphamind.css">
     <style>
         :root {
             --background-color: #f9fafb;
@@ -260,11 +260,11 @@
     <script>
         window.addEventListener("DOMContentLoaded", async () => {
             // Setup the header pane
-            document.getElementById("khoj-header").innerHTML = await populateHeaderPane();
+            document.getElementById("alphamind-header").innerHTML = await populateHeaderPane();
             // Setup the nav menu
             document.getElementById("profile-picture").addEventListener("click", toggleNavMenu);
             // Set the active nav pane
-            document.getElementById("settings-nav")?.classList.add("khoj-nav-selected");
+            document.getElementById("settings-nav")?.classList.add("alphamind-nav-selected");
         })
     </script>
 </head>
@@ -272,31 +272,31 @@
 <body>
     <!-- Main Content -->
     <div class="main-content">
-        <div id="khoj-header" class="khoj-header"></div>
+        <div id="alphamind-header" class="alphamind-header"></div>
         <div class="section-cards">
             <!-- Replace the server URL and API key cards with: -->
             <details class="collapsible">
                 <summary>Server URL</summary>
                 <div class="content">
-                    <input type="text" class="card-input" id="khoj-host-url" placeholder="Enter server URL">
+                    <input type="text" class="card-input" id="alphamind-host-url" placeholder="Enter server URL">
                 </div>
             </details>
 
             <details class="collapsible">
                 <summary>API Key</summary>
                 <div class="content">
-                    <input type="text" class="card-input" id="khoj-access-key" placeholder="Enter API key">
+                    <input type="text" class="card-input" id="alphamind-access-key" placeholder="Enter API key">
                 </div>
             </details>
             <div class="card">
                 <div class="card-title">Files</div>
                 <div id="current-files"></div>
-                <button class="secondary-button" id="update-file" title="Add a file to be indexed to your Khoj knowledge base. Will be synced automatically.">Add File</button>
+                <button class="secondary-button" id="update-file" title="Add a file to be indexed to your AlphaMind knowledge base. Will be synced automatically.">Add File</button>
             </div>
             <div class="card">
                 <div class="card-title">Folders</div>
                 <div id="current-folders"></div>
-                <button class="secondary-button" id="update-folder" title="Add a folder to be indexed to your Khoj knowledge base. All valid files will be synced automatically.">Add Folder</button>
+                <button class="secondary-button" id="update-folder" title="Add a folder to be indexed to your AlphaMind knowledge base. All valid files will be synced automatically.">Add Folder</button>
             </div>
             <div class="sync-data">
                 <div id="loading-bar" style="display: none;"></div>
@@ -306,7 +306,7 @@
                         <img src="./assets/icons/upload.svg" class="sync-icon" alt="Sync">
                         Force Sync
                     </button>
-                    <button class="card-button" id="delete-all" title="Remove all indexed content from Khoj">
+                    <button class="card-button" id="delete-all" title="Remove all indexed content from AlphaMind">
                         <img src="./assets/icons/trash-solid.svg" class="trash-icon" alt="Delete All">
                         Delete All
                     </button>

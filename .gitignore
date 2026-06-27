@@ -1,4 +1,4 @@
-# Khoj artifacts
+# AlphaMind artifacts
 *.gz
 *.pt
 tests/data/models
@@ -19,16 +19,16 @@ __pycache__
 todesktop.json
 
 # Build artifacts
-/src/khoj/interface/web/images
-/src/khoj/interface/built/
-/src/khoj/interface/compiled/404.html
+/src/alphamind/interface/web/images
+/src/alphamind/interface/built/
+/src/alphamind/interface/compiled/404.html
 /build/
 /dist/
-khoj_assistant.egg-info
-/config/khoj*.yml
+alphamind_assistant.egg-info
+/config/alphamind*.yml
 .pytest_cache
 *.log
-/src/khoj/static
+/src/alphamind/static
 
 # Obsidian plugin artifacts
 # ---

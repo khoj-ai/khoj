@@ -1,7 +1,7 @@
 import { FileSystemAdapter, Notice, Vault, Modal, TFile, request, setIcon, Editor, WorkspaceLeaf } from 'obsidian';
-import { KhojSetting, ModelOption, ServerUserConfig, UserInfo } from 'src/settings'
+import { AlphaMindSetting, ModelOption, ServerUserConfig, UserInfo } from 'src/settings'
 import { deleteContentByType, uploadContentBatch } from './api';
-import { KhojSearchModal } from './search_modal';
+import { AlphaMindSearchModal } from './search_modal';
 
 export function getVaultAbsolutePath(vault: Vault): string {
     let adaptor = vault.adapter;
@@ -61,7 +61,7 @@ export const supportedImageFilesTypes = fileTypeToExtension.image;
 export const supportedBinaryFileTypes = fileTypeToExtension.pdf.concat(supportedImageFilesTypes);
 export const supportedFileTypes = fileTypeToExtension.markdown.concat(supportedBinaryFileTypes);
 
-export function getFilesToSync(vault: Vault, setting: KhojSetting): TFile[] {
+export function getFilesToSync(vault: Vault, setting: AlphaMindSetting): TFile[] {
     const files = vault.getFiles()
         // Filter supported file types for syncing
         .filter(file => supportedFileTypes.includes(file.extension))
@@ -103,16 +103,16 @@ export function getFilesToSync(vault: Vault, setting: KhojSetting): TFile[] {
 
 export async function updateContentIndex(
     vault: Vault,
-    setting: KhojSetting,
+    setting: AlphaMindSetting,
     lastSync: Map<TFile, number>,
     regenerate: boolean = false,
     userTriggered: boolean = false,
     onProgress?: (progress: { processed: number, total: number }) => void
 ): Promise<Map<TFile, number>> {
     // Get all markdown, pdf files in the vault
-    console.log(`Khoj: Updating Khoj content index...`);
+    console.log(`AlphaMind: Updating AlphaMind content index...`);
     const files = getFilesToSync(vault, setting);
-    console.log(`Khoj: Found ${files.length} eligible files in vault`);
+    console.log(`AlphaMind: Found ${files.length} eligible files in vault`);
 
     let countOfFilesToIndex = 0;
     let countOfFilesToDelete = 0;
@@ -125,9 +125,9 @@ export async function updateContentIndex(
 
     // Show notice with file counts when user triggers sync
     if (userTriggered) {
-        new Notice(`🔄 Syncing ${filesToSync.length} of ${files.length} files to Khoj...`);
+        new Notice(`🔄 Syncing ${filesToSync.length} of ${files.length} files to AlphaMind...`);
     }
-    console.log(`Khoj: ${filesToSync.length} files to sync (${files.length} total eligible)`);
+    console.log(`AlphaMind: ${filesToSync.length} files to sync (${files.length} total eligible)`);
 
     // Add all files to index as multipart form data, batched by size, item count
     const MAX_BATCH_SIZE = 10 * 1024 * 1024; // 10MB max batch size
@@ -186,10 +186,10 @@ export async function updateContentIndex(
 
         try {
             for (const contentType of contentTypesToDelete) {
-                await deleteContentByType(setting.khojUrl, setting.khojApiKey, contentType);
+                await deleteContentByType(setting.alphamindUrl, setting.alphamindApiKey, contentType);
             }
         } catch (err) {
-            console.error('Khoj: Error deleting content types:', err);
+            console.error('AlphaMind: Error deleting content types:', err);
             error_message = "❗️Failed to clear existing content index";
             fileData = [];
         }
@@ -207,18 +207,18 @@ export async function updateContentIndex(
 
     for (const batch of fileData) {
         try {
-            const resultText = await uploadContentBatch(setting.khojUrl, setting.khojApiKey, batch);
+            const resultText = await uploadContentBatch(setting.alphamindUrl, setting.alphamindApiKey, batch);
             responses.push(resultText);
             processedFiles += batch.length;
             if (onProgress) {
                 onProgress({ processed: processedFiles, total: totalFiles });
             }
         } catch (err: any) {
-            console.error('Khoj: Failed to upload batch:', err);
+            console.error('AlphaMind: Failed to upload batch:', err);
             if (err.message?.includes('429')) {
                 error_message = `❗️Requests were throttled. Upgrade your subscription or try again later.`;
             } else {
-                error_message = `❗️Failed to sync content with Khoj server. Error: ${err.message ?? String(err)}`;
+                error_message = `❗️Failed to sync content with AlphaMind server. Error: ${err.message ?? String(err)}`;
             }
             break;
         }
@@ -242,16 +242,16 @@ export async function updateContentIndex(
     } else {
         const summary = `Updated ${countOfFilesToIndex}, deleted ${countOfFilesToDelete} files`;
         if (userTriggered) new Notice(`✅ ${summary}`);
-        console.log(`✅ Refreshed Khoj content index. ${summary}.`);
+        console.log(`✅ Refreshed AlphaMind content index. ${summary}.`);
     }
 
     return lastSync;
 }
 
-export async function openKhojPluginSettings(): Promise<void> {
+export async function openAlphaMindPluginSettings(): Promise<void> {
     const setting = this.app.setting;
     await setting.open();
-    setting.openTabById('khoj');
+    setting.openTabById('alphamind');
 }
 
 export async function createNote(name: string, newLeaf = false): Promise<void> {
@@ -270,7 +270,7 @@ export async function createNote(name: string, newLeaf = false): Promise<void> {
         }
         await this.app.workspace.openLinkText(`${pathPrefix}${name}.md`, '', newLeaf)
     } catch (e) {
-        console.error('Khoj: Could not create note.\n' + (e as any).message);
+        console.error('AlphaMind: Could not create note.\n' + (e as any).message);
         throw e
     }
 }
@@ -287,26 +287,26 @@ export async function createNoteAndCloseModal(query: string, modal: Modal, opt?:
 }
 
 export async function canConnectToBackend(
-    khojUrl: string,
-    khojApiKey: string,
+    alphamindUrl: string,
+    alphamindApiKey: string,
     showNotice: boolean = false
 ): Promise<{ connectedToBackend: boolean; statusMessage: string, userInfo: UserInfo | null }> {
     let connectedToBackend = false;
     let userInfo: UserInfo | null = null;
 
-    if (!!khojUrl) {
-        let headers = !!khojApiKey ? { "Authorization": `Bearer ${khojApiKey}` } : undefined;
+    if (!!alphamindUrl) {
+        let headers = !!alphamindApiKey ? { "Authorization": `Bearer ${alphamindApiKey}` } : undefined;
         try {
-            let response = await request({ url: `${khojUrl}/api/v1/user`, method: "GET", headers: headers })
+            let response = await request({ url: `${alphamindUrl}/api/v1/user`, method: "GET", headers: headers })
             connectedToBackend = true;
             userInfo = JSON.parse(response);
         } catch (error) {
             connectedToBackend = false;
-            console.log(`Khoj connection error:\n\n${error}`);
+            console.log(`AlphaMind connection error:\n\n${error}`);
         };
     }
 
-    let statusMessage: string = getBackendStatusMessage(connectedToBackend, userInfo?.email, khojUrl, khojApiKey);
+    let statusMessage: string = getBackendStatusMessage(connectedToBackend, userInfo?.email, alphamindUrl, alphamindApiKey);
     if (showNotice) new Notice(statusMessage);
     return { connectedToBackend, statusMessage, userInfo };
 }
@@ -314,44 +314,44 @@ export async function canConnectToBackend(
 export function getBackendStatusMessage(
     connectedToServer: boolean,
     userEmail: string | undefined,
-    khojUrl: string,
-    khojApiKey: string
+    alphamindUrl: string,
+    alphamindApiKey: string
 ): string {
-    // Welcome message with default settings. Khoj cloud always expects an API key.
-    if (!khojApiKey && khojUrl === 'https://app.khoj.dev')
-        return `🌈 Welcome to Khoj! Get your API key from ${khojUrl}/settings#clients and set it in the Khoj plugin settings on Obsidian`;
+    // Welcome message with default settings. AlphaMind cloud always expects an API key.
+    if (!alphamindApiKey && alphamindUrl === 'https://app.alphamind.dev')
+        return `🌈 Welcome to AlphaMind! Get your API key from ${alphamindUrl}/settings#clients and set it in the AlphaMind plugin settings on Obsidian`;
 
     if (!connectedToServer)
-        return `❗️Could not connect to Khoj at ${khojUrl}. Ensure your can access it`;
+        return `❗️Could not connect to AlphaMind at ${alphamindUrl}. Ensure your can access it`;
     else if (!userEmail)
-        return `✅ Connected to Khoj. ❗️Get a valid API key from ${khojUrl}/settings#clients to log in`;
+        return `✅ Connected to AlphaMind. ❗️Get a valid API key from ${alphamindUrl}/settings#clients to log in`;
     else if (userEmail === 'default@example.com')
         // Logged in as default user in anonymous mode
-        return `✅ Welcome back to Khoj`;
+        return `✅ Welcome back to AlphaMind`;
     else
-        return `✅ Welcome back to Khoj, ${userEmail}`;
+        return `✅ Welcome back to AlphaMind, ${userEmail}`;
 }
 
-export async function populateHeaderPane(headerEl: Element, setting: KhojSetting, viewType: string): Promise<void> {
+export async function populateHeaderPane(headerEl: Element, setting: AlphaMindSetting, viewType: string): Promise<void> {
     let userInfo: UserInfo | null = null;
     try {
-        const { userInfo: extractedUserInfo } = await canConnectToBackend(setting.khojUrl, setting.khojApiKey, false);
+        const { userInfo: extractedUserInfo } = await canConnectToBackend(setting.alphamindUrl, setting.alphamindApiKey, false);
         userInfo = extractedUserInfo;
     } catch (error) {
-        console.error("❗️Could not connect to Khoj");
+        console.error("❗️Could not connect to AlphaMind");
     }
 
-    // Add Khoj title to header element
+    // Add AlphaMind title to header element
     const titlePaneEl = headerEl.createDiv();
-    titlePaneEl.className = 'khoj-header-title-pane';
+    titlePaneEl.className = 'alphamind-header-title-pane';
     const titleEl = titlePaneEl.createDiv();
-    titleEl.className = 'khoj-logo';
-    titleEl.textContent = "Khoj";
+    titleEl.className = 'alphamind-logo';
+    titleEl.textContent = "AlphaMind";
 
     // Populate the header element with the navigation pane
     // Create the nav element
     const nav = titlePaneEl.createEl('nav');
-    nav.className = 'khoj-nav';
+    nav.className = 'alphamind-nav';
 
     // Create the title pane element
     titlePaneEl.appendChild(titleEl);
@@ -360,17 +360,17 @@ export async function populateHeaderPane(headerEl: Element, setting: KhojSetting
     // Create the chat link
     const chatLink = nav.createEl('a');
     chatLink.id = 'chat-nav';
-    chatLink.className = 'khoj-nav chat-nav';
-    chatLink.dataset.view = KhojView.CHAT;
+    chatLink.className = 'alphamind-nav chat-nav';
+    chatLink.dataset.view = AlphaMindView.CHAT;
 
     // Create the chat icon
     const chatIcon = chatLink.createEl('span');
-    chatIcon.className = 'khoj-nav-icon khoj-nav-icon-chat';
-    setIcon(chatIcon, 'khoj-chat');
+    chatIcon.className = 'alphamind-nav-icon alphamind-nav-icon-chat';
+    setIcon(chatIcon, 'alphamind-chat');
 
     // Create the chat text
     const chatText = chatLink.createEl('span');
-    chatText.className = 'khoj-nav-item-text';
+    chatText.className = 'alphamind-nav-item-text';
     chatText.textContent = 'Chat';
 
     // Append the chat icon and text to the chat link
@@ -380,16 +380,16 @@ export async function populateHeaderPane(headerEl: Element, setting: KhojSetting
     // Create the search link
     const searchLink = nav.createEl('a');
     searchLink.id = 'search-nav';
-    searchLink.className = 'khoj-nav search-nav';
+    searchLink.className = 'alphamind-nav search-nav';
 
     // Create the search icon
     const searchIcon = searchLink.createEl('span');
-    searchIcon.className = 'khoj-nav-icon khoj-nav-icon-search';
-    setIcon(searchIcon, 'khoj-search');
+    searchIcon.className = 'alphamind-nav-icon alphamind-nav-icon-search';
+    setIcon(searchIcon, 'alphamind-search');
 
     // Create the search text
     const searchText = searchLink.createEl('span');
-    searchText.className = 'khoj-nav-item-text';
+    searchText.className = 'alphamind-nav-item-text';
     searchText.textContent = 'Search';
 
     // Append the search icon and text to the search link
@@ -399,29 +399,29 @@ export async function populateHeaderPane(headerEl: Element, setting: KhojSetting
     // Create the similar link
     const similarLink = nav.createEl('a');
     similarLink.id = 'similar-nav';
-    similarLink.className = 'khoj-nav similar-nav';
-    similarLink.dataset.view = KhojView.SIMILAR;
+    similarLink.className = 'alphamind-nav similar-nav';
+    similarLink.dataset.view = AlphaMindView.SIMILAR;
 
     // Create the similar icon
     const similarIcon = similarLink.createEl('span');
     similarIcon.id = 'similar-nav-icon';
-    similarIcon.className = 'khoj-nav-icon khoj-nav-icon-similar';
+    similarIcon.className = 'alphamind-nav-icon alphamind-nav-icon-similar';
     setIcon(similarIcon, 'webhook');
 
     // Create the similar text
     const similarText = similarLink.createEl('span');
-    similarText.className = 'khoj-nav-item-text';
+    similarText.className = 'alphamind-nav-item-text';
     similarText.textContent = 'Similar';
 
     // Append the similar icon and text to the similar link
     similarLink.appendChild(similarIcon);
     similarLink.appendChild(similarText);
 
-    // Helper to get the current Khoj leaf if active
-    const getCurrentKhojLeaf = (): WorkspaceLeaf | undefined => {
+    // Helper to get the current AlphaMind leaf if active
+    const getCurrentAlphaMindLeaf = (): WorkspaceLeaf | undefined => {
         const activeLeaf = this.app.workspace.activeLeaf;
         if (activeLeaf && activeLeaf.view &&
-            (activeLeaf.view.getViewType() === KhojView.CHAT || activeLeaf.view.getViewType() === KhojView.SIMILAR)) {
+            (activeLeaf.view.getViewType() === AlphaMindView.CHAT || activeLeaf.view.getViewType() === AlphaMindView.SIMILAR)) {
             return activeLeaf;
         }
         return undefined;
@@ -431,21 +431,21 @@ export async function populateHeaderPane(headerEl: Element, setting: KhojSetting
     // Chat link event listener
     chatLink.addEventListener('click', () => {
         // Get the activateView method from the plugin instance
-        const khojPlugin = this.app.plugins.plugins.khoj;
-        khojPlugin?.activateView(KhojView.CHAT, getCurrentKhojLeaf());
+        const alphamindPlugin = this.app.plugins.plugins.alphamind;
+        alphamindPlugin?.activateView(AlphaMindView.CHAT, getCurrentAlphaMindLeaf());
     });
 
     // Search link event listener
     searchLink.addEventListener('click', () => {
         // Open the search modal
-        new KhojSearchModal(this.app, setting).open();
+        new AlphaMindSearchModal(this.app, setting).open();
     });
 
     // Similar link event listener
     similarLink.addEventListener('click', () => {
         // Get the activateView method from the plugin instance
-        const khojPlugin = this.app.plugins.plugins.khoj;
-        khojPlugin?.activateView(KhojView.SIMILAR, getCurrentKhojLeaf());
+        const alphamindPlugin = this.app.plugins.plugins.alphamind;
+        alphamindPlugin?.activateView(AlphaMindView.SIMILAR, getCurrentAlphaMindLeaf());
     });
 
     // Append the nav items to the nav element
@@ -456,38 +456,38 @@ export async function populateHeaderPane(headerEl: Element, setting: KhojSetting
     // Append the title and new chat container to the header element
     headerEl.appendChild(titlePaneEl);
 
-    if (viewType === KhojView.CHAT) {
+    if (viewType === AlphaMindView.CHAT) {
         // Create subtitle pane for New Chat button and agent selector
-        const newChatEl = headerEl.createDiv("khoj-header-right-container");
+        const newChatEl = headerEl.createDiv("alphamind-header-right-container");
 
         // Add agent selector container
-        const agentContainer = newChatEl.createDiv("khoj-header-agent-container");
+        const agentContainer = newChatEl.createDiv("alphamind-header-agent-container");
 
         // Add agent selector
         agentContainer.createEl("select", {
             attr: {
-                class: "khoj-header-agent-select",
-                id: "khoj-header-agent-select"
+                class: "alphamind-header-agent-select",
+                id: "alphamind-header-agent-select"
             }
         });
 
         // Add New Chat button
         const newChatButton = newChatEl.createEl('button');
-        newChatButton.className = 'khoj-header-new-chat-button';
+        newChatButton.className = 'alphamind-header-new-chat-button';
         newChatButton.title = 'Start New Chat (Ctrl+Alt+N)';
         setIcon(newChatButton, 'plus-circle');
         newChatButton.textContent = 'New Chat';
 
         // Add event listener to the New Chat button
         newChatButton.addEventListener('click', () => {
-            const khojPlugin = this.app.plugins.plugins.khoj;
-            if (khojPlugin) {
+            const alphamindPlugin = this.app.plugins.plugins.alphamind;
+            if (alphamindPlugin) {
                 // First activate the chat view
-                khojPlugin.activateView(KhojView.CHAT).then(() => {
+                alphamindPlugin.activateView(AlphaMindView.CHAT).then(() => {
                     // Then create a new conversation
                     setTimeout(() => {
                         // Access the chat view directly from the leaf after activation
-                        const leaves = this.app.workspace.getLeavesOfType(KhojView.CHAT);
+                        const leaves = this.app.workspace.getLeavesOfType(AlphaMindView.CHAT);
                         if (leaves.length > 0) {
                             const chatView = leaves[0].view;
                             if (chatView && typeof chatView.createNewConversation === 'function') {
@@ -511,14 +511,14 @@ export async function populateHeaderPane(headerEl: Element, setting: KhojSetting
         const viewType = activeLeaf.view?.getViewType();
 
         // Remove active class from all links
-        chatLink.classList.remove('khoj-nav-selected');
-        similarLink.classList.remove('khoj-nav-selected');
+        chatLink.classList.remove('alphamind-nav-selected');
+        similarLink.classList.remove('alphamind-nav-selected');
 
         // Add active class to the current view link
-        if (viewType === KhojView.CHAT) {
-            chatLink.classList.add('khoj-nav-selected');
-        } else if (viewType === KhojView.SIMILAR) {
-            similarLink.classList.add('khoj-nav-selected');
+        if (viewType === AlphaMindView.CHAT) {
+            chatLink.classList.add('alphamind-nav-selected');
+        } else if (viewType === AlphaMindView.SIMILAR) {
+            similarLink.classList.add('alphamind-nav-selected');
         }
     };
 
@@ -529,9 +529,9 @@ export async function populateHeaderPane(headerEl: Element, setting: KhojSetting
     this.app.workspace.on('active-leaf-change', updateActiveState);
 }
 
-export enum KhojView {
-    CHAT = "khoj-chat-view",
-    SIMILAR = "khoj-similar-view",
+export enum AlphaMindView {
+    CHAT = "alphamind-chat-view",
+    SIMILAR = "alphamind-similar-view",
 }
 
 function copyParentText(event: MouseEvent, message: string, originalButton: string) {
@@ -561,9 +561,9 @@ export function createCopyParentText(message: string, originalButton: string = '
     return function (event: MouseEvent) {
         let markdownMessage = copyParentText(event, message, originalButton);
         // Convert edit blocks back to markdown format before pasting
-        const editRegex = /<details class="khoj-edit-accordion">[\s\S]*?<pre><code class="language-khoj-edit">([\s\S]*?)<\/code><\/pre>[\s\S]*?<\/details>/g;
+        const editRegex = /<details class="alphamind-edit-accordion">[\s\S]*?<pre><code class="language-alphamind-edit">([\s\S]*?)<\/code><\/pre>[\s\S]*?<\/details>/g;
         markdownMessage = markdownMessage?.replace(editRegex, (_, content) => {
-            return `<khoj-edit>\n${content}\n</khoj-edit>`;
+            return `<alphamind-edit>\n${content}\n</alphamind-edit>`;
         });
         return markdownMessage;
     }
@@ -596,7 +596,7 @@ export function getFileFromPath(sourceFiles: TFile[], chosenFile: string): TFile
         // This finds longest path match when multiple files have same name
         .sort((a, b) => b.path.length - a.path.length)
         // The first match is the best file match across OS
-        // e.g. Khoj server on Linux, Obsidian vault on Android
+        // e.g. AlphaMind server on Linux, Obsidian vault on Android
         .find(file => chosenFile.replace(/\\/g, "/").endsWith(file.path))
     return fileMatch;
 }
@@ -622,7 +622,7 @@ export function getLinkToEntry(sourceFiles: TFile[], chosenFile: string, chosenE
  * - otherwise => free limit (10 MB)
  * This avoids client-side heuristics and relies on server-provided user info.
  */
-export async function calculateVaultSyncMetrics(vault: Vault, setting: KhojSetting): Promise<{ usedBytes: number, totalBytes: number }> {
+export async function calculateVaultSyncMetrics(vault: Vault, setting: AlphaMindSetting): Promise<{ usedBytes: number, totalBytes: number }> {
     try {
         const files = getFilesToSync(vault, setting);
         const usedBytes = files.reduce((acc, file) => acc + (file.stat?.size ?? 0), 0);
@@ -641,25 +641,25 @@ export async function calculateVaultSyncMetrics(vault: Vault, setting: KhojSetti
             }
         } catch (err) {
             // Defensive: on any unexpected error, fall back to free limit
-            console.warn('Khoj: Error reading userInfo.is_active, defaulting to free limit', err);
+            console.warn('AlphaMind: Error reading userInfo.is_active, defaulting to free limit', err);
             totalBytes = FREE_LIMIT;
         }
 
         return { usedBytes, totalBytes };
     } catch (err) {
-        console.error('Khoj: Error calculating vault sync metrics:', err);
+        console.error('AlphaMind: Error calculating vault sync metrics:', err);
         return { usedBytes: 0, totalBytes: 10 * 1024 * 1024 };
     }
 }
 
-export async function fetchChatModels(settings: KhojSetting): Promise<ModelOption[]> {
-    if (!settings.connectedToBackend || !settings.khojUrl) {
+export async function fetchChatModels(settings: AlphaMindSetting): Promise<ModelOption[]> {
+    if (!settings.connectedToBackend || !settings.alphamindUrl) {
         return [];
     }
     try {
-        const response = await fetch(`${settings.khojUrl}/api/model/chat/options`, {
+        const response = await fetch(`${settings.alphamindUrl}/api/model/chat/options`, {
             method: 'GET',
-            headers: settings.khojApiKey ? { 'Authorization': `Bearer ${settings.khojApiKey}` } : {},
+            headers: settings.alphamindApiKey ? { 'Authorization': `Bearer ${settings.alphamindApiKey}` } : {},
         });
         if (response.ok) {
             const modelsData = await response.json();
@@ -670,44 +670,44 @@ export async function fetchChatModels(settings: KhojSetting): Promise<ModelOptio
                 }));
             }
         } else {
-            console.warn("Khoj: Failed to fetch chat models:", response.statusText);
+            console.warn("AlphaMind: Failed to fetch chat models:", response.statusText);
         }
     } catch (error) {
-        console.error("Khoj: Error fetching chat models:", error);
+        console.error("AlphaMind: Error fetching chat models:", error);
     }
     return [];
 }
 
-export async function fetchUserServerSettings(settings: KhojSetting): Promise<ServerUserConfig | null> {
-    if (!settings.connectedToBackend || !settings.khojUrl) {
+export async function fetchUserServerSettings(settings: AlphaMindSetting): Promise<ServerUserConfig | null> {
+    if (!settings.connectedToBackend || !settings.alphamindUrl) {
         return null;
     }
     try {
-        const response = await fetch(`${settings.khojUrl}/api/settings?detailed=true`, {
+        const response = await fetch(`${settings.alphamindUrl}/api/settings?detailed=true`, {
             method: 'GET',
-            headers: settings.khojApiKey ? { 'Authorization': `Bearer ${settings.khojApiKey}` } : {},
+            headers: settings.alphamindApiKey ? { 'Authorization': `Bearer ${settings.alphamindApiKey}` } : {},
         });
         if (response.ok) {
             return await response.json() as ServerUserConfig;
         } else {
-            console.warn("Khoj: Failed to fetch user server settings:", response.statusText);
+            console.warn("AlphaMind: Failed to fetch user server settings:", response.statusText);
         }
     } catch (error) {
-        console.error("Khoj: Error fetching user server settings:", error);
+        console.error("AlphaMind: Error fetching user server settings:", error);
     }
     return null;
 }
 
-export async function updateServerChatModel(modelId: string, settings: KhojSetting): Promise<boolean> {
-    if (!settings.connectedToBackend || !settings.khojUrl) {
-        new Notice("️⛔️ Connect to Khoj to update chat model.");
+export async function updateServerChatModel(modelId: string, settings: AlphaMindSetting): Promise<boolean> {
+    if (!settings.connectedToBackend || !settings.alphamindUrl) {
+        new Notice("️⛔️ Connect to AlphaMind to update chat model.");
         return false;
     }
 
     try {
-        const response = await fetch(`${settings.khojUrl}/api/model/chat?id=${modelId}`, {
+        const response = await fetch(`${settings.alphamindUrl}/api/model/chat?id=${modelId}`, {
             method: 'POST', // As per web app's updateModel function
-            headers: settings.khojApiKey ? { 'Authorization': `Bearer ${settings.khojApiKey}` } : {},
+            headers: settings.alphamindApiKey ? { 'Authorization': `Bearer ${settings.alphamindApiKey}` } : {},
         });
         if (response.ok) {
             settings.selectedChatModelId = modelId; // Update local mirror
@@ -715,12 +715,12 @@ export async function updateServerChatModel(modelId: string, settings: KhojSetti
         } else {
             const errorData = await response.text();
             new Notice(`️⛔️ Failed to update chat model on server: ${response.status} ${errorData}`);
-            console.error("Khoj: Failed to update chat model:", response.status, errorData);
+            console.error("AlphaMind: Failed to update chat model:", response.status, errorData);
             return false;
         }
     } catch (error) {
         new Notice("️⛔️ Error updating chat model on server. See console.");
-        console.error("Khoj: Error updating chat model:", error);
+        console.error("AlphaMind: Error updating chat model:", error);
         return false;
     }
 }

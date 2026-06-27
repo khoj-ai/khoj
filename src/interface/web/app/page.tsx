@@ -49,7 +49,7 @@ import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/s
 import { DeprecationBanner } from "@/app/components/deprecationBanner";
 import { AppSidebar } from "./components/appSidebar/appSidebar";
 import { Separator } from "@/components/ui/separator";
-import { KhojLogoType } from "./components/logo/khojLogo";
+import { AlphaMindLogoType } from "./components/logo/alphamindLogo";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -189,7 +189,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
     const [hoveredAgent, setHoveredAgent] = useState<string | null>(null);
     const debouncedHoveredAgent = useDebounce(hoveredAgent, 500);
     const [isPopoverOpen, setIsPopoverOpen] = useState(false);
-    const [selectedAgent, setSelectedAgent] = useState<string | null>("khoj");
+    const [selectedAgent, setSelectedAgent] = useState<string | null>("alphamind");
     const [agentIcons, setAgentIcons] = useState<JSX.Element[]>([]);
     const [agents, setAgents] = useState<AgentData[]>([]);
     const chatInputRef = useRef<HTMLTextAreaElement>(null);
@@ -248,7 +248,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
         const agents = (agentsData || []).filter((agent) => agent !== null && agent !== undefined);
         setAgents(agents);
         // set the first agent, which is always the default agent, as the default for chat
-        setSelectedAgent(agents.length > 1 ? agents[0].slug : "khoj");
+        setSelectedAgent(agents.length > 1 ? agents[0].slug : "alphamind");
 
         // generate colored icons for the available agents
         const agentIcons = agents.map((agent) => getIconFromIconName(agent.icon, agent.color)!);
@@ -264,7 +264,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
             if (message && !processingMessage) {
                 setProcessingMessage(true);
                 try {
-                    const newConversationId = await createNewConversation(selectedAgent || "khoj");
+                    const newConversationId = await createNewConversation(selectedAgent || "alphamind");
                     onConversationIdChange?.(newConversationId);
                     localStorage.setItem("message", message);
                     if (images.length > 0) {
@@ -451,13 +451,13 @@ function ChatBodyData(props: ChatBodyDataProps) {
                                             agents.find((agent) => agent.slug === selectedAgent)
                                                 ?.icon ?? "Lightbulb",
                                             agents.find((agent) => agent.slug === selectedAgent)
-                                                ?.color ?? "orange",
+                                                ?.color ?? "emerald",
                                         )
                                     ) : (
                                         <ArrowsVertical className="h-5 w-5" />
                                     )}
                                     {selectedAgent
-                                        ? `${agents?.find((agent) => agent.slug === selectedAgent)?.name ?? "Khoj"}`
+                                        ? `${agents?.find((agent) => agent.slug === selectedAgent)?.name ?? "AlphaMind"}`
                                         : "Select Agent"}
                                 </Button>
                             </DropdownMenuTrigger>
@@ -476,13 +476,13 @@ function ChatBodyData(props: ChatBodyDataProps) {
                                     ))
                                 ) : (
                                     <DropdownMenuItem
-                                        key="0-khoj"
+                                        key="0-alphamind"
                                         onClick={() => {
-                                            setSelectedAgent("khoj");
+                                            setSelectedAgent("alphamind");
                                             chatInputRef.current?.focus();
                                         }}
                                     >
-                                        {getIconFromIconName("Lightbulb", "orange")} Khoj
+                                        {getIconFromIconName("Lightbulb", "emerald")} AlphaMind
                                     </DropdownMenuItem>
                                 )}
                             </DropdownMenuContent>
@@ -574,14 +574,14 @@ export default function Home() {
                     <Separator orientation="vertical" className="mr-2 h-4" />
                     {isMobileWidth ? (
                         <Link className="p-0 no-underline" href="/">
-                            <KhojLogoType className="h-auto w-16" />
+                            <AlphaMindLogoType className="h-auto w-16" />
                         </Link>
                     ) : (
                         <h2 className="text-lg">Ask Anything</h2>
                     )}
                 </header>
                 <div className={`${styles.main} ${styles.chatLayout}`}>
-                    <title>Khoj AI - Your Second Brain</title>
+                    <title>AlphaMind AI - Your Second Brain</title>
                     <div className={`${styles.chatBox}`}>
                         <div className={`${styles.chatBoxBody}`}>
                             {!authenticationLoading && (

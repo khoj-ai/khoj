@@ -1,9 +1,9 @@
 import { ItemView, MarkdownRenderer, Scope, WorkspaceLeaf, request, requestUrl, setIcon, Platform, TFile } from 'obsidian';
 import * as DOMPurify from 'isomorphic-dompurify';
-import { KhojPaneView } from 'src/pane_view';
-import { KhojView, createCopyParentText, getLinkToEntry, pasteTextAtCursor } from 'src/utils';
-import { KhojSearchModal } from 'src/search_modal';
-import Khoj from 'src/main';
+import { AlphaMindPaneView } from 'src/pane_view';
+import { AlphaMindView, createCopyParentText, getLinkToEntry, pasteTextAtCursor } from 'src/utils';
+import { AlphaMindSearchModal } from 'src/search_modal';
+import AlphaMind from 'src/main';
 import { FileInteractions, EditBlock } from 'src/interact_with_files';
 
 export interface ChatJsonResult {
@@ -65,7 +65,7 @@ interface Agent {
     description: string;
 }
 
-export class KhojChatView extends KhojPaneView {
+export class AlphaMindChatView extends AlphaMindPaneView {
     result: string;
     waitingForLocation: boolean;
     location: Location = { timezone: Intl.DateTimeFormat().resolvedOptions().timeZone };
@@ -101,7 +101,7 @@ export class KhojChatView extends KhojPaneView {
     // 2. Higher invalid edit blocks than tolerable
     private maxEditRetries: number = 1; // Maximum retries for edit blocks
 
-    constructor(leaf: WorkspaceLeaf, plugin: Khoj) {
+    constructor(leaf: WorkspaceLeaf, plugin: AlphaMind) {
         super(leaf, plugin);
         this.fileInteractions = new FileInteractions(this.app);
 
@@ -133,16 +133,16 @@ export class KhojChatView extends KhojPaneView {
         this.scope.register(["Ctrl", "Alt"], 'n', (_) => this.createNewConversation(this.currentAgent));
         this.scope.register(["Ctrl", "Alt"], 'o', async (_) => await this.toggleChatSessions());
         this.scope.register(["Ctrl", "Alt"], 'v', (_) => this.speechToText(this.voiceChatActive ? new KeyboardEvent('keyup') : new KeyboardEvent('keydown')));
-        this.scope.register(["Ctrl"], 'f', (_) => new KhojSearchModal(this.app, this.setting).open());
-        this.scope.register(["Ctrl"], 'r', (_) => { this.activateView(KhojView.SIMILAR); });
+        this.scope.register(["Ctrl"], 'f', (_) => new AlphaMindSearchModal(this.app, this.setting).open());
+        this.scope.register(["Ctrl"], 'r', (_) => { this.activateView(AlphaMindView.SIMILAR); });
     }
 
     getViewType(): string {
-        return KhojView.CHAT;
+        return AlphaMindView.CHAT;
     }
 
     getDisplayText(): string {
-        return "Khoj Chat";
+        return "AlphaMind Chat";
     }
 
     getIcon(): string {
@@ -154,7 +154,7 @@ export class KhojChatView extends KhojPaneView {
         await this.cancelPendingEdits();
 
         // Get text in chat input element
-        let input_el = <HTMLTextAreaElement>this.contentEl.getElementsByClassName("khoj-chat-input")[0];
+        let input_el = <HTMLTextAreaElement>this.contentEl.getElementsByClassName("alphamind-chat-input")[0];
 
         // Clear text after extracting message to send
         let user_message = input_el.value.trim();
@@ -163,7 +163,7 @@ export class KhojChatView extends KhojPaneView {
         if (user_message) {
             // Get the selected mode
             const selectedMode = this.chatModes.find(mode =>
-                this.contentEl.querySelector(`#khoj-mode-${mode.value}:checked`)
+                this.contentEl.querySelector(`#alphamind-mode-${mode.value}:checked`)
             );
 
             // Check if message starts with a mode command
@@ -200,18 +200,18 @@ export class KhojChatView extends KhojPaneView {
         let { contentEl } = this;
 
         // Construct Content Security Policy
-        let defaultDomains = `'self' ${this.setting.khojUrl} https://*.obsidian.md https://app.khoj.dev https://assets.khoj.dev`;
+        let defaultDomains = `'self' ${this.setting.alphamindUrl} https://*.obsidian.md https://app.alphamind.dev https://assets.alphamind.dev`;
         const defaultSrc = `default-src ${defaultDomains};`;
         const scriptSrc = `script-src ${defaultDomains} 'unsafe-inline';`;
-        const connectSrc = `connect-src ${this.setting.khojUrl} wss://*.obsidian.md/ https://ipapi.co/json;`;
+        const connectSrc = `connect-src ${this.setting.alphamindUrl} wss://*.obsidian.md/ https://ipapi.co/json;`;
         const styleSrc = `style-src ${defaultDomains} 'unsafe-inline';`;
         const imgSrc = `img-src * app: data:;`;
         const childSrc = `child-src 'none';`;
         const objectSrc = `object-src 'none';`;
         const csp = `${defaultSrc} ${scriptSrc} ${connectSrc} ${styleSrc} ${imgSrc} ${childSrc} ${objectSrc}`;
 
-        // WARNING: CSP DISABLED for now as it breaks other Obsidian plugins. Enable when can scope CSP to only Khoj plugin.
-        // CSP meta tag for the Khoj Chat modal
+        // WARNING: CSP DISABLED for now as it breaks other Obsidian plugins. Enable when can scope CSP to only AlphaMind plugin.
+        // CSP meta tag for the AlphaMind Chat modal
         // document.head.createEl("meta", { attr: { "http-equiv": "Content-Security-Policy", "content": `${csp}` } });
 
         // The parent class handles creating the header and attaching the click on the "New Chat" button
@@ -223,7 +223,7 @@ export class KhojChatView extends KhojPaneView {
         await this.fetchAgents();
 
         // Populate the agent selector in the header
-        const headerAgentSelect = this.contentEl.querySelector('.khoj-header-agent-select') as HTMLSelectElement;
+        const headerAgentSelect = this.contentEl.querySelector('.alphamind-header-agent-select') as HTMLSelectElement;
         if (headerAgentSelect && this.agents.length > 0) {
             // Clear existing options
             headerAgentSelect.innerHTML = '';
@@ -231,12 +231,12 @@ export class KhojChatView extends KhojPaneView {
             // Add default option
             headerAgentSelect.createEl("option", {
                 text: "Default Agent",
-                value: "khoj"
+                value: "alphamind"
             });
 
             // Add options for all other agents
             this.agents.forEach(agent => {
-                if (agent.slug === 'khoj') return; // Skip the default agent
+                if (agent.slug === 'alphamind') return; // Skip the default agent
                 const option = headerAgentSelect.createEl("option", {
                     text: agent.name,
                     value: agent.slug
@@ -253,17 +253,17 @@ export class KhojChatView extends KhojPaneView {
             });
         }
 
-        contentEl.addClass("khoj-chat");
+        contentEl.addClass("alphamind-chat");
 
         // Create the chat body
-        let chatBodyEl = contentEl.createDiv({ attr: { id: "khoj-chat-body", class: "khoj-chat-body" } });
+        let chatBodyEl = contentEl.createDiv({ attr: { id: "alphamind-chat-body", class: "alphamind-chat-body" } });
         // Add chat input field
-        let inputRow = contentEl.createDiv("khoj-input-row");
+        let inputRow = contentEl.createDiv("alphamind-input-row");
 
         let chatSessions = inputRow.createEl("button", {
             text: "Chat Sessions",
             attr: {
-                class: "khoj-input-row-button clickable-icon",
+                class: "alphamind-input-row-button clickable-icon",
                 title: "Show Conversations (Ctrl+Alt+O)",
             },
         })
@@ -274,7 +274,7 @@ export class KhojChatView extends KhojPaneView {
         let fileAccessButton = inputRow.createEl("button", {
             text: "File Access",
             attr: {
-                class: "khoj-input-row-button clickable-icon",
+                class: "alphamind-input-row-button clickable-icon",
                 title: "Toggle open file access",
             },
         });
@@ -321,9 +321,9 @@ export class KhojChatView extends KhojPaneView {
 
         let chatInput = inputRow.createEl("textarea", {
             attr: {
-                id: "khoj-chat-input",
+                id: "alphamind-chat-input",
                 autofocus: "autofocus",
-                class: "khoj-chat-input option",
+                class: "alphamind-chat-input option",
             },
         })
         chatInput.addEventListener('input', (_) => { this.onChatInput() });
@@ -339,8 +339,8 @@ export class KhojChatView extends KhojPaneView {
         let transcribe = inputRow.createEl("button", {
             text: "Transcribe",
             attr: {
-                id: "khoj-transcribe",
-                class: "khoj-transcribe khoj-input-row-button clickable-icon ",
+                id: "alphamind-transcribe",
+                class: "alphamind-transcribe alphamind-input-row-button clickable-icon ",
                 title: "Hold to Voice Chat (Ctrl+Alt+V)",
             },
         })
@@ -354,18 +354,18 @@ export class KhojChatView extends KhojPaneView {
         let send = inputRow.createEl("button", {
             text: "Send",
             attr: {
-                id: "khoj-chat-send",
-                class: "khoj-chat-send khoj-input-row-button clickable-icon",
+                id: "alphamind-chat-send",
+                class: "alphamind-chat-send alphamind-input-row-button clickable-icon",
             },
         })
         setIcon(send, "arrow-up-circle");
         let sendImg = <SVGElement>send.getElementsByClassName("lucide-arrow-up-circle")[0]
         sendImg.addEventListener('click', async (_) => { await this.chat() });
 
-        // Get chat history from Khoj backend and set chat input state
+        // Get chat history from AlphaMind backend and set chat input state
         let getChatHistorySucessfully = await this.getChatHistory(chatBodyEl);
 
-        let placeholderText: string = getChatHistorySucessfully ? this.startingMessage : "Configure Khoj to enable chat";
+        let placeholderText: string = getChatHistorySucessfully ? this.startingMessage : "Configure AlphaMind to enable chat";
         chatInput.placeholder = placeholderText;
         chatInput.disabled = !getChatHistorySucessfully;
         this.autoResize();
@@ -375,7 +375,7 @@ export class KhojChatView extends KhojPaneView {
             // Ensure layout and paint have occurred
             requestAnimationFrame(() => {
                 this.scrollChatToBottom();
-                const chatInput = <HTMLTextAreaElement>this.contentEl.getElementsByClassName("khoj-chat-input")[0];
+                const chatInput = <HTMLTextAreaElement>this.contentEl.getElementsByClassName("alphamind-chat-input")[0];
                 chatInput?.focus();
             });
         });
@@ -388,12 +388,12 @@ export class KhojChatView extends KhojPaneView {
                 if (this.sendMessageTimeout) {
                     // Stop the auto send voice message countdown timer UI
                     clearTimeout(this.sendMessageTimeout);
-                    const sendButton = <HTMLButtonElement>this.contentEl.getElementsByClassName("khoj-chat-send")[0]
+                    const sendButton = <HTMLButtonElement>this.contentEl.getElementsByClassName("alphamind-chat-send")[0]
                     setIcon(sendButton, "arrow-up-circle")
                     let sendImg = <SVGElement>sendButton.getElementsByClassName("lucide-arrow-up-circle")[0]
                     sendImg.addEventListener('click', async (_) => { await this.chat() });
                     // Reset chat input value
-                    const chatInput = <HTMLTextAreaElement>this.contentEl.getElementsByClassName("khoj-chat-input")[0];
+                    const chatInput = <HTMLTextAreaElement>this.contentEl.getElementsByClassName("alphamind-chat-input")[0];
                     chatInput.value = "";
                 }
                 // Start new voice message
@@ -579,12 +579,12 @@ export class KhojChatView extends KhojPaneView {
         speechButton.disabled = true;
 
         const context = new AudioContext();
-        let textToSpeechApi = `${this.setting.khojUrl}/api/chat/speech?text=${encodeURIComponent(message)}`;
+        let textToSpeechApi = `${this.setting.alphamindUrl}/api/chat/speech?text=${encodeURIComponent(message)}`;
         fetch(textToSpeechApi, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                "Authorization": `Bearer ${this.setting.khojApiKey}`,
+                "Authorization": `Bearer ${this.setting.alphamindApiKey}`,
             },
         })
             .then(response => response.arrayBuffer())
@@ -643,7 +643,7 @@ export class KhojChatView extends KhojPaneView {
 
         // Remove image HTML elements with any non whitelisted src prefix
         virtualChatMessageBodyTextEl.innerHTML = virtualChatMessageBodyTextEl.innerHTML.replace(
-            /<img(?:(?!src=["'](app:|data:|https:\/\/generated\.khoj\.dev)).)*?>/gis,
+            /<img(?:(?!src=["'](app:|data:|https:\/\/generated\.alphamind\.dev)).)*?>/gis,
             ''
         );
 
@@ -731,7 +731,7 @@ export class KhojChatView extends KhojPaneView {
         let references: any = {};
         if (!!context) references["notes"] = context;
         if (!!onlineContext) references["online"] = onlineContext;
-        let chatMessageBodyEl = chatMessageEl.getElementsByClassName("khoj-chat-message-text")[0];
+        let chatMessageBodyEl = chatMessageEl.getElementsByClassName("alphamind-chat-message-text")[0];
         chatMessageBodyEl.appendChild(this.createReferenceSection(references));
     }
 
@@ -744,7 +744,7 @@ export class KhojChatView extends KhojPaneView {
         } else if (intentType === "text-to-image-v3") {
             imageMarkdown = `![](${message})`;
         } else if (intentType === "excalidraw" || excalidrawDiagram) {
-            const domain = this.setting.khojUrl.endsWith("/") ? this.setting.khojUrl : `${this.setting.khojUrl}/`;
+            const domain = this.setting.alphamindUrl.endsWith("/") ? this.setting.alphamindUrl : `${this.setting.alphamindUrl}/`;
             const redirectMessage = `Hey, I'm not ready to show you diagrams yet here. But you can view it in ${domain}chat?conversationId=${conversationId}`;
             imageMarkdown = redirectMessage;
         } else if (mermaidjsDiagram) {
@@ -771,12 +771,12 @@ export class KhojChatView extends KhojPaneView {
         let chatMessageEl = chatBodyEl.createDiv({
             attr: {
                 "data-meta": message_time,
-                class: `khoj-chat-message ${sender}`,
+                class: `alphamind-chat-message ${sender}`,
                 ...(turnId && { "data-turnid": turnId })
             },
         })
         let chatMessageBodyEl = chatMessageEl.createDiv();
-        chatMessageBodyEl.addClasses(["khoj-chat-message-text", sender]);
+        chatMessageBodyEl.addClasses(["alphamind-chat-message-text", sender]);
         let chatMessageBodyTextEl = chatMessageBodyEl.createDiv();
 
         // Remove Obsidian specific instructions sent alongside user query in between <SYSTEM></SYSTEM> tags
@@ -808,16 +808,16 @@ export class KhojChatView extends KhojPaneView {
         return chatMessageEl;
     }
 
-    createKhojResponseDiv(dt?: Date): HTMLDivElement {
+    createAlphaMindResponseDiv(dt?: Date): HTMLDivElement {
         let messageTime = this.formatDate(dt ?? new Date());
 
         // Append message to conversation history HTML element.
         // The chat logs should display above the message input box to follow standard UI semantics
-        let chatBodyEl = this.contentEl.getElementsByClassName("khoj-chat-body")[0];
+        let chatBodyEl = this.contentEl.getElementsByClassName("alphamind-chat-body")[0];
         let chatMessageEl = chatBodyEl.createDiv({
             attr: {
                 "data-meta": messageTime,
-                class: `khoj-chat-message khoj`
+                class: `alphamind-chat-message alphamind`
             },
         })
 
@@ -866,16 +866,16 @@ export class KhojChatView extends KhojPaneView {
 
         // Add edit button only for user messages
         let editButton = null;
-        if (!isSystemMessage && chatMessageBodyTextEl.closest('.khoj-chat-message.you')) {
+        if (!isSystemMessage && chatMessageBodyTextEl.closest('.alphamind-chat-message.you')) {
             editButton = this.contentEl.createEl('button');
             editButton.classList.add("chat-action-button");
             editButton.title = "Edit Message";
             setIcon(editButton, "edit-3");
             editButton.addEventListener('click', async () => {
-                const messageEl = chatMessageBodyTextEl.closest('.khoj-chat-message');
+                const messageEl = chatMessageBodyTextEl.closest('.alphamind-chat-message');
                 if (messageEl) {
                     // Get all messages up to this one
-                    const allMessages = Array.from(this.contentEl.getElementsByClassName('khoj-chat-message'));
+                    const allMessages = Array.from(this.contentEl.getElementsByClassName('alphamind-chat-message'));
                     const currentIndex = allMessages.indexOf(messageEl as HTMLElement);
 
                     // Store reference to messages that need to be deleted from backend
@@ -887,7 +887,7 @@ export class KhojChatView extends KhojPaneView {
                     messageContent = messageContent.replace(emojiRegex, '');
 
                     // Set the message in the input field
-                    const chatInput = this.contentEl.querySelector('.khoj-chat-input') as HTMLTextAreaElement;
+                    const chatInput = this.contentEl.querySelector('.alphamind-chat-input') as HTMLTextAreaElement;
                     if (chatInput) {
                         chatInput.value = messageContent;
                         chatInput.focus();
@@ -916,7 +916,7 @@ export class KhojChatView extends KhojPaneView {
             deleteButton.title = "Delete Message";
             setIcon(deleteButton, "trash-2");
             deleteButton.addEventListener('click', () => {
-                const messageEl = chatMessageBodyTextEl.closest('.khoj-chat-message');
+                const messageEl = chatMessageBodyTextEl.closest('.alphamind-chat-message');
                 if (messageEl) {
                     // Ask for confirmation before deleting
                     if (confirm('Are you sure you want to delete this message?')) {
@@ -966,7 +966,7 @@ export class KhojChatView extends KhojPaneView {
     }
 
     async createNewConversation(agentSlug?: string | null) {
-        let chatBodyEl = this.contentEl.getElementsByClassName("khoj-chat-body")[0] as HTMLElement;
+        let chatBodyEl = this.contentEl.getElementsByClassName("alphamind-chat-body")[0] as HTMLElement;
         chatBodyEl.innerHTML = "";
         chatBodyEl.dataset.conversationId = "";
         chatBodyEl.dataset.conversationTitle = "";
@@ -974,14 +974,14 @@ export class KhojChatView extends KhojPaneView {
         this.startingMessage = this.getLearningMoment();
 
         // Update the placeholder of the chat input
-        const chatInput = this.contentEl.querySelector('.khoj-chat-input') as HTMLTextAreaElement;
+        const chatInput = this.contentEl.querySelector('.alphamind-chat-input') as HTMLTextAreaElement;
         if (chatInput) {
             chatInput.placeholder = this.startingMessage;
         }
 
         try {
             // Create a new conversation with or without an agent
-            let endpoint = `${this.setting.khojUrl}/api/chat/sessions`;
+            let endpoint = `${this.setting.alphamindUrl}/api/chat/sessions`;
 			agentSlug = agentSlug || this.currentAgent;
             if (agentSlug) {
                 endpoint += `?agent_slug=${encodeURIComponent(agentSlug)}`;
@@ -990,7 +990,7 @@ export class KhojChatView extends KhojPaneView {
             const response = await fetch(endpoint, {
                 method: "POST",
                 headers: {
-                    "Authorization": `Bearer ${this.setting.khojApiKey}`,
+                    "Authorization": `Bearer ${this.setting.alphamindApiKey}`,
                     "Content-Type": "application/json"
                 },
                 body: JSON.stringify({}) // Empty body as agent_slug is in the URL
@@ -1002,7 +1002,7 @@ export class KhojChatView extends KhojPaneView {
                 this.currentAgent = agentSlug || null;
 
                 // Update agent selector to reflect current agent
-                const agentSelect = this.contentEl.querySelector('.khoj-header-agent-select') as HTMLSelectElement;
+                const agentSelect = this.contentEl.querySelector('.alphamind-header-agent-select') as HTMLSelectElement;
                 if (agentSelect) {
                     agentSelect.value = this.currentAgent || '';
                 }
@@ -1013,12 +1013,12 @@ export class KhojChatView extends KhojPaneView {
             console.error("Error creating session:", error);
         }
 
-        this.renderMessage({ chatBodyEl, message: "Hey, what's up?", sender: "khoj", isSystemMessage: true });
+        this.renderMessage({ chatBodyEl, message: "Hey, what's up?", sender: "alphamind", isSystemMessage: true });
     }
 
     async toggleChatSessions(forceShow: boolean = false): Promise<boolean> {
         this.userMessages = [];  // clear user previous message history
-        let chatBodyEl = this.contentEl.getElementsByClassName("khoj-chat-body")[0] as HTMLElement;
+        let chatBodyEl = this.contentEl.getElementsByClassName("alphamind-chat-body")[0] as HTMLElement;
         if (!forceShow && this.contentEl.getElementsByClassName("side-panel")?.length > 0) {
             chatBodyEl.innerHTML = "";
             return this.getChatHistory(chatBodyEl);
@@ -1042,8 +1042,8 @@ export class KhojChatView extends KhojPaneView {
         const conversationListBodyHeaderEl = conversationListEl.createDiv("conversation-list-header");
         const conversationListBodyEl = conversationListEl.createDiv("conversation-list-body");
 
-        const chatSessionsUrl = `${this.setting.khojUrl}/api/chat/sessions?client=obsidian`;
-        const headers = { 'Authorization': `Bearer ${this.setting.khojApiKey}` };
+        const chatSessionsUrl = `${this.setting.alphamindUrl}/api/chat/sessions?client=obsidian`;
+        const headers = { 'Authorization': `Bearer ${this.setting.alphamindApiKey}` };
         try {
             let response = await fetch(chatSessionsUrl, { method: "GET", headers: headers });
             let responseJson: any = await response.json();
@@ -1101,7 +1101,7 @@ export class KhojChatView extends KhojPaneView {
     ) {
         conversationMenuEl.classList.add("conversation-menu");
 
-        const headers = { 'Authorization': `Bearer ${this.setting.khojApiKey}` };
+        const headers = { 'Authorization': `Bearer ${this.setting.alphamindApiKey}` };
 
         let editConversationTitleButtonEl = this.contentEl.createEl('button');
         setIcon(editConversationTitleButtonEl, "edit");
@@ -1141,7 +1141,7 @@ export class KhojChatView extends KhojPaneView {
                 let newTitle = editConversationTitleInputEl.value;
                 if (newTitle != null) {
                     let editURL = `/api/chat/title?client=web&conversation_id=${incomingConversationId}&title=${newTitle}`;
-                    fetch(`${this.setting.khojUrl}${editURL}`, { method: "PATCH", headers })
+                    fetch(`${this.setting.alphamindUrl}${editURL}`, { method: "PATCH", headers })
                         .then(response => response.ok ? response.json() : Promise.reject(response))
                         .then(data => {
                             conversationSessionTitleEl.textContent = newTitle;
@@ -1188,7 +1188,7 @@ export class KhojChatView extends KhojPaneView {
             let confirmation = confirm('Are you sure you want to delete this chat session?');
             if (!confirmation) return;
             let deleteURL = `/api/chat/history?client=obsidian&conversation_id=${incomingConversationId}`;
-            fetch(`${this.setting.khojUrl}${deleteURL}`, { method: "DELETE", headers })
+            fetch(`${this.setting.alphamindUrl}${deleteURL}`, { method: "DELETE", headers })
                 .then(response => response.ok ? response.json() : Promise.reject(response))
                 .then(data => {
                     chatBodyEl.innerHTML = "";
@@ -1206,8 +1206,8 @@ export class KhojChatView extends KhojPaneView {
     }
 
     async getChatHistory(chatBodyEl: HTMLElement): Promise<boolean> {
-        // Get chat history from Khoj backend
-        let chatUrl = `${this.setting.khojUrl}/api/chat/history?client=obsidian`;
+        // Get chat history from AlphaMind backend
+        let chatUrl = `${this.setting.alphamindUrl}/api/chat/history?client=obsidian`;
         if (chatBodyEl.dataset.conversationId) {
             chatUrl += `&conversation_id=${chatBodyEl.dataset.conversationId}`;
         }
@@ -1217,7 +1217,7 @@ export class KhojChatView extends KhojPaneView {
         try {
             let response = await fetch(chatUrl, {
                 method: "GET",
-                headers: { "Authorization": `Bearer ${this.setting.khojApiKey}` },
+                headers: { "Authorization": `Bearer ${this.setting.alphamindApiKey}` },
             });
 
             let responseJson: any = await response.json();
@@ -1231,7 +1231,7 @@ export class KhojChatView extends KhojPaneView {
                 this.renderMessage({
                     chatBodyEl,
                     message: setupMsg,
-                    sender: "khoj",
+                    sender: "alphamind",
                     isSystemMessage: true
                 });
 
@@ -1246,7 +1246,7 @@ export class KhojChatView extends KhojPaneView {
                     console.debug("Found agent in conversation history:", responseJson.response.agent);
                     this.currentAgent = responseJson.response.agent.slug;
                     // Update the agent selector if it exists
-                    const agentSelect = this.contentEl.querySelector('.khoj-header-agent-select') as HTMLSelectElement;
+                    const agentSelect = this.contentEl.querySelector('.alphamind-header-agent-select') as HTMLSelectElement;
                     if (agentSelect && this.currentAgent) {
                         agentSelect.value = this.currentAgent;
                         console.log("Updated agent selector to:", this.currentAgent);
@@ -1260,8 +1260,8 @@ export class KhojChatView extends KhojPaneView {
                         chatLog.message = this.convertCommandsToEmojis(chatLog.message);
                     }
 
-                    // Transform khoj-edit blocks into accordions
-                    if (chatLog.by === "khoj") {
+                    // Transform alphamind-edit blocks into accordions
+                    if (chatLog.by === "alphamind") {
                         chatLog.message = this.transformEditBlocks(chatLog.message);
                     }
 
@@ -1290,17 +1290,17 @@ export class KhojChatView extends KhojPaneView {
                 this.startingMessage = this.getLearningMoment();
 
                 // Update the placeholder of the chat input
-                const chatInput = this.contentEl.querySelector('.khoj-chat-input') as HTMLTextAreaElement;
+                const chatInput = this.contentEl.querySelector('.alphamind-chat-input') as HTMLTextAreaElement;
                 if (chatInput) {
                     chatInput.placeholder = this.startingMessage;
                 }
             }
         } catch (err) {
-            let errorMsg = "Unable to get response from Khoj server ❤️‍🩹. Ensure server is running or contact developers for help at [team@khoj.dev](mailto:team@khoj.dev) or in [Discord](https://discord.gg/BDgyabRM6e)";
+            let errorMsg = "Unable to get response from AlphaMind server ❤️‍🩹. Ensure server is running or contact developers for help at [team@alphamind.dev](mailto:team@alphamind.dev) or in [Discord](https://discord.gg/BDgyabRM6e)";
             this.renderMessage({
                 chatBodyEl,
                 message: errorMsg,
-                sender: "khoj",
+                sender: "alphamind",
                 isSystemMessage: true
             });
             return false;
@@ -1333,7 +1333,7 @@ export class KhojChatView extends KhojPaneView {
             this.isStreaming = true;
 
             // Disable input resizing during streaming
-            const chatInput = <HTMLTextAreaElement>this.contentEl.getElementsByClassName("khoj-chat-input")[0];
+            const chatInput = <HTMLTextAreaElement>this.contentEl.getElementsByClassName("alphamind-chat-input")[0];
             if (chatInput) {
                 chatInput.style.overflowY = 'hidden';
             }
@@ -1353,7 +1353,7 @@ export class KhojChatView extends KhojPaneView {
             this.isStreaming = false;
 
             // Re-enable input resizing after streaming
-            const chatInput = <HTMLTextAreaElement>this.contentEl.getElementsByClassName("khoj-chat-input")[0];
+            const chatInput = <HTMLTextAreaElement>this.contentEl.getElementsByClassName("alphamind-chat-input")[0];
             if (chatInput) {
                 // Call autoResize to restore proper sizing
                 this.autoResize();
@@ -1364,7 +1364,7 @@ export class KhojChatView extends KhojPaneView {
             this.isStreaming = false;
 
             // Re-enable input resizing after streaming
-            const chatInput = <HTMLTextAreaElement>this.contentEl.getElementsByClassName("khoj-chat-input")[0];
+            const chatInput = <HTMLTextAreaElement>this.contentEl.getElementsByClassName("alphamind-chat-input")[0];
             if (chatInput) {
                 // Call autoResize to restore proper sizing
                 this.autoResize();
@@ -1383,7 +1383,7 @@ export class KhojChatView extends KhojPaneView {
                             return; // Wait for retry response
                         } else {
                             // Exhausted retries; surface error and do not attempt further automatic retries
-                            console.warn('[Khoj] Max edit retries reached. Aborting further retries.');
+                            console.warn('[AlphaMind] Max edit retries reached. Aborting further retries.');
                         }
                     } else {
                         // Successful parse => reset counter and apply edits
@@ -1503,7 +1503,7 @@ export class KhojChatView extends KhojPaneView {
         if (!query || query === "") return;
 
         // Get chat body element
-        let chatBodyEl = this.contentEl.getElementsByClassName("khoj-chat-body")[0] as HTMLElement;
+        let chatBodyEl = this.contentEl.getElementsByClassName("alphamind-chat-body")[0] as HTMLElement;
 
         // Render user query as chat message with display version only if displayUserMessage is true
         if (displayUserMessage) {
@@ -1518,10 +1518,10 @@ export class KhojChatView extends KhojPaneView {
                     ...(this.currentAgent && { agent_slug: this.currentAgent })
                 };
 
-                const response = await fetch(`${this.setting.khojUrl}/api/chat/sessions`, {
+                const response = await fetch(`${this.setting.alphamindUrl}/api/chat/sessions`, {
                     method: "POST",
                     headers: {
-                        "Authorization": `Bearer ${this.setting.khojApiKey}`,
+                        "Authorization": `Bearer ${this.setting.alphamindApiKey}`,
                         "Content-Type": "application/json"
                     },
                     body: JSON.stringify(requestBody)
@@ -1551,8 +1551,8 @@ export class KhojChatView extends KhojPaneView {
         // Combine mode, query and files content
         const finalQuery = modeCommand + (modeCommand ? ' ' : '') + queryWithoutMode + openFilesContent;
 
-        // Get chat response from Khoj backend
-        const chatUrl = `${this.setting.khojUrl}/api/chat?client=obsidian`;
+        // Get chat response from AlphaMind backend
+        const chatUrl = `${this.setting.alphamindUrl}/api/chat?client=obsidian`;
         const body = {
             q: finalQuery,
             n: this.setting.resultsCount,
@@ -1566,11 +1566,11 @@ export class KhojChatView extends KhojPaneView {
             ...(!!this.location && this.location.timezone && { timezone: this.location.timezone }),
         };
 
-        let newResponseEl = this.createKhojResponseDiv();
+        let newResponseEl = this.createAlphaMindResponseDiv();
         let newResponseTextEl = newResponseEl.createDiv();
-        newResponseTextEl.classList.add("khoj-chat-message-text", "khoj");
+        newResponseTextEl.classList.add("alphamind-chat-message-text", "alphamind");
 
-        // Temporary status message to indicate that Khoj is thinking
+        // Temporary status message to indicate that AlphaMind is thinking
         let loadingEllipsis = this.createLoadingEllipse();
         newResponseTextEl.appendChild(loadingEllipsis);
 
@@ -1593,7 +1593,7 @@ export class KhojChatView extends KhojPaneView {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
-                "Authorization": `Bearer ${this.setting.khojApiKey}`,
+                "Authorization": `Bearer ${this.setting.alphamindApiKey}`,
             },
             body: JSON.stringify(body),
         })
@@ -1604,15 +1604,15 @@ export class KhojChatView extends KhojPaneView {
             // Stream and render chat response
             await this.readChatStream(response);
         } catch (err) {
-            console.error(`Khoj chat response failed with\n${err}`);
-            let errorMsg = "Sorry, unable to get response from Khoj backend ❤️‍🩹. Retry or contact developers for help at <a href=mailto:'team@khoj.dev'>team@khoj.dev</a> or <a href='https://discord.gg/BDgyabRM6e'>on Discord</a>";
+            console.error(`AlphaMind chat response failed with\n${err}`);
+            let errorMsg = "Sorry, unable to get response from AlphaMind backend ❤️‍🩹. Retry or contact developers for help at <a href=mailto:'team@alphamind.dev'>team@alphamind.dev</a> or <a href='https://discord.gg/BDgyabRM6e'>on Discord</a>";
             newResponseTextEl.textContent = errorMsg;
         }
     }
 
     flashStatusInChatInput(message: string) {
         // Get chat input element and original placeholder
-        let chatInput = <HTMLTextAreaElement>this.contentEl.getElementsByClassName("khoj-chat-input")[0];
+        let chatInput = <HTMLTextAreaElement>this.contentEl.getElementsByClassName("alphamind-chat-input")[0];
         let originalPlaceholder = chatInput.placeholder;
         // Set placeholder to message
         chatInput.placeholder = message;
@@ -1623,12 +1623,12 @@ export class KhojChatView extends KhojPaneView {
     }
 
     async clearConversationHistory() {
-        let chatBody = this.contentEl.getElementsByClassName("khoj-chat-body")[0] as HTMLElement;
+        let chatBody = this.contentEl.getElementsByClassName("alphamind-chat-body")[0] as HTMLElement;
 
         let response = await request({
-            url: `${this.setting.khojUrl}/api/chat/history?client=obsidian`,
+            url: `${this.setting.alphamindUrl}/api/chat/history?client=obsidian`,
             method: "DELETE",
-            headers: { "Authorization": `Bearer ${this.setting.khojApiKey}` },
+            headers: { "Authorization": `Bearer ${this.setting.alphamindApiKey}` },
         })
         try {
             let result = JSON.parse(response);
@@ -1651,9 +1651,9 @@ export class KhojChatView extends KhojPaneView {
     mediaRecorder: MediaRecorder | undefined;
     async speechToText(event: MouseEvent | TouchEvent | KeyboardEvent) {
         event.preventDefault();
-        const transcribeButton = <HTMLButtonElement>this.contentEl.getElementsByClassName("khoj-transcribe")[0];
-        const chatInput = <HTMLTextAreaElement>this.contentEl.getElementsByClassName("khoj-chat-input")[0];
-        const sendButton = <HTMLButtonElement>this.contentEl.getElementsByClassName("khoj-chat-send")[0]
+        const transcribeButton = <HTMLButtonElement>this.contentEl.getElementsByClassName("alphamind-transcribe")[0];
+        const chatInput = <HTMLTextAreaElement>this.contentEl.getElementsByClassName("alphamind-chat-input")[0];
+        const sendButton = <HTMLButtonElement>this.contentEl.getElementsByClassName("alphamind-chat-send")[0]
 
         const generateRequestBody = async (audioBlob: Blob, boundary_string: string) => {
             const boundary = `------${boundary_string}`;
@@ -1674,14 +1674,14 @@ export class KhojChatView extends KhojPaneView {
             const requestBody = await generateRequestBody(audioBlob, boundary_string);
 
             const response = await requestUrl({
-                url: `${this.setting.khojUrl}/api/transcribe?client=obsidian`,
+                url: `${this.setting.alphamindUrl}/api/transcribe?client=obsidian`,
                 method: 'POST',
-                headers: { "Authorization": `Bearer ${this.setting.khojApiKey}` },
+                headers: { "Authorization": `Bearer ${this.setting.alphamindApiKey}` },
                 contentType: `multipart/form-data; boundary=----${boundary_string}`,
                 body: requestBody,
             });
 
-            // Parse response from Khoj backend
+            // Parse response from AlphaMind backend
             let noSpeechText: string[] = [
                 "Thanks for watching!",
                 "Thanks for watching.",
@@ -1771,7 +1771,7 @@ export class KhojChatView extends KhojPaneView {
         clearTimeout(this.sendMessageTimeout);
 
         // Revert to showing send-button and hide the stop-send-button
-        let sendButton = <HTMLButtonElement>this.contentEl.getElementsByClassName("khoj-chat-send")[0];
+        let sendButton = <HTMLButtonElement>this.contentEl.getElementsByClassName("alphamind-chat-send")[0];
         setIcon(sendButton, "arrow-up-circle");
         let sendImg = <SVGElement>sendButton.getElementsByClassName("lucide-arrow-up-circle")[0]
         sendImg.addEventListener('click', async (_) => { await this.chat() });
@@ -1782,7 +1782,7 @@ export class KhojChatView extends KhojPaneView {
         if (this.modeDropdown && this.modeDropdown.style.display !== "none" && event.key === "Enter") {
             event.preventDefault();
 
-            const options = this.modeDropdown.querySelectorAll<HTMLElement>(".khoj-mode-dropdown-option");
+            const options = this.modeDropdown.querySelectorAll<HTMLElement>(".alphamind-mode-dropdown-option");
             const visibleOptions = Array.from(options).filter(option =>
                 option.style.display !== "none"
             );
@@ -1791,7 +1791,7 @@ export class KhojChatView extends KhojPaneView {
             if (this.selectedOptionIndex >= 0 && this.selectedOptionIndex < visibleOptions.length) {
                 const selectedOption = visibleOptions[this.selectedOptionIndex];
                 const index = parseInt(selectedOption.getAttribute("data-index") || "0");
-                const chatInput = <HTMLTextAreaElement>this.contentEl.getElementsByClassName("khoj-chat-input")[0];
+                const chatInput = <HTMLTextAreaElement>this.contentEl.getElementsByClassName("alphamind-chat-input")[0];
 
                 chatInput.value = this.chatModes[index].command + " ";
                 chatInput.focus();
@@ -1802,7 +1802,7 @@ export class KhojChatView extends KhojPaneView {
             else if (visibleOptions.length === 1) {
                 const onlyOption = visibleOptions[0];
                 const index = parseInt(onlyOption.getAttribute("data-index") || "0");
-                const chatInput = <HTMLTextAreaElement>this.contentEl.getElementsByClassName("khoj-chat-input")[0];
+                const chatInput = <HTMLTextAreaElement>this.contentEl.getElementsByClassName("alphamind-chat-input")[0];
 
                 chatInput.value = this.chatModes[index].command + " ";
                 chatInput.focus();
@@ -1812,7 +1812,7 @@ export class KhojChatView extends KhojPaneView {
             return;
         }
 
-        const chatInput = <HTMLTextAreaElement>this.contentEl.getElementsByClassName("khoj-chat-input")[0];
+        const chatInput = <HTMLTextAreaElement>this.contentEl.getElementsByClassName("alphamind-chat-input")[0];
         const trimmedValue = chatInput.value.trim();
 
         // Check if value is empty or just a mode command
@@ -1834,7 +1834,7 @@ export class KhojChatView extends KhojPaneView {
     }
 
     onChatInput() {
-        const chatInput = <HTMLTextAreaElement>this.contentEl.getElementsByClassName("khoj-chat-input")[0];
+        const chatInput = <HTMLTextAreaElement>this.contentEl.getElementsByClassName("alphamind-chat-input")[0];
         chatInput.value = chatInput.value.trimStart();
         this.currentMessageIndex = -1;
 
@@ -1854,7 +1854,7 @@ export class KhojChatView extends KhojPaneView {
     }
 
     autoResize() {
-        const chatInput = <HTMLTextAreaElement>this.contentEl.getElementsByClassName("khoj-chat-input")[0];
+        const chatInput = <HTMLTextAreaElement>this.contentEl.getElementsByClassName("alphamind-chat-input")[0];
 
         // Skip resizing completely during active streaming to avoid UI jumps
         if (this.isStreaming) {
@@ -1887,12 +1887,12 @@ export class KhojChatView extends KhojPaneView {
     }
 
     scrollChatToBottom() {
-        const chat_body_el = this.contentEl.getElementsByClassName("khoj-chat-body")[0];
+        const chat_body_el = this.contentEl.getElementsByClassName("alphamind-chat-body")[0];
         if (!!chat_body_el) chat_body_el.scrollTop = chat_body_el.scrollHeight;
     }
 
     createLoadingEllipse() {
-        // Temporary status message to indicate that Khoj is thinking
+        // Temporary status message to indicate that AlphaMind is thinking
         let loadingEllipsis = this.contentEl.createEl("div");
         loadingEllipsis.classList.add("lds-ellipsis");
 
@@ -1926,12 +1926,12 @@ export class KhojChatView extends KhojPaneView {
         // Always replace the content completely
         newResponseElement.innerHTML = "";
         const messageEl = this.formatHTMLMessage(rawResponse, false, true);
-        messageEl.classList.add('khoj-message-new-content');
+        messageEl.classList.add('alphamind-message-new-content');
         newResponseElement.appendChild(messageEl);
 
         // Remove the animation class after the animation completes
         setTimeout(() => {
-            newResponseElement.classList.remove('khoj-message-new-content');
+            newResponseElement.classList.remove('alphamind-message-new-content');
         }, 300);
     }
 
@@ -1947,7 +1947,7 @@ export class KhojChatView extends KhojPaneView {
             } else if (imageJson.intentType === "text-to-image-v3") {
                 rawResponse = `![generated_image](${imageJson.image})`;
             } else if (imageJson.intentType === "excalidraw") {
-                const domain = this.setting.khojUrl.endsWith("/") ? this.setting.khojUrl : `${this.setting.khojUrl}/`;
+                const domain = this.setting.alphamindUrl.endsWith("/") ? this.setting.alphamindUrl : `${this.setting.alphamindUrl}/`;
                 const redirectMessage = `Hey, I'm not ready to show you diagrams yet here. But you can view it in ${domain}`;
                 rawResponse += redirectMessage;
             }
@@ -1960,7 +1960,7 @@ export class KhojChatView extends KhojPaneView {
                 rawResponse += `![generated_image](${image})\n\n`;
             });
         } else if (imageJson.excalidrawDiagram) {
-            const domain = this.setting.khojUrl.endsWith("/") ? this.setting.khojUrl : `${this.setting.khojUrl}/`;
+            const domain = this.setting.alphamindUrl.endsWith("/") ? this.setting.alphamindUrl : `${this.setting.alphamindUrl}/`;
             const redirectMessage = `Hey, I'm not ready to show you diagrams yet here. But you can view it in ${domain}`;
             rawResponse += redirectMessage;
         } else if (imageJson.mermaidjsDiagram) {
@@ -1983,7 +1983,7 @@ export class KhojChatView extends KhojPaneView {
             newResponseElement.parentElement?.previousElementSibling?.setAttribute("data-turnid", turnId);
         }
         this.scrollChatToBottom();
-        let chatInput = this.contentEl.getElementsByClassName("khoj-chat-input")[0];
+        let chatInput = this.contentEl.getElementsByClassName("alphamind-chat-input")[0];
         if (chatInput) chatInput.removeAttribute("disabled");
     }
 
@@ -2030,11 +2030,11 @@ export class KhojChatView extends KhojPaneView {
 
     // function to loop through the user's past messages
     handleArrowKeys(event: KeyboardEvent) {
-        const chatInput = <HTMLTextAreaElement>this.contentEl.getElementsByClassName("khoj-chat-input")[0];
+        const chatInput = <HTMLTextAreaElement>this.contentEl.getElementsByClassName("alphamind-chat-input")[0];
 
         // Handle dropdown navigation with arrow keys
         if (this.modeDropdown && this.modeDropdown.style.display !== "none") {
-            const options = this.modeDropdown.querySelectorAll<HTMLElement>(".khoj-mode-dropdown-option");
+            const options = this.modeDropdown.querySelectorAll<HTMLElement>(".alphamind-mode-dropdown-option");
             // Only consider visible options
             const visibleOptions = Array.from(options).filter(option =>
                 option.style.display !== "none"
@@ -2091,18 +2091,18 @@ export class KhojChatView extends KhojPaneView {
      * @param {HTMLElement[]} visibleOptions - Array of visible dropdown options
      */
     private highlightVisibleOption(visibleOptions: HTMLElement[]) {
-        const allOptions = this.modeDropdown?.querySelectorAll<HTMLElement>(".khoj-mode-dropdown-option");
+        const allOptions = this.modeDropdown?.querySelectorAll<HTMLElement>(".alphamind-mode-dropdown-option");
         if (!allOptions) return;
 
         // Clear highlighting on all options first
         allOptions.forEach(option => {
-            option.classList.remove("khoj-mode-dropdown-option-selected");
+            option.classList.remove("alphamind-mode-dropdown-option-selected");
         });
 
         // Add highlighting to the selected visible option
         if (this.selectedOptionIndex >= 0 && this.selectedOptionIndex < visibleOptions.length) {
             const selectedOption = visibleOptions[this.selectedOptionIndex];
-            selectedOption.classList.add("khoj-mode-dropdown-option-selected");
+            selectedOption.classList.add("alphamind-mode-dropdown-option-selected");
 
             // Scroll to selected option if needed
             if (this.modeDropdown) {
@@ -2119,21 +2119,21 @@ export class KhojChatView extends KhojPaneView {
     // Add this new method to handle message deletion
     async deleteMessage(messageEl: HTMLElement, skipPaired: boolean = false, skipBackend: boolean = false) {
         // Find parent message container
-        const messageContainer = messageEl.closest('.khoj-chat-message');
+        const messageContainer = messageEl.closest('.alphamind-chat-message');
         if (!messageContainer) return;
 
         // Get paired message to delete if needed
         let pairedMessageContainer: Element | null = null;
         if (!skipPaired) {
-            const messages = Array.from(document.getElementsByClassName('khoj-chat-message'));
+            const messages = Array.from(document.getElementsByClassName('alphamind-chat-message'));
             const currentIndex = messages.indexOf(messageContainer as HTMLElement);
 
-            // If we're deleting a user message, also delete the subsequent khoj message (if any)
+            // If we're deleting a user message, also delete the subsequent alphamind message (if any)
             if (messageContainer.classList.contains('you') && currentIndex < messages.length - 1) {
                 pairedMessageContainer = messages[currentIndex + 1];
             }
-            // If we're deleting a khoj message, also delete the preceding user message (if any)
-            else if (messageContainer.classList.contains('khoj') && currentIndex > 0) {
+            // If we're deleting a alphamind message, also delete the preceding user message (if any)
+            else if (messageContainer.classList.contains('alphamind') && currentIndex > 0) {
                 pairedMessageContainer = messages[currentIndex - 1];
             }
         }
@@ -2157,18 +2157,18 @@ export class KhojChatView extends KhojPaneView {
 
             // Only delete in backend if not skipped
             if (!skipBackend && turnId) {
-                const chatBodyEl = this.contentEl.getElementsByClassName("khoj-chat-body")[0] as HTMLElement;
+                const chatBodyEl = this.contentEl.getElementsByClassName("alphamind-chat-body")[0] as HTMLElement;
                 const conversationId = chatBodyEl.dataset.conversationId;
 
                 if (!conversationId) return;
 
                 try {
                     // Delete from backend
-                    const response = await fetch(`${this.setting.khojUrl}/api/chat/conversation/message`, {
+                    const response = await fetch(`${this.setting.alphamindUrl}/api/chat/conversation/message`, {
                         method: 'DELETE',
                         headers: {
                             'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${this.setting.khojApiKey}`
+                            'Authorization': `Bearer ${this.setting.alphamindApiKey}`
                         },
                         body: JSON.stringify({
                             conversation_id: conversationId,
@@ -2190,9 +2190,9 @@ export class KhojChatView extends KhojPaneView {
 
     async fetchAgents() {
         try {
-            const response = await fetch(`${this.setting.khojUrl}/api/agents`, {
+            const response = await fetch(`${this.setting.alphamindUrl}/api/agents`, {
                 headers: {
-                    "Authorization": `Bearer ${this.setting.khojApiKey}`
+                    "Authorization": `Bearer ${this.setting.alphamindApiKey}`
                 }
             });
 
@@ -2230,7 +2230,7 @@ export class KhojChatView extends KhojPaneView {
         );
 
         // Add confirmation buttons to the last message
-        const chatBodyEl = this.contentEl.getElementsByClassName("khoj-chat-body")[0];
+        const chatBodyEl = this.contentEl.getElementsByClassName("alphamind-chat-body")[0];
         const lastMessage = chatBodyEl.lastElementChild;
 
         if (lastMessage) {
@@ -2360,7 +2360,7 @@ export class KhojChatView extends KhojPaneView {
 
     // Make the method public and async
     public async applyPendingEdits() {
-        const chatBodyEl = this.contentEl.getElementsByClassName("khoj-chat-body")[0];
+        const chatBodyEl = this.contentEl.getElementsByClassName("alphamind-chat-body")[0];
         const lastMessage = chatBodyEl.lastElementChild;
         if (!lastMessage) return;
 
@@ -2377,7 +2377,7 @@ export class KhojChatView extends KhojPaneView {
 
     // Make the method public
     public async cancelPendingEdits() {
-        const chatBodyEl = this.contentEl.getElementsByClassName("khoj-chat-body")[0];
+        const chatBodyEl = this.contentEl.getElementsByClassName("alphamind-chat-body")[0];
         const lastMessage = chatBodyEl.lastElementChild;
         if (!lastMessage) return;
 
@@ -2392,7 +2392,7 @@ export class KhojChatView extends KhojPaneView {
         }
     }
 
-    // Add this new method to handle khoj-edit block transformation
+    // Add this new method to handle alphamind-edit block transformation
     private transformEditBlocks(message: string): string {
         return this.fileInteractions.transformEditBlocks(message);
     }
@@ -2416,13 +2416,13 @@ export class KhojChatView extends KhojPaneView {
         }
 
         // Create retry badge - keep it simple and focused only on retry functionality
-        const chatBodyEl = this.contentEl.getElementsByClassName("khoj-chat-body")[0];
+        const chatBodyEl = this.contentEl.getElementsByClassName("alphamind-chat-body")[0];
 
         // Create a container for the retry badge to ensure proper separation
-        const retryContainer = chatBodyEl.createDiv({ cls: "khoj-retry-container" });
+        const retryContainer = chatBodyEl.createDiv({ cls: "alphamind-retry-container" });
 
         // Create the retry badge inside the container
-        const retryBadge = retryContainer.createDiv({ cls: "khoj-retry-badge" });
+        const retryBadge = retryContainer.createDiv({ cls: "alphamind-retry-badge" });
 
         // Add retry icon
         const retryIcon = retryBadge.createSpan({ cls: "retry-icon" });
@@ -2459,7 +2459,7 @@ export class KhojChatView extends KhojPaneView {
         // Create dropdown if it doesn't exist
         if (!this.modeDropdown) {
             this.modeDropdown = this.contentEl.createDiv({
-                cls: "khoj-mode-dropdown"
+                cls: "alphamind-mode-dropdown"
             });
 
             // Position the dropdown ABOVE the input (instead of below)
@@ -2476,7 +2476,7 @@ export class KhojChatView extends KhojPaneView {
             // Add mode options to dropdown - we'll create all initially then show/hide based on filter
             this.chatModes.forEach((mode, index) => {
                 const option = this.modeDropdown!.createDiv({
-                    cls: "khoj-mode-dropdown-option",
+                    cls: "alphamind-mode-dropdown-option",
                     attr: {
                         "data-index": index.toString(),
                         "data-command": mode.command,
@@ -2485,17 +2485,17 @@ export class KhojChatView extends KhojPaneView {
 
                 // Create emoji span and label span for better styling control
                 const emojiSpan = option.createSpan({
-                    cls: "khoj-mode-dropdown-emoji"
+                    cls: "alphamind-mode-dropdown-emoji"
                 });
                 setIcon(emojiSpan, mode.iconName);
 
                 option.createSpan({
-                    cls: "khoj-mode-dropdown-label",
+                    cls: "alphamind-mode-dropdown-label",
                     text: ` ${mode.label} `
                 });
 
                 option.createSpan({
-                    cls: "khoj-mode-dropdown-command",
+                    cls: "alphamind-mode-dropdown-command",
                     text: `(${mode.command})`
                 });
 
@@ -2532,7 +2532,7 @@ export class KhojChatView extends KhojPaneView {
         if (!this.modeDropdown) return;
 
         // Get all options
-        const options = this.modeDropdown.querySelectorAll<HTMLElement>(".khoj-mode-dropdown-option");
+        const options = this.modeDropdown.querySelectorAll<HTMLElement>(".alphamind-mode-dropdown-option");
         let visibleOptionsCount = 0;
 
         options.forEach((option) => {

@@ -532,7 +532,7 @@ const ChatMessage = forwardRef<HTMLDivElement, ChatMessageProps>((props, ref) =>
             });
         }
 
-        // Handle rendering user attached or khoj generated images
+        // Handle rendering user attached or alphamind generated images
         let messageForClipboard = message;
         let messageToRender = message;
         if (props.chatMessage.images && props.chatMessage.images.length > 0) {
@@ -821,7 +821,7 @@ const ChatMessage = forwardRef<HTMLDivElement, ChatMessageProps>((props, ref) =>
 
     function constructClasses(chatMessage: SingleChatMessage) {
         let classes = [styles.chatMessageContainer];
-        if (chatMessage.by === "khoj") {
+        if (chatMessage.by === "alphamind") {
             classes.push("shadow-md");
         }
         classes.push(styles[chatMessage.by]);
@@ -839,9 +839,9 @@ const ChatMessage = forwardRef<HTMLDivElement, ChatMessageProps>((props, ref) =>
     function chatMessageWrapperClasses(chatMessage: SingleChatMessage) {
         let classes = [styles.chatMessageWrapper];
         classes.push(styles[chatMessage.by]);
-        if (chatMessage.by === "khoj") {
+        if (chatMessage.by === "alphamind") {
             classes.push(
-                `border-l-4 border-opacity-50 ${"border-l-" + props.borderLeftColor || "border-l-orange-400"}`,
+                `border-l-4 border-opacity-50 ${"border-l-" + props.borderLeftColor || "border-l-emerald-400"}`,
             );
         }
         return classes.join(" ");
@@ -852,7 +852,7 @@ const ChatMessage = forwardRef<HTMLDivElement, ChatMessageProps>((props, ref) =>
         // const utterance = new SpeechSynthesisUtterance(props.chatMessage.message);
         // speechSynthesis.speak(utterance);
 
-        // Using the Khoj speech API
+        // Using the AlphaMind speech API
         // Break the message up into chunks of sentences
         const sentenceRegex = /[^.!?]+[.!?]*/g;
         const chunks = props.chatMessage.message.match(sentenceRegex) || [];
@@ -1130,7 +1130,7 @@ const ChatMessage = forwardRef<HTMLDivElement, ChatMessageProps>((props, ref) =>
                             {renderTimeStamp(props.chatMessage.created)}
                         </div>
                         <div className={`${styles.chatButtons} shadow-sm`}>
-                            {props.chatMessage.by === "khoj" &&
+                            {props.chatMessage.by === "alphamind" &&
                                 (isPlaying ? (
                                     interrupted ? (
                                         <InlineLoading iconClassName="p-0" className="m-0" />
@@ -1165,7 +1165,7 @@ const ChatMessage = forwardRef<HTMLDivElement, ChatMessageProps>((props, ref) =>
                                     />
                                 </button>
                             )}
-                            {props.chatMessage.by === "khoj" &&
+                            {props.chatMessage.by === "alphamind" &&
                                 props.onRetryMessage &&
                                 props.isLastMessage && (
                                     <button
@@ -1224,7 +1224,7 @@ const ChatMessage = forwardRef<HTMLDivElement, ChatMessageProps>((props, ref) =>
                                     />
                                 )}
                             </button>
-                            {props.chatMessage.by === "khoj" &&
+                            {props.chatMessage.by === "alphamind" &&
                                 (props.chatMessage.intent ? (
                                     <FeedbackButtons
                                         uquery={props.chatMessage.intent.query}

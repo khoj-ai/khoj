@@ -1,13 +1,13 @@
 import { ItemView, WorkspaceLeaf } from 'obsidian';
-import { KhojSetting } from 'src/settings';
-import { KhojView, populateHeaderPane } from './utils';
-import Khoj from 'src/main';
+import { AlphaMindSetting } from 'src/settings';
+import { AlphaMindView, populateHeaderPane } from './utils';
+import AlphaMind from 'src/main';
 
-export abstract class KhojPaneView extends ItemView {
-    setting: KhojSetting;
-    plugin: Khoj;
+export abstract class AlphaMindPaneView extends ItemView {
+    setting: AlphaMindSetting;
+    plugin: AlphaMind;
 
-    constructor(leaf: WorkspaceLeaf, plugin: Khoj) {
+    constructor(leaf: WorkspaceLeaf, plugin: AlphaMind) {
         super(leaf);
 
         this.setting = plugin.settings;
@@ -20,21 +20,21 @@ export abstract class KhojPaneView extends ItemView {
     async onOpen() {
         let { contentEl } = this;
 
-        // Add title to the Khoj Chat modal
-        let headerEl = contentEl.createDiv(({ attr: { id: "khoj-header", class: "khoj-header" } }));
+        // Add title to the AlphaMind Chat modal
+        let headerEl = contentEl.createDiv(({ attr: { id: "alphamind-header", class: "alphamind-header" } }));
 
         // Setup the header pane
         const viewType = this.getViewType();
         await populateHeaderPane(headerEl, this.setting, viewType);
 
         // Set the active nav pane based on the current view's type
-        if (viewType === KhojView.CHAT) {
-            headerEl.querySelector(".chat-nav")?.classList.add("khoj-nav-selected");
-        } else if (viewType === KhojView.SIMILAR) {
-            headerEl.querySelector(".similar-nav")?.classList.add("khoj-nav-selected");
+        if (viewType === AlphaMindView.CHAT) {
+            headerEl.querySelector(".chat-nav")?.classList.add("alphamind-nav-selected");
+        } else if (viewType === AlphaMindView.SIMILAR) {
+            headerEl.querySelector(".similar-nav")?.classList.add("alphamind-nav-selected");
         }
         // The similar-nav event listener is already set in utils.ts
-        let similarNavSvgEl = headerEl.getElementsByClassName("khoj-nav-icon-similar")[0]?.firstElementChild;
+        let similarNavSvgEl = headerEl.getElementsByClassName("alphamind-nav-icon-similar")[0]?.firstElementChild;
         if (!!similarNavSvgEl) similarNavSvgEl.id = "similar-nav-icon-svg";
     }
 
@@ -55,9 +55,9 @@ export abstract class KhojPaneView extends ItemView {
         }
 
         if (leaf) {
-            if (viewType === KhojView.CHAT) {
+            if (viewType === AlphaMindView.CHAT) {
                 // focus on the chat input when the chat view is opened
-                let chatInput = <HTMLTextAreaElement>this.contentEl.getElementsByClassName("khoj-chat-input")[0];
+                let chatInput = <HTMLTextAreaElement>this.contentEl.getElementsByClassName("alphamind-chat-input")[0];
                 if (chatInput) chatInput.focus();
             }
 

@@ -15,9 +15,9 @@ These tests verify:
 import pytest
 from unittest.mock import MagicMock
 
-from khoj.database.adapters import ConversationAdapters, UserMemoryAdapters
-from khoj.database.models import ServerChatSettings, UserConversationConfig
-from khoj.routers.helpers import get_user_config
+from alphamind.database.adapters import ConversationAdapters, UserMemoryAdapters
+from alphamind.database.models import ServerChatSettings, UserConversationConfig
+from alphamind.routers.helpers import get_user_config
 from tests.helpers import (
     acreate_user,
     acreate_subscription,

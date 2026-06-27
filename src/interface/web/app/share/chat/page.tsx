@@ -23,7 +23,7 @@ import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/s
 import { DeprecationBanner } from "@/app/components/deprecationBanner";
 import { AppSidebar } from "@/app/components/appSidebar/appSidebar";
 import { Separator } from "@/components/ui/separator";
-import { KhojLogoType } from "@/app/components/logo/khojLogo";
+import { AlphaMindLogoType } from "@/app/components/logo/alphamindLogo";
 import { Button } from "@/components/ui/button";
 import { Trash } from "@phosphor-icons/react";
 
@@ -154,7 +154,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
 export default function SharedChat() {
     const [chatOptionsData, setChatOptionsData] = useState<ChatOptions | null>(null);
     const [isLoading, setLoading] = useState(true);
-    const [title, setTitle] = useState("Khoj AI - Chat");
+    const [title, setTitle] = useState("AlphaMind AI - Chat");
     const [conversationId, setConversationID] = useState<string | undefined>(undefined);
     const [messages, setMessages] = useState<StreamMessage[]>([]);
     const [queryToProcess, setQueryToProcess] = useState<string>("");
@@ -244,7 +244,7 @@ export default function SharedChat() {
                         >
                             {isMobileWidth ? (
                                 <Link className="p-0 no-underline" href="/">
-                                    <KhojLogoType className="h-auto w-16" />
+                                    <AlphaMindLogoType className="h-auto w-16" />
                                 </Link>
                             ) : (
                                 title && (

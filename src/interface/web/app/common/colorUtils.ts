@@ -28,7 +28,7 @@ export function convertToBGGradientClass(color: string) {
     if (tailwindColors.includes(color)) {
         return `bg-gradient-to-b from-[hsl(var(--background))] to-${color}-100/70 dark:from-[hsl(var(--background))] dark:to-${color}-950/30 `;
     }
-    return `bg-gradient-to-b from-white to-orange-50`;
+    return `bg-gradient-to-b from-white to-emerald-50`;
 }
 
 export function convertToBGClass(color: string) {
@@ -46,14 +46,14 @@ export function convertColorToCaretClass(color: string | undefined) {
     if (color && tailwindColors.includes(color)) {
         return `caret-${color}-500`;
     }
-    return `caret-orange-500`;
+    return `caret-emerald-500`;
 }
 
 export function convertColorToRingClass(color: string | undefined) {
     if (color && tailwindColors.includes(color)) {
         return `focus-visible:ring-${color}-500`;
     }
-    return `focus-visible:ring-orange-500`;
+    return `focus-visible:ring-emerald-500`;
 }
 
 export function convertColorToBorderClass(color: string) {

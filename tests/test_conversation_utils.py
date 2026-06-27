@@ -3,7 +3,7 @@ from copy import deepcopy
 import tiktoken
 from langchain_core.messages.chat import ChatMessage
 
-from khoj.processor.conversation import utils
+from alphamind.processor.conversation import utils
 
 
 class TestTruncateMessage:

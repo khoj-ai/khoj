@@ -1,7 +1,7 @@
-# melpa quality checks like checkdoc, byte-compile, package-lint for khoj.el
+# melpa quality checks like checkdoc, byte-compile, package-lint for alphamind.el
 # using melpazoid: https://github.com/riscy/melpazoid
 
-name: build khoj.el
+name: build alphamind.el
 on:
   push:
     branches:
@@ -9,14 +9,14 @@ on:
       - 'release/1.x'
     paths:
       - src/interface/emacs/*.el
-      - .github/workflows/build_khoj_el.yml
+      - .github/workflows/build_alphamind_el.yml
   pull_request:
     branches:
       - 'master'
       - 'release/1.x'
     paths:
       - src/interface/emacs/*.el
-      - .github/workflows/build_khoj_el.yml
+      - .github/workflows/build_alphamind_el.yml
 
 jobs:
   build:
@@ -32,10 +32,10 @@ jobs:
         sudo apt-get install emacs && emacs --version
         git clone https://github.com/riscy/melpazoid.git ~/melpazoid
         pip install ~/melpazoid
-    - name: 🌡️ Validate Khoj.el
+    - name: 🌡️ Validate AlphaMind.el
       env:
-        # Khoj recipe from https://github.com/melpa/melpa/pull/8321/files
-        RECIPE: (khoj :fetcher github :repo "khoj-ai/khoj" :files ("src/interface/emacs/*.el"))
+        # AlphaMind recipe from https://github.com/melpa/melpa/pull/8321/files
+        RECIPE: (alphamind :fetcher github :repo "alphamind-ai/alphamind" :files ("src/interface/emacs/*.el"))
         EXIST_OK: true
         LOCAL_REPO: ${{ github.workspace }}
       run: echo $GITHUB_REF && make -C ~/melpazoid

@@ -8,16 +8,16 @@ body:
               > [!IMPORTANT]
               > To save time for both you and us, try follow these guidelines before submitting a new issue:
               > 1. Check if there is an existing issue tracking your bug on our Github.
-              > 2. When unsure if your issue is an actual bug, first discuss it on a [Github discussion](https://github.com/khoj-ai/khoj/discussions/new?category=q-a) or the **#bugs** channel of our [Discord server](https://discord.gg/b6gUdpKr).
+              > 2. When unsure if your issue is an actual bug, first discuss it on a [Github discussion](https://github.com/alphamind-ai/alphamind/discussions/new?category=q-a) or the **#bugs** channel of our [Discord server](https://discord.gg/b6gUdpKr).
               > These steps avoid opening issues which are duplicate or not actual bugs.
 
     - type: "checkboxes"
       id: "server"
       attributes:
           label: "Server"
-          description: "With which Khoj server are you experiencing the issue? (select at least one)"
+          description: "With which AlphaMind server are you experiencing the issue? (select at least one)"
           options:
-              - label: "Cloud (https://app.khoj.dev)"
+              - label: "Cloud (https://app.alphamind.dev)"
                 required: false
               - label: "Self-Hosted Docker"
                 required: false
@@ -32,7 +32,7 @@ body:
       id: "clients"
       attributes:
           label: "Clients"
-          description: "With which Khoj client(s) are you experiencing the issue? (select at least one)"
+          description: "With which AlphaMind client(s) are you experiencing the issue? (select at least one)"
           options:
               - label: "Web browser"
                 required: false
@@ -69,10 +69,10 @@ body:
     - type: "input"
       id: "version"
       attributes:
-          label: "Khoj version"
+          label: "AlphaMind version"
           description: "Use `/help` command on the chat page to find the server version.\n
                         If using the cloud service, you can input, latest.\n
-                        If self-hosting - please make sure to run the latest version of Khoj before reporting any issues as it may have already been fixed."
+                        If self-hosting - please make sure to run the latest version of AlphaMind before reporting any issues as it may have already been fixed."
       validations:
           required: true
 

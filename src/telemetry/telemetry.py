@@ -11,7 +11,7 @@ from posthog import Posthog
 
 # Initialize Global App Variables
 app = FastAPI()
-sqlfile = "data/khoj.sqlite"
+sqlfile = "data/alphamind.sqlite"
 logger = logging.getLogger()
 logger.setLevel(logging.DEBUG)
 load_dotenv()
@@ -26,14 +26,14 @@ def v1_telemetry(telemetry_data: List[Dict[str, str]]):
         logger.error(error_message)
         raise HTTPException(status_code=500, detail=error_message)
 
-    # POST request to khoj posthog server
+    # POST request to alphamind posthog server
     try:
         for row in telemetry_data:
             posthog.capture(row["server_id"], "api_request", row)
     except Exception:
         raise HTTPException(
             status_code=500,
-            detail="Could not POST request to new khoj telemetry server. Contact developer to get this fixed.",
+            detail="Could not POST request to new alphamind telemetry server. Contact developer to get this fixed.",
         )
 
     # Insert received telemetry data into SQLite db
@@ -68,7 +68,7 @@ def v1_telemetry(telemetry_data: List[Dict[str, str]]):
 
 if __name__ == "__main__":
     # Setup Argument Parser
-    parser = argparse.ArgumentParser(description="Start Khoj Telemetry Server")
+    parser = argparse.ArgumentParser(description="Start AlphaMind Telemetry Server")
     parser.add_argument("--host", default="127.0.0.1", type=str, help="I.P of telemetry server")
     parser.add_argument("--port", "-p", default=80, type=int, help="Port of telemetry server")
     args = parser.parse_args()

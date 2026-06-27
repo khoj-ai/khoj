@@ -11,7 +11,7 @@ This is a test markdown file with multiple, nested child entries.
 ## Installation
 
 ```bash
-pip install khoj
+pip install alphamind
 ```
 
 ## Run
@@ -23,12 +23,12 @@ pip install khoj
 
 ## Use
 
-### **Khoj via API**
+### **AlphaMind via API**
 - Query: `GET` [http://localhost:42110/api/search?q="What is the meaning of life"](http://localhost:42110/api/search?q=%22what%20is%20the%20meaning%20of%20life%22)
 - Update Index: `GET` [http://localhost:42110/api/update](http://localhost:42110/api/update)
-- [Khoj API Docs](http://localhost:42110/docs)
+- [AlphaMind API Docs](http://localhost:42110/docs)
 
-### *Khoj via Web*
+### *AlphaMind via Web*
 
 - Open browser to http://localhost:42110
 - Enter query in search box

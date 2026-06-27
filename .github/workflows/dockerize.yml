@@ -8,7 +8,7 @@ on:
       - master
       - release/1.x
     paths:
-      - src/khoj/**
+      - src/alphamind/**
       - src/interface/web/**
       - pyproject.toml
       - Dockerfile
@@ -21,16 +21,16 @@ on:
       tag:
         description: 'Docker image tag'
         default: 'dev'
-      khoj:
-        description: 'Build Khoj docker image'
+      alphamind:
+        description: 'Build AlphaMind docker image'
         type: boolean
         default: true
-      khoj-cloud:
-        description: 'Build Khoj cloud docker image'
+      alphamind-cloud:
+        description: 'Build AlphaMind cloud docker image'
         type: boolean
         default: true
-      khoj-computer:
-        description: 'Build computer for Khoj'
+      alphamind-computer:
+        description: 'Build computer for AlphaMind'
         type: boolean
         default: true
 
@@ -43,7 +43,7 @@ env:
 
 jobs:
   build:
-    name: Publish Khoj Docker Images
+    name: Publish AlphaMind Docker Images
     strategy:
       fail-fast: false
       matrix:
@@ -65,7 +65,7 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v3
         with:
-          # Get all history to correctly infer Khoj version using hatch
+          # Get all history to correctly infer AlphaMind version using hatch
           fetch-depth: 0
 
       - name: Set up Docker Buildx
@@ -87,7 +87,7 @@ jobs:
 
       - name: 📦 Build and Push Docker Image
         uses: docker/build-push-action@v4
-        if: (matrix.image == 'local' && github.event_name == 'workflow_dispatch') && github.event.inputs.khoj == 'true' || (matrix.image == 'local' && github.event_name == 'push')
+        if: (matrix.image == 'local' && github.event_name == 'workflow_dispatch') && github.event.inputs.alphamind == 'true' || (matrix.image == 'local' && github.event_name == 'push')
         with:
           context: .
           file: Dockerfile
@@ -100,12 +100,12 @@ jobs:
           cache-from: type=gha,scope=${{ matrix.image }}-${{ matrix.platform }}
           cache-to: type=gha,mode=max,scope=${{ matrix.image }}-${{ matrix.platform}}
           labels: |
-            org.opencontainers.image.description=Khoj AI - Your second brain powered by LLMs and Neural Search
+            org.opencontainers.image.description=AlphaMind AI - Your second brain powered by LLMs and Neural Search
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
 
       - name: 📦️⛅️ Build and Push Cloud Docker Image
         uses: docker/build-push-action@v4
-        if: (matrix.image == 'cloud' && github.event_name == 'workflow_dispatch') && github.event.inputs.khoj-cloud == 'true' || (matrix.image == 'cloud' && github.event_name == 'push')
+        if: (matrix.image == 'cloud' && github.event_name == 'workflow_dispatch') && github.event.inputs.alphamind-cloud == 'true' || (matrix.image == 'cloud' && github.event_name == 'push')
         with:
           context: .
           file: prod.Dockerfile
@@ -118,12 +118,12 @@ jobs:
           cache-from: type=gha,scope=${{ matrix.image }}-${{ matrix.platform }}
           cache-to: type=gha,mode=max,scope=${{ matrix.image }}-${{ matrix.platform}}
           labels: |
-            org.opencontainers.image.description=Khoj AI Cloud - Your second brain powered by LLMs and Neural Search
+            org.opencontainers.image.description=AlphaMind AI Cloud - Your second brain powered by LLMs and Neural Search
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
 
-      - name: 📦️️💻 Build and Push Computer for Khoj
+      - name: 📦️️💻 Build and Push Computer for AlphaMind
         uses: docker/build-push-action@v4
-        if: github.event_name == 'workflow_dispatch' && github.event.inputs.khoj-computer == 'true' && matrix.image == 'local'
+        if: github.event_name == 'workflow_dispatch' && github.event.inputs.alphamind-computer == 'true' && matrix.image == 'local'
         with:
           context: .
           file: computer.Dockerfile
@@ -133,7 +133,7 @@ jobs:
           cache-from: type=gha,scope=computer-${{ matrix.platform }}
           cache-to: type=gha,mode=max,scope=computer-${{ matrix.platform }}
           labels: |
-            org.opencontainers.image.description=Khoj AI Computer - A computer for your second brain to operate
+            org.opencontainers.image.description=AlphaMind AI Computer - A computer for your second brain to operate
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
 
   manifest:
@@ -152,7 +152,7 @@ jobs:
           password: ${{ secrets.PAT }}
 
       - name: Create and Push Local Manifest
-        if: github.event.inputs.khoj == 'true' || github.event_name == 'push'
+        if: github.event.inputs.alphamind == 'true' || github.event_name == 'push'
         run: |
           # Only put "latest.*" tag on stable releases (i.e 1.x, 2.x+)
           if [[ "${{ env.DOCKER_IMAGE_TAG }}" =~ ^[1-9]\.[0-9]+\.[0-9]+$ ]]; then
@@ -168,7 +168,7 @@ jobs:
             ghcr.io/${{ github.repository }}:${{ env.DOCKER_IMAGE_TAG }}-arm64
 
       - name: Create and Push Cloud Manifest
-        if: github.event.inputs.khoj-cloud == 'true' || github.event_name == 'push'
+        if: github.event.inputs.alphamind-cloud == 'true' || github.event_name == 'push'
         run: |
           # Only put "latest.*" tag on stable releases (i.e 1.x, 2.x+)
           if [[ "${{ env.DOCKER_IMAGE_TAG }}" =~ ^[1-9]\.[0-9]+\.[0-9]+$ ]]; then
@@ -184,7 +184,7 @@ jobs:
             ghcr.io/${{ github.repository }}-cloud:${{ env.DOCKER_IMAGE_TAG }}-arm64
 
       - name: Create and Push Computer Manifest
-        if: github.event.inputs.khoj-computer == 'true'
+        if: github.event.inputs.alphamind-computer == 'true'
         run: |
           docker buildx imagetools create \
             -t ghcr.io/${{ github.repository }}-computer:${{ env.DOCKER_IMAGE_TAG }} \

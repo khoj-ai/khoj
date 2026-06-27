@@ -33,7 +33,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "../components/appSidebar/appSidebar";
 import { Separator } from "@/components/ui/separator";
-import { KhojLogoType } from "../components/logo/khojLogo";
+import { AlphaMindLogoType } from "../components/logo/alphamindLogo";
 import { DialogTitle } from "@radix-ui/react-dialog";
 import Link from "next/link";
 
@@ -284,7 +284,7 @@ export default function Agents() {
                     <Separator orientation="vertical" className="mr-2 h-4" />
                     {isMobileWidth ? (
                         <Link className="p-0 no-underline" href="/">
-                            <KhojLogoType className="h-auto w-16" />
+                            <AlphaMindLogoType className="h-auto w-16" />
                         </Link>
                     ) : (
                         <h2 className="text-lg">Agents</h2>

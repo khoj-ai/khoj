@@ -1,7 +1,7 @@
 from pathlib import Path
 from textwrap import dedent
 
-from khoj.processor.content.plaintext.plaintext_to_entries import PlaintextToEntries
+from alphamind.processor.content.plaintext.plaintext_to_entries import PlaintextToEntries
 
 
 def test_plaintext_file():
