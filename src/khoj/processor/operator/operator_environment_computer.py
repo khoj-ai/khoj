@@ -358,18 +358,16 @@ class ComputerEnvironment(Environment):
                     # Type guard: path should be str for text editor actions
                     if not isinstance(file_path, str):
                         raise TypeError("Invalid path type for text editor view action")
-                    escaped_path = file_path.replace("'", "'\"'\"'")
-                    is_dir = await self._execute("os.path.isdir", escaped_path)
+                    is_dir = await self._execute("os.path.isdir", file_path)
                     if is_dir:
-                        cmd = rf"find {escaped_path} -maxdepth 2 -not -path '*/\.*'"
+                        cmd = ["find", file_path, "-maxdepth", "2", "-not", "-path", "*/.*"]
                     elif view_range:
-                        # Use head/tail to view specific line range
+                        # Use sed to view specific line range
                         start_line, end_line = view_range
-                        lines_to_show = end_line - start_line + 1
-                        cmd = f"head -n {end_line} '{escaped_path}' | tail -n {lines_to_show}"
+                        cmd = ["sed", "-n", f"{start_line},{end_line}p", file_path]
                     else:
                         # View entire file
-                        cmd = f"cat '{escaped_path}'"
+                        cmd = ["cat", file_path]
 
                     result = await self._execute_shell_command(cmd)
                     MAX_OUTPUT_LENGTH = 15000  # Limit output length to avoid excessive data
@@ -391,13 +389,11 @@ class ComputerEnvironment(Environment):
                     # Type guard: path should be str for text editor actions
                     if not isinstance(file_path, str):
                         raise TypeError("Invalid path type for text editor create action")
-                    escaped_path = file_path.replace("'", "'\"'\"'")
-                    escaped_content = file_text.replace("\t", "    ").replace(
-                        "'", "'\"'\"'"
-                    )  # Escape single quotes for shell
-                    cmd = f"echo '{escaped_content}' > '{escaped_path}'"
+                    
+                    file_text = file_text.replace("\t", "    ")
+                    cmd = ["python3", "-c", "import sys; open(sys.argv[1], 'w').write(sys.stdin.read())", file_path]
 
-                    result = await self._execute_shell_command(cmd)
+                    result = await self._execute_shell_command(cmd, input_data=file_text)
                     if result["success"]:
                         output = f"Created file {file_path} with {len(file_text)} characters"
                     else:
@@ -407,32 +403,28 @@ class ComputerEnvironment(Environment):
                 case "text_editor_str_replace":
                     # Execute string replacement
                     file_path = action.path
-                    old_str = action.old_str
-                    new_str = action.new_str
+                    old_str = action.old_str.replace("\t", "    ")
+                    new_str = action.new_str.replace("\t", "    ")
 
                     # Type guard: path should be str for text editor actions
                     if not isinstance(file_path, str):
                         raise TypeError("Invalid path type for text editor str_replace action")
-                    # Use sed for string replacement, escaping special characters
-                    escaped_path = file_path.replace("'", "'\"'\"'")
-                    escaped_old = (
-                        old_str.replace("\t", "    ")
-                        .replace("\\", "\\\\")
-                        .replace("\n", "\\n")
-                        .replace("/", "\\/")
-                        .replace("'", "'\"'\"'")
-                    )
-                    escaped_new = (
-                        new_str.replace("\t", "    ")
-                        .replace("\\", "\\\\")
-                        .replace("\n", "\\n")
-                        .replace("&", "\\&")
-                        .replace("/", "\\/")
-                        .replace("'", "'\"'\"'")
-                    )
-                    cmd = f"sed -i.bak 's/{escaped_old}/{escaped_new}/g' '{escaped_path}'"
-
-                    result = await self._execute_shell_command(cmd)
+                    
+                    python_script = """import sys, shutil
+file_path = sys.argv[1]
+try:
+    shutil.copy2(file_path, file_path + '.bak')
+except Exception:
+    pass
+with open(file_path, 'r') as f:
+    content = f.read()
+content = content.replace(sys.stdin.read(), sys.argv[2])
+with open(file_path, 'w') as f:
+    f.write(content)
+"""
+                    cmd = ["python3", "-c", python_script, file_path, new_str]
+                    result = await self._execute_shell_command(cmd, input_data=old_str)
+                    
                     if result["success"]:
                         output = f"Replaced '{old_str[:50]}...' with '{new_str[:50]}...' in {file_path}"
                     else:
@@ -443,23 +435,32 @@ class ComputerEnvironment(Environment):
                     # Insert text after specified line
                     file_path = action.path
                     insert_line = action.insert_line
-                    new_str = action.new_str
+                    new_str = action.new_str.replace("\t", "    ")
 
                     # Type guard: path should be str for text editor actions
                     if not isinstance(file_path, str):
                         error = "Invalid path type for text editor insert action.\n"
-                        error += f"Failed to insert text in {file_path}: {result['error']}"
                         raise TypeError(error)
-                    escaped_path = file_path.replace("'", "'\"'\"'")
-                    escaped_content = (
-                        new_str.replace("\t", "    ")
-                        .replace("\\", "\\\\")
-                        .replace("'", "'\"'\"'")
-                        .replace("\n", "\\\n")
-                    )
-                    cmd = f"sed -i.bak '{insert_line}a\\{escaped_content}' '{escaped_path}'"
-
-                    result = await self._execute_shell_command(cmd)
+                        
+                    python_script = """import sys, shutil
+file_path = sys.argv[1]
+insert_line = int(sys.argv[2])
+try:
+    shutil.copy2(file_path, file_path + '.bak')
+except Exception:
+    pass
+with open(file_path, 'r') as f:
+    lines = f.readlines()
+content = sys.stdin.read()
+if not content.endswith('\\n'):
+    content += '\\n'
+lines.insert(insert_line, content)
+with open(file_path, 'w') as f:
+    f.writelines(lines)
+"""
+                    cmd = ["python3", "-c", python_script, file_path, str(insert_line)]
+                    result = await self._execute_shell_command(cmd, input_data=new_str)
+                    
                     if result["success"]:
                         output = f"Inserted text after line {insert_line} in {file_path}"
                     else:
@@ -493,19 +494,28 @@ class ComputerEnvironment(Environment):
             screenshot_base64=after_state.screenshot,
         )
 
-    async def _execute_shell_command(self, command: str, new: bool = True) -> dict:
+    async def _execute_shell_command(self, command: Union[str, list[str]], new: bool = True, input_data: Optional[str] = None) -> dict:
         """Execute a shell command and return the result."""
         try:
             if self.provider == "docker":
                 # Execute command in Docker container
-                docker_args = [
-                    "docker",
-                    "exec",
-                    self.docker_container_name,
-                    "bash",
-                    "-c",
-                    command,  # The command string is passed as a single argument to bash -c
-                ]
+                if isinstance(command, str):
+                    docker_args = [
+                        "docker",
+                        "exec",
+                        "-i",  # Enable interactive mode for stdin
+                        self.docker_container_name,
+                        "bash",
+                        "-c",
+                        command,  # The command string is passed as a single argument to bash -c
+                    ]
+                else:
+                    docker_args = [
+                        "docker",
+                        "exec",
+                        "-i",
+                        self.docker_container_name,
+                    ] + command
                 process = await asyncio.to_thread(
                     subprocess.run,
                     docker_args,
@@ -513,18 +523,20 @@ class ComputerEnvironment(Environment):
                     text=True,
                     check=False,
                     timeout=120,
+                    input=input_data,
                 )
             else:
                 # Execute command locally
                 process = await asyncio.to_thread(
                     subprocess.run,
                     command,
-                    shell=True,
+                    shell=isinstance(command, str),
                     capture_output=True,
                     text=True,
                     check=False,
                     start_new_session=new,
                     timeout=120,
+                    input=input_data,
                 )
 
             if process.returncode == 0:
