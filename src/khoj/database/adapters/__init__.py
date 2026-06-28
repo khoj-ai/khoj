@@ -996,10 +996,38 @@ class PublicConversationAdapters:
 
 class ConversationAdapters:
     @staticmethod
+    def get_publicly_shareable_agent(agent: Optional[Agent]) -> Optional[Agent]:
+        if agent and agent.privacy_level == Agent.PrivacyLevel.PUBLIC:
+            return agent
+        return None
+
+    @staticmethod
+    def get_agent_accessible_to_user_or_default(agent: Optional[Agent], user: KhojUser) -> Optional[Agent]:
+        if agent:
+            agent = Agent.objects.select_related("creator").filter(pk=agent.pk).first()
+
+            if agent:
+                if agent.privacy_level == Agent.PrivacyLevel.PUBLIC:
+                    return agent
+                if agent.creator == user:
+                    return agent
+                if agent.privacy_level == Agent.PrivacyLevel.PROTECTED:
+                    return agent
+
+        return AgentAdapters.get_default_agent()
+
+    @staticmethod
+    async def aget_agent_accessible_to_user_or_default(agent: Optional[Agent], user: KhojUser) -> Optional[Agent]:
+        default_agent = await AgentAdapters.aget_default_agent()
+        if agent and await AgentAdapters.ais_agent_accessible(agent, user):
+            return agent
+        return default_agent
+
+    @staticmethod
     def make_public_conversation_copy(conversation: Conversation):
         return PublicConversation.objects.create(
             source_owner=conversation.user,
-            agent=conversation.agent,
+            agent=ConversationAdapters.get_publicly_shareable_agent(conversation.agent),
             conversation_log=conversation.conversation_log,
             slug=conversation.slug,
             title=conversation.title if conversation.title else conversation.slug,
@@ -1192,13 +1220,13 @@ class ConversationAdapters:
         config = UserConversationConfig.objects.filter(user=user).first()
         if subscribed:
             # Subscibed users can use any available chat model
-            if config and config.setting:
+            if config:
                 return config.setting
             # Fallback to the default advanced chat model
             return ConversationAdapters.get_advanced_chat_model(user)
         else:
             # Non-subscribed users can use any free chat model
-            if config and config.setting and config.setting.price_tier == PriceTier.FREE:
+            if config and config.setting.price_tier == PriceTier.FREE:
                 return config.setting
             # Fallback to the default chat model
             return ConversationAdapters.get_default_chat_model(user)
@@ -1213,13 +1241,13 @@ class ConversationAdapters:
         )
         if subscribed:
             # Subscibed users can use any available chat model
-            if config and config.setting:
+            if config:
                 return config.setting
             # Fallback to the default advanced chat model
             return await ConversationAdapters.aget_advanced_chat_model(user)
         else:
             # Non-subscribed users can use any free chat model
-            if config and config.setting and config.setting.price_tier == PriceTier.FREE:
+            if config and config.setting.price_tier == PriceTier.FREE:
                 return config.setting
             # Fallback to the default chat model
             return await ConversationAdapters.aget_default_chat_model(user)
@@ -1547,13 +1575,14 @@ class ConversationAdapters:
         scrubbed_title = public_conversation.title if public_conversation.title else public_conversation.slug
         if scrubbed_title:
             scrubbed_title = scrubbed_title.replace("-", " ")
+        agent = ConversationAdapters.get_agent_accessible_to_user_or_default(public_conversation.agent, user)
         return Conversation.objects.create(
             user=user,
             conversation_log=public_conversation.conversation_log,
             client=client_app,
             slug=scrubbed_title,
             title=public_conversation.title,
-            agent=public_conversation.agent,
+            agent=agent,
         )
 
     @staticmethod
@@ -1721,6 +1750,7 @@ class ConversationAdapters:
         For paid users: Prefer any custom agent chat model > user default chat model > server default chat model.
         For free users: Prefer conversation specific agent's chat model > user default chat model > server default chat model.
         """
+        conversation.agent = await ConversationAdapters.aget_agent_accessible_to_user_or_default(conversation.agent, user)
         agent: Agent = conversation.agent if await AgentAdapters.aget_default_agent() != conversation.agent else None
         if agent and agent.chat_model and (agent.is_hidden or is_subscribed):
             chat_model = await ChatModel.objects.select_related("ai_model_api").aget(
