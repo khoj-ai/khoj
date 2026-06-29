@@ -12,7 +12,7 @@ from fastapi.responses import Response
 from starlette.authentication import requires
 
 from khoj.database.adapters import AutomationAdapters, ConversationAdapters
-from khoj.database.models import KhojUser
+from khoj.database.models import ChatModel, KhojUser
 from khoj.processor.conversation.utils import clean_json
 from khoj.routers.helpers import schedule_automation, schedule_query
 from khoj.utils.helpers import is_none_or_empty
@@ -59,6 +59,7 @@ def post_automation(
     region: Optional[str] = None,
     country: Optional[str] = None,
     timezone: Optional[str] = None,
+    chat_model_id: Optional[int] = None,
 ) -> Response:
     user: KhojUser = request.user.object
 
@@ -95,6 +96,11 @@ def post_automation(
             status_code=400,
         )
 
+    # Validate chat_model_id if provided
+    if chat_model_id is not None:
+        if not ChatModel.objects.filter(id=chat_model_id).exists():
+            return Response(content="Invalid chat model", status_code=400)
+
     # Create new Conversation Session associated with this new task
     title = f"Automation: {subject}"
     conversation = ConversationAdapters.create_conversation_session(user, request.user.client_app, title=title)
@@ -104,7 +110,8 @@ def post_automation(
         # Use the query to run as the scheduling request if the scheduling request is unset
         calling_url = str(request.url.replace(query=f"{request.url.query}"))
         automation = schedule_automation(
-            query_to_run, subject, crontime, timezone, q, user, calling_url, str(conversation.id)
+            query_to_run, subject, crontime, timezone, q, user, calling_url, str(conversation.id),
+            chat_model_id=chat_model_id,
         )
     except Exception as e:
         logger.error(f"Error creating automation {q} for {user.email}: {e}", exc_info=True)
@@ -158,6 +165,7 @@ def edit_job(
     region: Optional[str] = None,
     country: Optional[str] = None,
     timezone: Optional[str] = None,
+    chat_model_id: Optional[int] = None,
 ) -> Response:
     user: KhojUser = request.user.object
 
@@ -199,12 +207,18 @@ def edit_job(
             status_code=400,
         )
 
+    # Validate chat_model_id if provided
+    if chat_model_id is not None:
+        if not ChatModel.objects.filter(id=chat_model_id).exists():
+            return Response(content="Invalid chat model", status_code=400)
+
     # Construct updated automation metadata
     automation_metadata: dict[str, str] = json.loads(clean_json(automation.name))
     automation_metadata["scheduling_request"] = q
     automation_metadata["query_to_run"] = query_to_run
     automation_metadata["subject"] = subject.strip()
     automation_metadata["crontime"] = crontime
+    automation_metadata["chat_model_id"] = chat_model_id
     conversation_id = automation_metadata.get("conversation_id")
 
     if not conversation_id:
@@ -226,6 +240,7 @@ def edit_job(
             "user": user,
             "calling_url": str(request.url),
             "conversation_id": conversation_id,
+            "chat_model_id": chat_model_id,
         },
     )
 
