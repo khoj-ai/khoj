@@ -6,6 +6,7 @@ from abc import ABC, abstractmethod
 from itertools import repeat
 from typing import Any, Callable, List, Set, Tuple
 
+import tiktoken
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from tqdm import tqdm
 
@@ -53,9 +54,11 @@ class TextToEntries(ABC):
         return "".join(filtered_text)
 
     @staticmethod
-    def tokenizer(text: str) -> List[str]:
-        "Tokenize text into words."
-        return text.split()
+    def tokenizer(text: str) -> List[int]:
+        "Tokenize text into tokens using tiktoken for accurate token counting across all languages."
+        if not hasattr(TextToEntries, "_tiktoken_enc"):
+            TextToEntries._tiktoken_enc = tiktoken.get_encoding("cl100k_base")
+        return TextToEntries._tiktoken_enc.encode(text)
 
     @staticmethod
     def split_entries_by_max_tokens(

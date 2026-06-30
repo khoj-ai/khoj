@@ -169,7 +169,7 @@ body line 1.1
 
     # Act
     # Extract Entries from specified Markdown files
-    entries = MarkdownToEntries.extract_markdown_entries(markdown_files=data, max_tokens=12)
+    entries = MarkdownToEntries.extract_markdown_entries(markdown_files=data, max_tokens=28)
 
     # Assert
     assert len(entries) == 2
@@ -196,7 +196,7 @@ longer body line 2.1
 
     # Act
     # Extract Entries from specified Markdown files
-    entries = MarkdownToEntries.extract_markdown_entries(markdown_files=data, max_tokens=12)
+    entries = MarkdownToEntries.extract_markdown_entries(markdown_files=data, max_tokens=25)
 
     # Assert
     assert len(entries) == 2
@@ -264,6 +264,67 @@ def test_line_number_tracking_in_recursive_split():
         )
 
 
+def test_cjk_markdown_is_chunked_by_headings(tmp_path):
+    "CJK markdown with multiple headings should be split into separate entries, not saved as single entry."
+    entry = """# 主题
+## 第一节
+这是第一节的内容。人工智能是计算机科学的一个分支，它企图了解智能的实质，并生产出一种新的能以人类智能相似的方式做出反应的智能机器。
+## 第二节
+这是第二节的内容。机器学习是人工智能的一个重要分支，它使用统计技术让计算机系统能够从数据中学习，而不需要被明确编程。
+## 第三节
+这是第三节的内容。深度学习是机器学习的一个子领域，它使用多层神经网络来模拟人脑的工作方式，从而实现对数据的高级抽象。
+"""
+    data = {
+        f"{tmp_path}": entry,
+    }
+
+    entries = MarkdownToEntries.extract_markdown_entries(markdown_files=data, max_tokens=20)
+
+    assert len(entries) == 2
+    assert len(entries[1]) > 1, (
+        "CJK markdown should be chunked by headings, not saved as single entry. "
+        "If this fails, the tokenizer is likely undercounting CJK tokens."
+    )
+
+
+def test_cjk_markdown_small_content_stays_single_entry(tmp_path):
+    "Small CJK markdown content should remain as a single entry."
+    entry = """# 标题
+## 小节
+你好世界
+"""
+    data = {
+        f"{tmp_path}": entry,
+    }
+
+    entries = MarkdownToEntries.extract_markdown_entries(markdown_files=data, max_tokens=256)
+
+    assert len(entries) == 2
+    assert len(entries[1]) == 1, "Small CJK content should stay as a single entry"
+
+
+def test_mixed_cjk_english_markdown_is_chunked(tmp_path):
+    "Markdown with mixed CJK and English text should be properly chunked."
+    entry = """# Project Notes
+## English Section
+This is a section written in English with enough words to make the token count meaningful for testing purposes.
+## 中文部分
+这是用中文写的部分。自然语言处理是人工智能和语言学领域的分支学科。在这一领域中探讨如何处理及运用自然语言。
+## Japanese Section 日本語
+これは日本語のセクションです。自然言語処理は、人間が日常的に使っている自然言語をコンピュータに処理させる技術です。
+"""
+    data = {
+        f"{tmp_path}": entry,
+    }
+
+    entries = MarkdownToEntries.extract_markdown_entries(markdown_files=data, max_tokens=20)
+
+    assert len(entries) == 2
+    assert len(entries[1]) > 1, (
+        "Mixed CJK/English markdown should be chunked by headings"
+    )
+
+
 # Helper Functions
 def create_file(tmp_path: Path, entry=None, filename="test.md"):
     markdown_file = tmp_path / filename
@@ -276,3 +337,4 @@ def create_file(tmp_path: Path, entry=None, filename="test.md"):
 def clean(text):
     "Normalize spaces in text for easier comparison."
     return re.sub(r"\s+", " ", text)
+
