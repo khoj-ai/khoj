@@ -116,3 +116,14 @@ async def test_reading_webpage_with_olostep():
         "An alarm sent from the area near the fire also failed to register at the courthouse where the fire watchmen were"
         in response
     )
+
+
+def test_is_operator_local_shell_allowed(monkeypatch):
+    monkeypatch.delenv("KHOJ_OPERATOR_ALLOW_LOCAL_SHELL", raising=False)
+    assert helpers.is_operator_local_shell_allowed() is False
+
+    monkeypatch.setenv("KHOJ_OPERATOR_ALLOW_LOCAL_SHELL", "true")
+    assert helpers.is_operator_local_shell_allowed() is True
+
+    monkeypatch.setenv("KHOJ_OPERATOR_ALLOW_LOCAL_SHELL", "false")
+    assert helpers.is_operator_local_shell_allowed() is False
