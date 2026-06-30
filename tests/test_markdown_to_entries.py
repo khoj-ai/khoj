@@ -169,7 +169,7 @@ body line 1.1
 
     # Act
     # Extract Entries from specified Markdown files
-    entries = MarkdownToEntries.extract_markdown_entries(markdown_files=data, max_tokens=12)
+    entries = MarkdownToEntries.extract_markdown_entries(markdown_files=data, max_tokens=28)
 
     # Assert
     assert len(entries) == 2
@@ -196,7 +196,7 @@ longer body line 2.1
 
     # Act
     # Extract Entries from specified Markdown files
-    entries = MarkdownToEntries.extract_markdown_entries(markdown_files=data, max_tokens=12)
+    entries = MarkdownToEntries.extract_markdown_entries(markdown_files=data, max_tokens=25)
 
     # Assert
     assert len(entries) == 2
@@ -264,6 +264,29 @@ def test_line_number_tracking_in_recursive_split():
         )
 
 
+def test_cjk_markdown_is_chunked_by_headings(tmp_path):
+    "CJK and mixed CJK/English markdown with multiple headings should be split into separate entries."
+    entry = """# 主题
+## 第一节
+这是第一节的内容。人工智能是计算机科学的一个分支，它企图了解智能的实质，并生产出一种新的能以人类智能相似的方式做出反应的智能机器。
+## 第二节
+这是第二节的内容。机器学习是人工智能的一个重要分支，它使用统计技术让计算机系统能够从数据中学习，而不需要被明确编程。
+## English Section
+This is a section written in English with enough words to make the token count meaningful for testing purposes.
+"""
+    data = {
+        f"{tmp_path}": entry,
+    }
+
+    entries = MarkdownToEntries.extract_markdown_entries(markdown_files=data, max_tokens=20)
+
+    assert len(entries) == 2
+    assert len(entries[1]) > 1, (
+        "CJK markdown should be chunked by headings, not saved as single entry. "
+        "If this fails, the tokenizer is likely undercounting CJK tokens."
+    )
+
+
 # Helper Functions
 def create_file(tmp_path: Path, entry=None, filename="test.md"):
     markdown_file = tmp_path / filename
@@ -276,3 +299,4 @@ def create_file(tmp_path: Path, entry=None, filename="test.md"):
 def clean(text):
     "Normalize spaces in text for easier comparison."
     return re.sub(r"\s+", " ", text)
+
