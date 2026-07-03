@@ -44,14 +44,14 @@
 [Khoj](https://khoj.dev) is a personal AI app to extend your capabilities. It smoothly scales up from an on-device personal AI to a cloud-scale enterprise AI.
 
 - Chat with any local or online LLM (e.g llama3, qwen, gemma, mistral, gpt, claude, gemini, deepseek).
-- Get answers from the internet and your docs (including image, pdf, markdown, org-mode, word, notion files).
-- Access it from your Browser, Obsidian, Emacs, Desktop, Phone or Whatsapp.
-- Create agents with custom knowledge, persona, chat model and tools to take on any role.
+- Get answers from the internet and your docs (including images, PDF, markdown, org-mode, word, notion files).
+- Access it from your Browser, Obsidian, Emacs, Desktop, phone, or WhatsApp.
+- Create agents with custom knowledge, persona, chat model, and tools to take on any role.
 - Automate away repetitive research. Get personal newsletters and smart notifications delivered to your inbox.
 - Find relevant docs quickly and easily using our advanced semantic search.
 - Generate images, talk out loud, play your messages.
 - Khoj is open-source, self-hostable. Always.
-- Run it privately on [your computer](https://docs.khoj.dev/get-started/setup) or try it on our [cloud app](https://app.khoj.dev).
+- Run it privately on [your computer](https://docs.khoj.dev/get-started/setup).
 
 ***
 
@@ -98,10 +98,10 @@ Cheers to our awesome contributors! 🎉
 Made with [contrib.rocks](https://contrib.rocks).
 
 ### Interested in Contributing?
-Khoj is open source. It is sustained by the community and we’d love for you to join it! Whether you’re a coder, designer, writer, or enthusiast, there’s a place for you.
+Khoj is open source. It is sustained by the community, and we’d love for you to join it! Whether you’re a coder, designer, writer, or enthusiast, there’s a place for you.
 
 Why Contribute?
-- Make an Impact: Help build, test and improve a tool used by thousands to boost productivity.
+- Make an Impact: Help build, test, and improve a tool used by thousands to boost productivity.
 - Learn & Grow: Work on cutting-edge AI, LLMs, and semantic search technologies.
 
-You can help us build new features, improve the project documentation, report issues and fix bugs. If you're a developer, please see our [Contributing Guidelines](https://docs.khoj.dev/contributing/development) and check out [good first issues](https://github.com/khoj-ai/khoj/contribute) to work on.
+You can help us build new features, improve the project documentation, report issues, and fix bugs. If you're a developer, please see our [Contributing Guidelines](https://docs.khoj.dev/contributing/development) and check out [good first issues](https://github.com/khoj-ai/khoj/contribute) to work on.
