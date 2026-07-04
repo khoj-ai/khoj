@@ -33,6 +33,7 @@ from khoj.database.adapters import (
     aget_user_name,
 )
 from khoj.database.models import Agent, KhojUser
+from khoj.database.models import Entry as DbEntry
 from khoj.processor.conversation import prompts
 from khoj.processor.conversation.openai.utils import is_local_api
 from khoj.processor.conversation.prompts import no_entries_found
@@ -128,8 +129,10 @@ def get_file_filter(request: Request, conversation_id: str) -> Response:
     if not conversation:
         return Response(content=json.dumps({"status": "error", "message": "Conversation not found"}), status_code=404)
 
-    # get all files from "computer"
-    file_list = EntryAdapters.get_all_filenames_by_source(request.user.object, "computer")
+    # get all files from "computer" and "obsidian" sources
+    file_list = set(EntryAdapters.get_all_filenames_by_source(request.user.object, DbEntry.EntrySource.COMPUTER)) | set(
+        EntryAdapters.get_all_filenames_by_source(request.user.object, DbEntry.EntrySource.OBSIDIAN)
+    )
     file_filters = []
     for file in conversation.file_filters:
         if file in file_list:
