@@ -16,6 +16,7 @@ from khoj.processor.conversation.utils import model_to_prompt_size, model_to_tok
 from khoj.utils.constants import (
     default_anthropic_chat_models,
     default_gemini_chat_models,
+    default_minimax_chat_models,
     default_openai_chat_models,
 )
 
@@ -71,6 +72,17 @@ def initialization(interactive: bool = True):
             vision_enabled=True,
             interactive=interactive,
             provider_name=provider,
+        )
+
+        minimax_base_url = os.getenv("MINIMAX_BASE_URL", "https://api.minimax.io/v1")
+        minimax_api_key = os.getenv("MINIMAX_API_KEY")
+        _setup_chat_model_provider(
+            ChatModel.ModelType.OPENAI,
+            default_minimax_chat_models,
+            default_api_key=minimax_api_key,
+            api_base_url=minimax_base_url,
+            interactive=interactive,
+            provider_name="MiniMax",
         )
 
         # Setup OpenAI speech to text model
@@ -143,6 +155,16 @@ def initialization(interactive: bool = True):
             interactive=interactive,
         )
 
+        minimax_anthropic_api_key = os.getenv("MINIMAX_ANTHROPIC_API_KEY")
+        _setup_chat_model_provider(
+            ChatModel.ModelType.ANTHROPIC,
+            default_minimax_chat_models,
+            default_api_key=minimax_anthropic_api_key,
+            api_base_url=os.getenv("MINIMAX_ANTHROPIC_BASE_URL", "https://api.minimax.io/anthropic/v1"),
+            interactive=interactive,
+            provider_name="MiniMax Anthropic",
+        )
+
         logger.info("🗣️ Chat model configuration complete")
 
     def _setup_chat_model_provider(
@@ -155,7 +177,10 @@ def initialization(interactive: bool = True):
         provider_name: str = None,
     ) -> Tuple[bool, AiModelApi]:
         supported_vision_models = (
-            default_openai_chat_models + default_anthropic_chat_models + default_gemini_chat_models
+            default_openai_chat_models
+            + default_anthropic_chat_models
+            + default_gemini_chat_models
+            + default_minimax_chat_models
         )
         provider_name = provider_name or model_type.name.capitalize()
 
@@ -213,9 +238,9 @@ def initialization(interactive: bool = True):
             # Get OpenAI configs with custom base URLs
             custom_configs = AiModelApi.objects.exclude(api_base_url__isnull=True)
 
-            # Only enable for whitelisted provider names (i.e Ollama) for now
+            # Only enable for whitelisted OpenAI-compatible providers for now
             # TODO: This is hacky. Will be replaced with more robust solution based on provider type enum
-            custom_configs = custom_configs.filter(name__in=["Ollama"])
+            custom_configs = custom_configs.filter(name__in=["Ollama", "MiniMax"])
 
             for config in custom_configs:
                 try:

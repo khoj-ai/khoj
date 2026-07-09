@@ -94,6 +94,8 @@ model_to_prompt_size = {
     "claude-sonnet-4-20250514": 60000,
     "claude-opus-4-0": 60000,
     "claude-opus-4-20250514": 60000,
+    # MiniMax Models
+    "MiniMax-M3": 1000000,
 }
 model_to_tokenizer: Dict[str, str] = {}
 
