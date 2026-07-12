@@ -160,7 +160,7 @@ def initialization(interactive: bool = True):
             ChatModel.ModelType.ANTHROPIC,
             default_minimax_chat_models,
             default_api_key=minimax_anthropic_api_key,
-            api_base_url=os.getenv("MINIMAX_ANTHROPIC_BASE_URL", "https://api.minimax.io/anthropic/v1"),
+            api_base_url=os.getenv("MINIMAX_ANTHROPIC_BASE_URL", "https://api.minimax.io/anthropic"),
             interactive=interactive,
             provider_name="MiniMax Anthropic",
         )
