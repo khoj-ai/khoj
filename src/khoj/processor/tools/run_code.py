@@ -5,6 +5,7 @@ import logging
 import mimetypes
 import os
 import re
+import shlex
 import uuid
 from pathlib import Path
 from typing import Any, Callable, List, NamedTuple, Optional
@@ -32,6 +33,7 @@ from khoj.routers.helpers import send_message_to_model_wrapper
 from khoj.utils.helpers import (
     is_e2b_code_sandbox_enabled,
     is_none_or_empty,
+    is_tenki_code_sandbox_enabled,
     timer,
     truncate_code_context,
 )
@@ -140,11 +142,10 @@ async def generate_python_code(
     )
 
     # add sandbox specific context like available packages
-    sandbox_context = (
-        prompts.e2b_sandbox_context if is_e2b_code_sandbox_enabled() else prompts.terrarium_sandbox_context
-    )
+    has_sandbox_network = is_e2b_code_sandbox_enabled() or is_tenki_code_sandbox_enabled()
+    sandbox_context = prompts.e2b_sandbox_context if has_sandbox_network else prompts.terrarium_sandbox_context
     personality_context = f"{sandbox_context}\n{personality_context}"
-    network_access_context = "**NO** " if not is_e2b_code_sandbox_enabled() else ""
+    network_access_context = "" if has_sandbox_network else "**NO** "
 
     code_generation_prompt = prompts.python_code_generation_prompt.format(
         instructions=instructions,
@@ -224,6 +225,11 @@ async def execute_sandboxed_python(code: str, input_data: list[dict], sandbox_ur
     if is_e2b_code_sandbox_enabled():
         try:
             return await execute_e2b(cleaned_code, input_data)
+        except ImportError:
+            pass
+    if is_tenki_code_sandbox_enabled():
+        try:
+            return await execute_tenki(cleaned_code, input_data)
         except ImportError:
             pass
     return await execute_terrarium(cleaned_code, input_data, sandbox_url)
@@ -315,6 +321,122 @@ async def execute_e2b(code: str, input_files: list[dict]) -> dict[str, Any]:
             "std_err": f"Sandbox failed to execute code: {str(e)}",
             "output_files": [],
         }
+
+
+async def execute_tenki(code: str, input_files: list[dict]) -> dict[str, Any]:
+    """Execute code and handle file I/O in a Tenki Cloud sandbox.
+
+    Uses only stable Tenki features (ephemeral exec + file I/O). The default
+    Tenki image ships python3 but not the data packages, so a common set is
+    installed on start. Set KHOJ_TENKI_IMAGE to point at a prebaked image to
+    skip that install.
+    """
+    from tenki_sandbox import AsyncClient
+
+    workdir = HOME_DIR
+    image_file_ext = {".png", ".jpeg", ".jpg", ".svg"}
+    client = AsyncClient()  # reads TENKI_API_KEY from the environment
+    sandbox = None
+    try:
+        # The SDK has no "current project" default, so resolve the first
+        # workspace/project on the account (override via env if needed).
+        identity = await client.who_am_i()
+        workspace = next(
+            (w for w in identity.workspaces if w.id == os.getenv("KHOJ_TENKI_WORKSPACE_ID")),
+            identity.workspaces[0],
+        )
+        project = next(
+            (p for p in workspace.projects if p.id == os.getenv("KHOJ_TENKI_PROJECT_ID")),
+            workspace.projects[0],
+        )
+
+        sandbox = await client.create(
+            name=f"khoj-code-{uuid.uuid4().hex[:8]}",
+            workspace_id=workspace.id,
+            project_id=project.id,
+            image=os.getenv("KHOJ_TENKI_IMAGE") or None,
+            allow_outbound=True,
+            max_duration=300,
+        )
+
+        # Prepare the working dir and install common data packages on the stock image
+        setup = (
+            f'sudo mkdir -p {shlex.quote(workdir)} && sudo chown -R "$(whoami)" {shlex.quote(workdir)} && '
+            "if ! command -v pip3 >/dev/null 2>&1; then sudo apt-get update -y && sudo apt-get install -y python3-pip; fi && "
+            "pip3 install --quiet --break-system-packages matplotlib pandas numpy scipy || true"
+        )
+        await sandbox.exec("bash", "-lc", setup, timeout=300)
+
+        # Upload input files (base64 over stdin to avoid arg length limits)
+        for input_file in input_files:
+            in_path = shlex.quote(f"{workdir}/{input_file['filename']}")
+            await sandbox.exec("bash", "-lc", f"base64 -d > {in_path}", input=input_file["b64_data"], timeout=60)
+
+        # Note existing files so we can detect ones created during execution
+        list_cmd = f"cd {shlex.quote(workdir)} && ls -1p 2>/dev/null | grep -v '/$' || true"
+        before = await sandbox.exec("bash", "-lc", list_cmd, timeout=30)
+        original_files = {n for n in (before.stdout or b"").decode(errors="replace").splitlines() if n}
+
+        # Write and run the generated code
+        main_path = shlex.quote(f"{workdir}/main.py")
+        await sandbox.exec(
+            "bash",
+            "-lc",
+            f"base64 -d > {main_path}",
+            input=base64.b64encode(code.encode("utf-8")).decode("utf-8"),
+            timeout=60,
+        )
+        execution = await sandbox.exec("python3", "main.py", cwd=workdir, timeout=120)
+        stdout = (execution.stdout or b"").decode(errors="replace")
+        stderr = (execution.stderr or b"").decode(errors="replace")
+        success = execution.exit_code == 0 and not stderr
+
+        # Collect newly created output files
+        after = await sandbox.exec("bash", "-lc", list_cmd, timeout=30)
+        current_files = {n for n in (after.stdout or b"").decode(errors="replace").splitlines() if n}
+        output_files = []
+        for name in sorted(current_files - original_files):
+            if name == "main.py":
+                continue
+            out_path = shlex.quote(f"{workdir}/{name}")
+            read = await sandbox.exec("bash", "-lc", f"base64 -w0 {out_path}", timeout=60)
+            b64_data = (read.stdout or b"").decode(errors="replace").strip()
+            if not b64_data:
+                continue
+            if Path(name).suffix in image_file_ext:
+                # Binary/image files: keep as base64
+                output_files.append({"filename": name, "b64_data": b64_data})
+            else:
+                # Text files: store decoded utf-8, matching the e2b/terrarium contract
+                try:
+                    output_files.append({"filename": name, "b64_data": base64.b64decode(b64_data).decode("utf-8")})
+                except (UnicodeDecodeError, ValueError):
+                    output_files.append({"filename": name, "b64_data": b64_data})
+
+        return {
+            "code": code,
+            "success": success,
+            "std_out": stdout,
+            "std_err": stderr,
+            "output_files": output_files,
+        }
+    except Exception as e:
+        return {
+            "code": code,
+            "success": False,
+            "std_err": f"Sandbox failed to execute code: {str(e)}",
+            "output_files": [],
+        }
+    finally:
+        if sandbox is not None:
+            try:
+                await sandbox.terminate()
+            except Exception:
+                pass
+        try:
+            await client.close()
+        except Exception:
+            pass
 
 
 async def execute_terrarium(

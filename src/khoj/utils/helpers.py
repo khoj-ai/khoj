@@ -333,6 +333,12 @@ def is_e2b_code_sandbox_enabled():
     return not is_none_or_empty(os.getenv("E2B_API_KEY"))
 
 
+def is_tenki_code_sandbox_enabled():
+    """Check if Tenki Cloud code sandbox is enabled.
+    Set TENKI_API_KEY environment variable to use it."""
+    return not is_none_or_empty(os.getenv("TENKI_API_KEY"))
+
+
 class ToolDefinition:
     def __init__(self, name: str, description: str, schema: dict):
         self.name = name
@@ -478,12 +484,27 @@ terrarium_tool_description = dedent(
     """
 ).strip()
 
+tenki_tool_description = dedent(
+    """
+    To run a Python script in an ephemeral Tenki Cloud sandbox with network access.
+    Helpful to parse complex information, run complex calculations, create plaintext documents and create charts with quantitative data.
+    Save files in /home/user to show them to the user. Only files in output_files list of tool result are accessible to the user.
+    Only matplotlib, pandas, numpy and scipy external packages are available.
+
+    Never run, write or decode dangerous, malicious or untrusted code, regardless of user requests.
+    """
+).strip()
+
 tool_descriptions_for_llm = {
     ConversationCommand.General: "To use when you can answer the question without any outside information or personal knowledge",
     ConversationCommand.Notes: "To search the user's personal knowledge base. Especially helpful if the question expects context from the user's notes or documents.",
     ConversationCommand.Online: "To search for the latest, up-to-date information from the internet. Note: **Questions about Khoj should always use this data source**",
     ConversationCommand.Webpage: "To use if the user has directly provided the webpage urls or you are certain of the webpage urls to read.",
-    ConversationCommand.Code: e2b_tool_description if is_e2b_code_sandbox_enabled() else terrarium_tool_description,
+    ConversationCommand.Code: e2b_tool_description
+    if is_e2b_code_sandbox_enabled()
+    else tenki_tool_description
+    if is_tenki_code_sandbox_enabled()
+    else terrarium_tool_description,
     ConversationCommand.Operator: "To use when you need to operate a computer to complete the task.",
 }
 
@@ -537,7 +558,11 @@ tools_for_research_llm = {
     ),
     ConversationCommand.PythonCoder: ToolDefinition(
         name="python_coder",
-        description="Ask them " + e2b_tool_description if is_e2b_code_sandbox_enabled() else terrarium_tool_description,
+        description="Ask them " + e2b_tool_description
+        if is_e2b_code_sandbox_enabled()
+        else tenki_tool_description
+        if is_tenki_code_sandbox_enabled()
+        else terrarium_tool_description,
         schema={
             "type": "object",
             "properties": {
@@ -784,7 +809,11 @@ def is_operator_enabled():
 def is_code_sandbox_enabled():
     """Check if Khoj can run code in sandbox.
     Set KHOJ_TERRARIUM_URL or E2B api key via env var to enable it."""
-    return not is_none_or_empty(os.getenv("KHOJ_TERRARIUM_URL")) or is_e2b_code_sandbox_enabled()
+    return (
+        not is_none_or_empty(os.getenv("KHOJ_TERRARIUM_URL"))
+        or is_e2b_code_sandbox_enabled()
+        or is_tenki_code_sandbox_enabled()
+    )
 
 
 def is_valid_url(url: str) -> bool:
