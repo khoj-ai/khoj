@@ -76,6 +76,8 @@ services:
       - KHOJ_TERRARIUM_URL=http://sandbox:8080
       # Uncomment line below to have Khoj run code in remote E2B code sandbox instead of the self-hosted Terrarium sandbox above. Get your E2B API key from https://e2b.dev/.
       # - E2B_API_KEY=your_e2b_api_key
+      # Uncomment line below to have Khoj run code in Tenki Cloud microVM sandboxes instead. Get your Tenki API key from your workspace settings at https://app.tenki.cloud/.
+      # - TENKI_API_KEY=your_tenki_api_key
       # Default URL of SearxNG, the default web search engine used by Khoj. Its container is specified above
       - KHOJ_SEARXNG_URL=http://search:8080
       # Uncomment line below to use with Ollama running on your local machine at localhost:11434.

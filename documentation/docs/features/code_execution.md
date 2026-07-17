@@ -38,3 +38,16 @@ To have Khoj use E2B as the code sandbox:
 2. Set the `E2B_API_KEY` environment variable to it on the machine running your Khoj server.
    - When using our [docker-compose.yml](https://github.com/khoj-ai/khoj/blob/master/docker-compose.yml), uncomment and set the `E2B_API_KEY` env var in the `docker-compose.yml` file.
 3. Now restart your Khoj server to switch to using the E2B code sandbox.
+
+### Tenki Cloud Sandbox
+[Tenki Cloud](https://tenki.cloud/) runs code in disposable Linux microVMs with network access and full Python. This is a paid, hosted service.
+
+To have Khoj use Tenki as the code sandbox:
+1. Create an API key in your [Tenki workspace settings](https://app.tenki.cloud/).
+2. Set the `TENKI_API_KEY` environment variable to it on the machine running your Khoj server.
+   - When using our [docker-compose.yml](https://github.com/khoj-ai/khoj/blob/master/docker-compose.yml), uncomment and set the `TENKI_API_KEY` env var in the `docker-compose.yml` file.
+3. Now restart your Khoj server to switch to using the Tenki code sandbox.
+
+Optional environment variables:
+- `KHOJ_TENKI_IMAGE`: a Tenki registry image to boot from instead of the default stock image (the default installs the common data packages on start).
+- `KHOJ_TENKI_WORKSPACE_ID` / `KHOJ_TENKI_PROJECT_ID`: pin the Tenki workspace/project to create sandboxes in. If unset, the first workspace/project on your account is used.

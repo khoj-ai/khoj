@@ -489,7 +489,7 @@ tenki_tool_description = dedent(
     To run a Python script in an ephemeral Tenki Cloud sandbox with network access.
     Helpful to parse complex information, run complex calculations, create plaintext documents and create charts with quantitative data.
     Save files in /home/user to show them to the user. Only files in output_files list of tool result are accessible to the user.
-    Only matplotlib, pandas, numpy and scipy external packages are available.
+    Only requests, matplotlib, pandas, numpy and scipy external packages are available.
 
     Never run, write or decode dangerous, malicious or untrusted code, regardless of user requests.
     """

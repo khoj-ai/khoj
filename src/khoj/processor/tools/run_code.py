@@ -143,7 +143,12 @@ async def generate_python_code(
 
     # add sandbox specific context like available packages
     has_sandbox_network = is_e2b_code_sandbox_enabled() or is_tenki_code_sandbox_enabled()
-    sandbox_context = prompts.e2b_sandbox_context if has_sandbox_network else prompts.terrarium_sandbox_context
+    if is_e2b_code_sandbox_enabled():
+        sandbox_context = prompts.e2b_sandbox_context
+    elif is_tenki_code_sandbox_enabled():
+        sandbox_context = prompts.tenki_sandbox_context
+    else:
+        sandbox_context = prompts.terrarium_sandbox_context
     personality_context = f"{sandbox_context}\n{personality_context}"
     network_access_context = "" if has_sandbox_network else "**NO** "
 
@@ -359,13 +364,31 @@ async def execute_tenki(code: str, input_files: list[dict]) -> dict[str, Any]:
             max_duration=300,
         )
 
-        # Prepare the working dir and install common data packages on the stock image
-        setup = (
-            f'sudo mkdir -p {shlex.quote(workdir)} && sudo chown -R "$(whoami)" {shlex.quote(workdir)} && '
-            "if ! command -v pip3 >/dev/null 2>&1; then sudo apt-get update -y && sudo apt-get install -y python3-pip; fi && "
-            "pip3 install --quiet --break-system-packages matplotlib pandas numpy scipy || true"
+        # Create the working dir first, retrying transient Tenki filesystem
+        # hiccups (occasional "Bad message" on directory creation). Verify it is
+        # writable rather than trusting the exit code — the trailing "|| true" on
+        # the install step below must not mask a failed mkdir.
+        quoted_workdir = shlex.quote(workdir)
+        mkdir_cmd = (
+            f'sudo mkdir -p {quoted_workdir} && sudo chown -R "$(whoami)" {quoted_workdir} '
+            f"&& test -w {quoted_workdir}"
         )
-        await sandbox.exec("bash", "-lc", setup, timeout=300)
+        mkdir_result = None
+        for _ in range(3):
+            mkdir_result = await sandbox.exec("bash", "-lc", mkdir_cmd, timeout=60)
+            if mkdir_result.exit_code == 0:
+                break
+            await asyncio.sleep(1)
+        if mkdir_result is None or mkdir_result.exit_code != 0:
+            detail = (mkdir_result.stderr or b"").decode(errors="replace") if mkdir_result else ""
+            raise RuntimeError(f"Could not prepare sandbox working dir {workdir}: {detail}")
+
+        # Install the common data packages on the stock image (best-effort).
+        install_cmd = (
+            "if ! command -v pip3 >/dev/null 2>&1; then sudo apt-get update -y && sudo apt-get install -y python3-pip; fi && "
+            "pip3 install --quiet --break-system-packages requests matplotlib pandas numpy scipy || true"
+        )
+        await sandbox.exec("bash", "-lc", install_cmd, timeout=300)
 
         # Upload input files (base64 over stdin to avoid arg length limits)
         for input_file in input_files:
@@ -389,7 +412,9 @@ async def execute_tenki(code: str, input_files: list[dict]) -> dict[str, Any]:
         execution = await sandbox.exec("python3", "main.py", cwd=workdir, timeout=120)
         stdout = (execution.stdout or b"").decode(errors="replace")
         stderr = (execution.stderr or b"").decode(errors="replace")
-        success = execution.exit_code == 0 and not stderr
+        # Exit code is the success signal; a cold microVM can emit benign stderr
+        # (e.g. matplotlib building its font cache on first import) on a zero exit.
+        success = execution.exit_code == 0
 
         # Collect newly created output files
         after = await sandbox.exec("bash", "-lc", list_cmd, timeout=30)

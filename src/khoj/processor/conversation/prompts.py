@@ -1018,6 +1018,10 @@ terrarium_sandbox_context = """
 - The sandbox has access to only the standard library and the matplotlib, pandas, numpy, scipy, bs5 and sympy packages. The requests, torch, catboost, tensorflow, rdkit and tkinter packages are not available.
 """.strip()
 
+tenki_sandbox_context = """
+- The sandbox has network access and the standard library plus the requests, matplotlib, pandas, numpy and scipy packages. Other third-party packages (e.g. torch, sympy, plotly, rdkit, tensorflow, tkinter) are not available.
+""".strip()
+
 operator_execution_context = PromptTemplate.from_template(
     """
 Use the results of operating a web browser to inform your response.
