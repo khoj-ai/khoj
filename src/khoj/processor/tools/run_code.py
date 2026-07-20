@@ -346,14 +346,23 @@ async def execute_tenki(code: str, input_files: list[dict]) -> dict[str, Any]:
         # The SDK has no "current project" default, so resolve the first
         # workspace/project on the account (override via env if needed).
         identity = await client.who_am_i()
-        workspace = next(
-            (w for w in identity.workspaces if w.id == os.getenv("KHOJ_TENKI_WORKSPACE_ID")),
-            identity.workspaces[0],
-        )
-        project = next(
-            (p for p in workspace.projects if p.id == os.getenv("KHOJ_TENKI_PROJECT_ID")),
-            workspace.projects[0],
-        )
+        # If a workspace/project is explicitly configured, require it to exist —
+        # silently falling back to the first would provision (and bill) in the
+        # wrong place on a typo. Only default to the first when nothing is set.
+        want_workspace = os.getenv("KHOJ_TENKI_WORKSPACE_ID")
+        if want_workspace:
+            workspace = next((w for w in identity.workspaces if w.id == want_workspace), None)
+            if workspace is None:
+                raise ValueError(f"KHOJ_TENKI_WORKSPACE_ID '{want_workspace}' not found for this API key")
+        else:
+            workspace = identity.workspaces[0]
+        want_project = os.getenv("KHOJ_TENKI_PROJECT_ID")
+        if want_project:
+            project = next((p for p in workspace.projects if p.id == want_project), None)
+            if project is None:
+                raise ValueError(f"KHOJ_TENKI_PROJECT_ID '{want_project}' not found in workspace {workspace.id}")
+        else:
+            project = workspace.projects[0]
 
         sandbox = await client.create(
             name=f"khoj-code-{uuid.uuid4().hex[:8]}",
