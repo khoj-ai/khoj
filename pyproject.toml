@@ -93,7 +93,7 @@ dependencies = [
     "resend == 1.2.0",
     "email-validator == 2.2.0",
     "e2b-code-interpreter ~= 1.0.0",
-    "tenki-sandbox ~= 0.3.6",
+    "tenki-sandbox ~= 0.4.0",
     "mcp >= 1.23.0",
     "pyasn1>=0.6.3",
 ]

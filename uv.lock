@@ -1444,7 +1444,7 @@ requires-dist = [
     { name = "stripe", marker = "extra == 'dev'", specifier = "==7.3.0" },
     { name = "stripe", marker = "extra == 'prod'", specifier = "==7.3.0" },
     { name = "tenacity", specifier = ">=9.0.0" },
-    { name = "tenki-sandbox", specifier = "~=0.3.6" },
+    { name = "tenki-sandbox", specifier = "~=0.4.0" },
     { name = "tiktoken", specifier = ">=0.3.2" },
     { name = "torch", specifier = "==2.6.0" },
     { name = "transformers", specifier = ">=4.53.0" },
@@ -3585,16 +3585,16 @@ wheels = [
 
 [[package]]
 name = "tenki-sandbox"
-version = "0.3.6"
+version = "0.4.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "grpcio" },
     { name = "protobuf" },
     { name = "websocket-client" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/c8/3e/319d553fb6bd266aed3f5e0ec5d9b1865ee7cb45388c9dc6dac1ee30a51f/tenki_sandbox-0.3.6.tar.gz", hash = "sha256:f4a6e0b7329a7fd42138d5eb582adb1356c084e6f6b3fe046530cbbcd426ffe2", size = 144662, upload-time = "2026-07-10T08:28:16.269Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/8d/58/f6527c63b2e4c94fd00a48ba4bd93ef52de22dbc72e247110949a17511f6/tenki_sandbox-0.4.0.tar.gz", hash = "sha256:2836e6e7100dfc81715b4d93ecfe80e3f055867498cb9f34be921a02969bb15f", size = 179392, upload-time = "2026-07-17T22:18:09.869Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/e5/4f/860d1ba154200904b493ed4353e1994aa14627f407144d975b21e4cf51be/tenki_sandbox-0.3.6-py3-none-any.whl", hash = "sha256:324fe804a0b561ffa129e6b1b1874e0d7747ebcb566d976e8485c9dd45ef6853", size = 128658, upload-time = "2026-07-10T08:28:14.925Z" },
+    { url = "https://files.pythonhosted.org/packages/3b/f7/3c02da98793dc0e56230c520064d7d233c6e0edab13b410c031e1cfe7fd9/tenki_sandbox-0.4.0-py3-none-any.whl", hash = "sha256:76d5ece2e1607b43705587d86277e983ef43601a86993077e379be8033a40b3e", size = 155246, upload-time = "2026-07-17T22:18:08.383Z" },
 ]
 
 [[package]]
