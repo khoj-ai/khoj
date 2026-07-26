@@ -1117,11 +1117,13 @@ Run CALLBACK with CBARGS on formatted message."
 
 (defun khoj--delete-open-network-connections-to-server ()
   "Delete all network connections to khoj server."
-  (dolist (proc (process-list))
-    (let ((proc-buf (buffer-name (process-buffer proc)))
-          (khoj-network-proc-buf (string-join (split-string khoj-server-url "://") " ")))
-      (when (string-match (format "%s" khoj-network-proc-buf) proc-buf)
-        (ignore-errors (delete-process proc))))))
+  (let ((khoj-network-proc-buf (string-join (split-string khoj-server-url "://") " ")))
+    (dolist (proc (process-list))
+      (let ((proc-buf (process-buffer proc)))
+        (when (and proc-buf
+                   (buffer-live-p proc-buf)
+                   (string-match-p (regexp-quote khoj-network-proc-buf) (buffer-name proc-buf)))
+          (ignore-errors (delete-process proc)))))))
 
 (defun khoj--teardown-incremental-search ()
   "Teardown hooks used for incremental search."

@@ -28,6 +28,7 @@
 
 ;;; Code:
 
+(require 'cl-lib)
 (require 'dash)
 (require 'ert)
 (require 'khoj)
@@ -261,6 +262,30 @@ Content-Type: text/org\r\n\r\n\
 --khoj--\r\n" upgrade-file act-file "/tmp/deleted-file.org"))))
       (delete-file upgrade-file)
       (delete-file act-file))))
+
+(ert-deftest khoj-tests--delete-open-network-connections-to-server ()
+  "Test only network processes connected to the Khoj server are deleted."
+  (let* ((khoj-server-url "https://app.khoj.dev")
+         (khoj-buffer (generate-new-buffer " *https app.khoj.dev*"))
+         (regexp-lookalike-buffer (generate-new-buffer " *https appXkhojYdev*"))
+         (unrelated-buffer (generate-new-buffer " *https example.com*"))
+         (process-buffers `((khoj-process . ,khoj-buffer)
+                            (regexp-lookalike-process . ,regexp-lookalike-buffer)
+                            (unrelated-process . ,unrelated-buffer)
+                            (bufferless-process . nil)))
+         deleted-processes)
+    (unwind-protect
+        (cl-letf (((symbol-function 'process-list)
+                   (lambda () (mapcar #'car process-buffers)))
+                  ((symbol-function 'process-buffer)
+                   (lambda (proc) (alist-get proc process-buffers)))
+                  ((symbol-function 'delete-process)
+                   (lambda (proc) (push proc deleted-processes))))
+          ;; Reproduce the failure callback running in a matching URL buffer.
+          (with-current-buffer khoj-buffer
+            (khoj--delete-open-network-connections-to-server))
+          (should (equal deleted-processes '(khoj-process))))
+      (mapc #'kill-buffer (list khoj-buffer regexp-lookalike-buffer unrelated-buffer)))))
 
 (ert-deftest khoj-tests--extract-online-references ()
   (let* (;; Arrange
