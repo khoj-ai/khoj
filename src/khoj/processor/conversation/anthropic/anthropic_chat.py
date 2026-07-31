@@ -48,7 +48,7 @@ async def converse_anthropic(
     # Query
     messages: List[ChatMessage],
     # Model
-    model: Optional[str] = "claude-3-7-sonnet-latest",
+    model: Optional[str] = "claude-sonnet-4-5",
     api_key: Optional[str] = None,
     api_base_url: Optional[str] = None,
     deepthought: Optional[bool] = False,
