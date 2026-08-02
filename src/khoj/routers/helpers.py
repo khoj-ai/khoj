@@ -208,7 +208,6 @@ def update_telemetry_state(
     client_app: ClientApplication = request.user.client_app if request.user.is_authenticated else None
     subscription: Subscription = user.subscription if user and hasattr(user, "subscription") else None
     user_state = {
-        "client_host": request.client.host if request.client else None,
         "user_agent": user_agent or "unknown",
         "referer": referer or "unknown",
         "host": host or "unknown",
