@@ -155,6 +155,8 @@ def completion_with_backoff(
         # See https://qwenlm.github.io/blog/qwen3/#advanced-usages
         if not deepthought:
             add_qwen_no_think_tag(formatted_messages)
+    elif is_gpt5_model(model_name):
+        model_kwargs.pop("temperature", None)
     elif is_groq_api(api_base_url):
         model_kwargs["service_tier"] = "auto"
 
@@ -309,18 +311,20 @@ async def chat_completion_with_backoff(
 
     model_kwargs["top_p"] = model_kwargs.get("top_p", 0.95)
     model_kwargs["max_completion_tokens"] = model_kwargs.get("max_completion_tokens", MAX_COMPLETION_TOKENS)
+    model_kwargs["temperature"] = temperature
 
     formatted_messages = format_message_for_api(messages, model_name, api_base_url)
 
     # Configure thinking for openai reasoning models
     if is_openai_reasoning_model(model_name, api_base_url):
-        temperature = 1
+        model_kwargs["temperature"] = 1
         reasoning_effort = "medium" if deepthought else "low"
         model_kwargs["reasoning_effort"] = reasoning_effort
         # Remove unsupported params for reasoning models
         model_kwargs.pop("top_p", None)
         model_kwargs.pop("stop", None)
     elif is_twitter_reasoning_model(model_name, api_base_url):
+        model_kwargs.pop("temperature", None)
         reasoning_effort = "high" if deepthought else "low"
         # Grok-4 models do not support reasoning_effort parameter
         if not model_name.startswith("grok-4"):
@@ -357,6 +361,8 @@ async def chat_completion_with_backoff(
         # See https://qwenlm.github.io/blog/qwen3/#advanced-usages
         if not deepthought:
             add_qwen_no_think_tag(formatted_messages)
+    elif is_gpt5_model(model_name):
+        model_kwargs.pop("temperature", None)
     elif is_groq_api(api_base_url):
         model_kwargs["service_tier"] = "auto"
 
@@ -372,7 +378,6 @@ async def chat_completion_with_backoff(
         messages=formatted_messages,  # type: ignore
         model=model_name,
         stream=stream,
-        temperature=temperature,
         timeout=httpx.Timeout(30, read=read_timeout),
         **model_kwargs,
     )
@@ -477,6 +482,7 @@ def responses_completion_with_backoff(
 
     model_kwargs = deepcopy(model_kwargs)
     model_kwargs["top_p"] = model_kwargs.get("top_p", 0.95)
+    model_kwargs["temperature"] = temperature
 
     # Use prompt cache key to increase probability of cache hits
     if instructions:
@@ -484,7 +490,7 @@ def responses_completion_with_backoff(
 
     # Configure thinking for openai reasoning models
     if is_openai_reasoning_model(model_name, api_base_url):
-        temperature = 1
+        model_kwargs["temperature"] = 1
         reasoning_effort = "medium" if deepthought else "low"
         model_kwargs["reasoning"] = {"effort": reasoning_effort}
         if is_openai_api(api_base_url):
@@ -494,6 +500,9 @@ def responses_completion_with_backoff(
         model_kwargs.pop("top_p", None)
         model_kwargs.pop("stop", None)
 
+    if is_gpt5_model(model_name):
+        model_kwargs.pop("temperature", None)
+
     read_timeout = 300 if is_local_api(api_base_url) else 60
 
     # Stream and aggregate
@@ -501,7 +510,6 @@ def responses_completion_with_backoff(
         input=formatted_messages,
         instructions=instructions,
         model=model_name,
-        temperature=temperature,
         timeout=httpx.Timeout(30, read=read_timeout),  # type: ignore
         store=False,
         **model_kwargs,
@@ -595,9 +603,10 @@ async def responses_chat_completion_with_backoff(
 
     model_kwargs: dict = {}
     model_kwargs["top_p"] = model_kwargs.get("top_p", 0.95)
+    model_kwargs["temperature"] = temperature
     # Configure thinking for openai reasoning models
     if is_openai_reasoning_model(model_name, api_base_url):
-        temperature = 1
+        model_kwargs["temperature"] = 1
         reasoning_effort = "medium" if deepthought else "low"
         model_kwargs["reasoning"] = {"effort": reasoning_effort}
         if is_openai_api(api_base_url):
@@ -606,6 +615,9 @@ async def responses_chat_completion_with_backoff(
         # Remove unsupported params for reasoning models
         model_kwargs.pop("top_p", None)
         model_kwargs.pop("stop", None)
+
+    if is_gpt5_model(model_name):
+        model_kwargs.pop("temperature", None)
 
     read_timeout = 300 if is_local_api(api_base_url) else 60
 
@@ -620,7 +632,6 @@ async def responses_chat_completion_with_backoff(
         input=formatted_messages,
         instructions=instructions,
         model=model_name,
-        temperature=temperature,
         timeout=httpx.Timeout(30, read=read_timeout),
         **model_kwargs,
     ) as stream:  # type: ignore
@@ -899,6 +910,13 @@ def is_twitter_reasoning_model(model_name: str, api_base_url: str = None) -> boo
         and api_base_url is not None
         and api_base_url.startswith("https://api.x.ai/v1")
     )
+
+
+def is_gpt5_model(model_name: str) -> bool:
+    """
+    Check if the model is a GPT-5 series model
+    """
+    return model_name.lower().startswith("gpt-5")
 
 
 def is_cerebras_api(api_base_url: str | None = None) -> bool:
