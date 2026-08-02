@@ -84,16 +84,13 @@ model_to_prompt_size = {
     "gemini-1.5-flash": 120000,
     "gemini-1.5-pro": 60000,
     # Anthropic Models
-    "claude-3-5-sonnet-20241022": 60000,
-    "claude-3-5-sonnet-latest": 60000,
-    "claude-3-7-sonnet-20250219": 60000,
-    "claude-3-7-sonnet-latest": 60000,
-    "claude-3-5-haiku-20241022": 60000,
+    "claude-haiku-4-5": 60000,
     "claude-haiku-4-5-20251001": 60000,
-    "claude-sonnet-4-0": 60000,
-    "claude-sonnet-4-20250514": 60000,
-    "claude-opus-4-0": 60000,
-    "claude-opus-4-20250514": 60000,
+    "claude-sonnet-4-5": 60000,
+    "claude-sonnet-4-5-20250929": 60000,
+    "claude-opus-4-5": 60000,
+    "claude-opus-4-5-20251101": 60000,
+    "claude-opus-4-8": 60000,
 }
 model_to_tokenizer: Dict[str, str] = {}
 

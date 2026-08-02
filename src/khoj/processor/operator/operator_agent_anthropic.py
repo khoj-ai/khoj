@@ -524,14 +524,7 @@ class AnthropicOperatorAgent(OperatorAgent):
 
     def model_default_tool(self, tool_type: Literal["computer", "editor", "terminal"]) -> dict[str, str]:
         """Get the default tool of specified type for the given model."""
-        if self.vision_model.name.startswith("claude-3-7-sonnet"):
-            if tool_type == "computer":
-                return {"name": "computer", "type": "computer_20250124"}
-            elif tool_type == "editor":
-                return {"name": "str_replace_editor", "type": "text_editor_20250124"}
-            elif tool_type == "terminal":
-                return {"name": "bash", "type": "bash_20250124"}
-        elif self.vision_model.name.startswith("claude-sonnet-4") or self.vision_model.name.startswith("claude-opus-4"):
+        if self.vision_model.name.startswith("claude-sonnet-4") or self.vision_model.name.startswith("claude-opus-4"):
             if tool_type == "computer":
                 return {"name": "computer", "type": "computer_20250124"}
             elif tool_type == "editor":
@@ -542,9 +535,7 @@ class AnthropicOperatorAgent(OperatorAgent):
 
     def model_default_headers(self) -> list[str]:
         """Get the default computer use headers for the given model."""
-        if self.vision_model.name.startswith("claude-3-7-sonnet"):
-            return ["computer-use-2025-01-24", "token-efficient-tools-2025-02-19"]
-        elif self.vision_model.name.startswith("claude-sonnet-4") or self.vision_model.name.startswith("claude-opus-4"):
+        if self.vision_model.name.startswith("claude-sonnet-4") or self.vision_model.name.startswith("claude-opus-4"):
             return ["computer-use-2025-01-24"]
         else:
             return []

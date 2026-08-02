@@ -233,7 +233,6 @@ def is_operator_model(model: str) -> ChatModel.ModelType | None:
     """Check if the model is an operator model."""
     operator_models = {
         "gpt-4o": ChatModel.ModelType.OPENAI,
-        "claude-3-7-sonnet": ChatModel.ModelType.ANTHROPIC,
         "claude-sonnet-4": ChatModel.ModelType.ANTHROPIC,
         "claude-opus-4": ChatModel.ModelType.ANTHROPIC,
     }
