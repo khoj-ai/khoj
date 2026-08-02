@@ -2909,6 +2909,7 @@ def get_user_config(user: KhojUser, request: Request, is_detailed: bool = False)
         "computer": ("computer" in enabled_content_sources_set),
         "github": ("github" in enabled_content_sources_set),
         "notion": ("notion" in enabled_content_sources_set),
+        "obsidian": ("obsidian" in enabled_content_sources_set),
     }
 
     notion_oauth_url = get_notion_auth_url(user)
@@ -3011,6 +3012,7 @@ def configure_content(
     files: Optional[dict[str, dict[str, str]]],
     regenerate: bool = False,
     t: Optional[state.SearchType] = state.SearchType.All,
+    file_source: Optional[str] = None,
 ) -> bool:
     success = True
     if t is None:
@@ -3044,6 +3046,7 @@ def configure_content(
                 files.get("org"),
                 regenerate=regenerate,
                 user=user,
+                file_source=file_source,
             )
     except Exception as e:
         logger.error(f"🚨 Failed to setup org: {e}", exc_info=True)
@@ -3061,6 +3064,7 @@ def configure_content(
                 files.get("markdown"),
                 regenerate=regenerate,
                 user=user,
+                file_source=file_source,
             )
 
     except Exception as e:
@@ -3079,6 +3083,7 @@ def configure_content(
                 files.get("pdf"),
                 regenerate=regenerate,
                 user=user,
+                file_source=file_source,
             )
 
     except Exception as e:
@@ -3097,6 +3102,7 @@ def configure_content(
                 files.get("plaintext"),
                 regenerate=regenerate,
                 user=user,
+                file_source=file_source,
             )
 
     except Exception as e:
@@ -3157,6 +3163,7 @@ def configure_content(
                 files.get("image"),
                 regenerate=regenerate,
                 user=user,
+                file_source=file_source,
             )
     except Exception as e:
         logger.error(f"🚨 Failed to setup images: {e}", exc_info=True)
@@ -3169,6 +3176,7 @@ def configure_content(
                 files.get("docx"),
                 regenerate=regenerate,
                 user=user,
+                file_source=file_source,
             )
     except Exception as e:
         logger.error(f"🚨 Failed to setup docx: {e}", exc_info=True)

@@ -1,6 +1,6 @@
 import logging
 from enum import Enum
-from typing import Tuple
+from typing import Optional, Tuple
 
 import requests
 
@@ -79,7 +79,9 @@ class NotionToEntries(TextToEntries):
 
         self.body_params = {"page_size": 100}
 
-    def process(self, files: dict[str, str], user: KhojUser, regenerate: bool = False) -> Tuple[int, int]:
+    def process(
+        self, files: dict[str, str], user: KhojUser, regenerate: bool = False, file_source: Optional[str] = None
+    ) -> Tuple[int, int]:
         current_entries = []
 
         # Get all pages

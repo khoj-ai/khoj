@@ -1,6 +1,6 @@
 import logging
 import time
-from typing import Dict, List, Tuple
+from typing import Dict, List, Optional, Tuple
 
 import requests
 from magika import Magika
@@ -49,7 +49,9 @@ class GithubToEntries(TextToEntries):
         else:
             return
 
-    def process(self, files: dict[str, str], user: KhojUser, regenerate: bool = False) -> Tuple[int, int]:
+    def process(
+        self, files: dict[str, str], user: KhojUser, regenerate: bool = False, file_source: Optional[str] = None
+    ) -> Tuple[int, int]:
         if is_none_or_empty(self.config.pat_token):
             logger.warning(
                 "Github PAT token is not set. Private repositories cannot be indexed and lower rate limits apply."

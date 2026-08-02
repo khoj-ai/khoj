@@ -1801,7 +1801,9 @@ class ConversationAdapters:
     @staticmethod
     def add_files_to_filter(user: KhojUser, conversation_id: str, files: List[str]):
         conversation = ConversationAdapters.get_conversation_by_user(user, conversation_id=conversation_id)
-        file_list = EntryAdapters.get_all_filenames_by_source(user, "computer")
+        file_list = set(EntryAdapters.get_all_filenames_by_source(user, Entry.EntrySource.COMPUTER)) | set(
+            EntryAdapters.get_all_filenames_by_source(user, Entry.EntrySource.OBSIDIAN)
+        )
         if not conversation:
             return []
         for filename in files:
@@ -1825,7 +1827,9 @@ class ConversationAdapters:
         conversation.save()
 
         # remove files from conversation.file_filters that are not in file_list
-        file_list = EntryAdapters.get_all_filenames_by_source(user, "computer")
+        file_list = set(EntryAdapters.get_all_filenames_by_source(user, Entry.EntrySource.COMPUTER)) | set(
+            EntryAdapters.get_all_filenames_by_source(user, Entry.EntrySource.OBSIDIAN)
+        )
         conversation.file_filters = [file for file in conversation.file_filters if file in file_list]
         conversation.save()
         return conversation.file_filters

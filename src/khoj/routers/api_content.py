@@ -581,6 +581,11 @@ async def indexer(
             docx=index_files["docx"],
         )
 
+        # Determine file_source based on client type
+        file_source = DbEntry.EntrySource.COMPUTER
+        if client and client.lower() == "obsidian":
+            file_source = DbEntry.EntrySource.OBSIDIAN
+
         loop = asyncio.get_event_loop()
         success = await loop.run_in_executor(
             None,
@@ -589,6 +594,7 @@ async def indexer(
             indexer_input.model_dump(),
             regenerate,
             t,
+            file_source,
         )
         if not success:
             raise RuntimeError(f"Failed to {method} {t} data sent by {client} client into content index")
@@ -633,4 +639,7 @@ def map_config_to_object(content_source: str):
     if content_source == DbEntry.EntrySource.NOTION:
         return NotionConfig
     if content_source == DbEntry.EntrySource.COMPUTER:
+        return "Computer"
+    if content_source == DbEntry.EntrySource.OBSIDIAN:
+        # Obsidian has no dedicated config object; delete via file objects + entries path (same as Computer)
         return "Computer"
