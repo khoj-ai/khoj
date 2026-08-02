@@ -11,7 +11,9 @@ from khoj.processor.tools.online_search import (
     read_webpage_at_url,
     read_webpage_with_olostep,
 )
+from khoj.routers.helpers import configure_content
 from khoj.utils import helpers
+from khoj.utils.config import SearchType
 
 
 def test_get_from_null_dict():
@@ -116,3 +118,27 @@ async def test_reading_webpage_with_olostep():
         "An alarm sent from the area near the fire also failed to register at the courthouse where the fire watchmen were"
         in response
     )
+
+
+# Regression tests for https://github.com/khoj-ai/khoj/issues/1317.
+# When the indexed `files` dict omits the "image"/"docx" keys, configure_content used a
+# bracket lookup (files["image"] / files["docx"]) in the guard conditions while every
+# other content type used the safe files.get(...). The missing key raised KeyError, which
+# was swallowed into success=False and surfaced as an HTTP 500 from /api/update.
+# Passing a non-empty unrelated file type keeps no_client_sent_documents False so the
+# Github/Notion server-side indexing branches (which hit the DB) are skipped, keeping the
+# test DB-free.
+def test_configure_content_handles_missing_image_key():
+    files = {"markdown": {"note.md": "# hi"}}
+
+    success = configure_content(user=None, files=files, regenerate=False, t=SearchType.Image)
+
+    assert success is True
+
+
+def test_configure_content_handles_missing_docx_key():
+    files = {"markdown": {"note.md": "# hi"}}
+
+    success = configure_content(user=None, files=files, regenerate=False, t=SearchType.Docx)
+
+    assert success is True
