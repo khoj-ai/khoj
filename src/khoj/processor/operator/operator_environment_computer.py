@@ -15,7 +15,7 @@ from khoj.processor.operator.operator_environment_base import (
     EnvState,
     EnvStepResult,
 )
-from khoj.utils.helpers import convert_image_to_webp
+from khoj.utils.helpers import convert_image_to_webp, is_operator_local_shell_allowed
 
 logger = logging.getLogger(__name__)
 
@@ -344,7 +344,7 @@ class ComputerEnvironment(Environment):
 
                 case "terminal":
                     # Execute terminal command
-                    result = await self._execute_shell_command(action.command)
+                    result = await self._run_terminal_command(action.command)
                     if result["success"]:
                         output = f"Command executed successfully:\n{result['output']}"
                     else:
@@ -492,6 +492,26 @@ class ComputerEnvironment(Environment):
             current_url=after_state.url,
             screenshot_base64=after_state.screenshot,
         )
+
+    async def _run_terminal_command(self, command: str) -> dict:
+        """Run an operator-issued terminal command, gating host execution.
+
+        The terminal action runs whatever command the model emits. With the docker
+        provider this is sandboxed in a container; on the host it runs unsandboxed,
+        so it is refused unless explicitly allowed via KHOJ_OPERATOR_ALLOW_LOCAL_SHELL.
+        """
+        if self.provider != "docker" and not is_operator_local_shell_allowed():
+            return {
+                "success": False,
+                "output": "",
+                "error": (
+                    "Local shell execution is disabled. Set KHOJ_OPERATOR_ALLOW_LOCAL_SHELL=true "
+                    "to allow running terminal commands on the host, or use the docker provider."
+                ),
+            }
+        if self.provider != "docker":
+            logger.warning(f"Operator executing terminal command on the host: {command}")
+        return await self._execute_shell_command(command)
 
     async def _execute_shell_command(self, command: str, new: bool = True) -> dict:
         """Execute a shell command and return the result."""

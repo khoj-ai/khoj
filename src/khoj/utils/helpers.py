@@ -781,6 +781,14 @@ def is_operator_enabled():
     return is_env_var_true("KHOJ_OPERATOR_ENABLED")
 
 
+def is_operator_local_shell_allowed():
+    """Check if the operator may run terminal commands directly on the host.
+    Host shell execution runs unsandboxed as the Khoj process user, so it is
+    disabled by default. Set KHOJ_OPERATOR_ALLOW_LOCAL_SHELL env var to true to
+    allow it, or use the docker provider to run commands inside a container."""
+    return is_env_var_true("KHOJ_OPERATOR_ALLOW_LOCAL_SHELL")
+
+
 def is_code_sandbox_enabled():
     """Check if Khoj can run code in sandbox.
     Set KHOJ_TERRARIUM_URL or E2B api key via env var to enable it."""
