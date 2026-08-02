@@ -5,8 +5,8 @@ from collections import Counter
 import pytest
 from asgiref.sync import sync_to_async
 
-from khoj.database.adapters import AgentAdapters
-from khoj.database.models import Agent, ChatModel, Entry, FileObject, KhojUser
+from khoj.database.adapters import AgentAdapters, ConversationAdapters
+from khoj.database.models import Agent, ChatModel, Conversation, Entry, FileObject, KhojUser, PublicConversation
 from khoj.routers.helpers import execute_search
 from khoj.utils.helpers import get_absolute_path
 from tests.helpers import ChatModelFactory
@@ -21,6 +21,139 @@ def test_create_default_agent(default_user: KhojUser):
     assert agent.output_modes == []
     assert agent.privacy_level == Agent.PrivacyLevel.PUBLIC
     assert agent.managed_by_admin
+
+
+@pytest.mark.django_db(transaction=True)
+def test_share_copy_does_not_publish_private_agent(
+    default_user: KhojUser, default_openai_chat_model_option: ChatModel
+):
+    private_agent = Agent.objects.create(
+        creator=default_user,
+        name="Private Agent",
+        personality="private instructions",
+        privacy_level=Agent.PrivacyLevel.PRIVATE,
+        chat_model=default_openai_chat_model_option,
+        slug="private-agent",
+    )
+    conversation = Conversation.objects.create(
+        user=default_user,
+        conversation_log={},
+        slug="private-agent-chat",
+        agent=private_agent,
+    )
+
+    public_conversation = ConversationAdapters.make_public_conversation_copy(conversation)
+
+    assert public_conversation.agent is None
+
+
+@pytest.mark.django_db(transaction=True)
+def test_share_copy_keeps_public_agent(default_user: KhojUser, default_openai_chat_model_option: ChatModel):
+    public_agent = Agent.objects.create(
+        creator=default_user,
+        name="Public Agent",
+        personality="public instructions",
+        privacy_level=Agent.PrivacyLevel.PUBLIC,
+        chat_model=default_openai_chat_model_option,
+        slug="public-agent",
+    )
+    conversation = Conversation.objects.create(
+        user=default_user,
+        conversation_log={},
+        slug="public-agent-chat",
+        agent=public_agent,
+    )
+
+    public_conversation = ConversationAdapters.make_public_conversation_copy(conversation)
+
+    assert public_conversation.agent == public_agent
+
+
+@pytest.mark.django_db(transaction=True)
+def test_fork_public_conversation_replaces_inaccessible_private_agent(
+    default_user: KhojUser,
+    default_user3: KhojUser,
+    default_openai_chat_model_option: ChatModel,
+):
+    default_agent = AgentAdapters.create_default_agent()
+    private_agent = Agent.objects.create(
+        creator=default_user,
+        name="Private Source Agent",
+        personality="private source instructions",
+        privacy_level=Agent.PrivacyLevel.PRIVATE,
+        chat_model=default_openai_chat_model_option,
+        slug="private-source-agent",
+    )
+    public_conversation = PublicConversation.objects.create(
+        source_owner=default_user,
+        conversation_log={},
+        slug="shared-private-agent-chat",
+        title="Shared Private Agent Chat",
+        agent=private_agent,
+    )
+
+    forked_conversation = ConversationAdapters.create_conversation_from_public_conversation(
+        default_user3, public_conversation, None
+    )
+
+    assert forked_conversation.agent == default_agent
+
+
+@pytest.mark.django_db(transaction=True)
+def test_fork_public_conversation_keeps_accessible_public_agent(
+    default_user: KhojUser,
+    default_user3: KhojUser,
+    default_openai_chat_model_option: ChatModel,
+):
+    public_agent = Agent.objects.create(
+        creator=default_user,
+        name="Shared Public Agent",
+        personality="shared public instructions",
+        privacy_level=Agent.PrivacyLevel.PUBLIC,
+        chat_model=default_openai_chat_model_option,
+        slug="shared-public-agent",
+    )
+    public_conversation = PublicConversation.objects.create(
+        source_owner=default_user,
+        conversation_log={},
+        slug="shared-public-agent-chat",
+        title="Shared Public Agent Chat",
+        agent=public_agent,
+    )
+
+    forked_conversation = ConversationAdapters.create_conversation_from_public_conversation(
+        default_user3, public_conversation, None
+    )
+
+    assert forked_conversation.agent == public_agent
+
+
+@pytest.mark.anyio
+@pytest.mark.django_db(transaction=True)
+async def test_chat_model_selection_reauthorizes_conversation_agent(
+    default_user: KhojUser,
+    default_user3: KhojUser,
+    default_openai_chat_model_option: ChatModel,
+):
+    default_agent = await sync_to_async(AgentAdapters.create_default_agent)()
+    private_agent = await sync_to_async(Agent.objects.create)(
+        creator=default_user,
+        name="Private Chat Agent",
+        personality="private chat instructions",
+        privacy_level=Agent.PrivacyLevel.PRIVATE,
+        chat_model=default_openai_chat_model_option,
+        slug="private-chat-agent",
+    )
+    conversation = await sync_to_async(Conversation.objects.create)(
+        user=default_user3,
+        conversation_log={},
+        slug="forked-private-agent-chat",
+        agent=private_agent,
+    )
+
+    await ConversationAdapters.aget_valid_chat_model(default_user3, conversation, is_subscribed=True)
+
+    assert conversation.agent == default_agent
 
 
 @pytest.mark.anyio

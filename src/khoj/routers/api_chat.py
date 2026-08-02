@@ -959,6 +959,11 @@ async def event_generator(
 
     agent: Agent | None = None
     default_agent = await AgentAdapters.aget_default_agent()
+    authorized_agent = await ConversationAdapters.aget_agent_accessible_to_user_or_default(conversation.agent, user)
+    if conversation.agent != authorized_agent:
+        conversation.agent = authorized_agent
+        await conversation.asave()
+
     if conversation.agent and conversation.agent != default_agent:
         agent = conversation.agent
 
