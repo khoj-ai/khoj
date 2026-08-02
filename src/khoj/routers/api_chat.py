@@ -14,6 +14,7 @@ from fastapi import (
     APIRouter,
     Depends,
     HTTPException,
+    Query,
     Request,
     WebSocket,
     WebSocketDisconnect,
@@ -116,7 +117,12 @@ def chat_stats(request: Request, common: CommonQueryParams) -> Response:
 
 @api_chat.get("/export", response_class=Response)
 @requires(["authenticated"])
-def export_conversation(request: Request, common: CommonQueryParams, offset: int = 0, limit: int = 10) -> Response:
+def export_conversation(
+    request: Request,
+    common: CommonQueryParams,
+    offset: int = Query(0, ge=0),
+    limit: int = Query(10, ge=1, le=100),
+) -> Response:
     all_conversations = ConversationAdapters.get_all_conversations_for_export(
         request.user.object, offset=offset, limit=limit
     )

@@ -1027,10 +1027,12 @@ class ConversationAdapters:
     @staticmethod
     @require_valid_user
     def get_all_conversations_for_export(user: KhojUser, offset: int = 0, limit: int = 10):
+        # Order by immutable fields to keep pagination stable across the multi-request export.
+        # Sorting by updated_at would reshuffle rows mid-export whenever a conversation is written to.
         all_conversations = (
             Conversation.objects.filter(user=user)
             .prefetch_related("agent")
-            .order_by("-updated_at")[offset : offset + limit]
+            .order_by("-created_at", "id")[offset : offset + limit]
         )
         histories = []
         for conversation in all_conversations:

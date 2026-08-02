@@ -95,6 +95,10 @@ import { Progress } from "@/components/ui/progress";
 import JSZip from "jszip";
 import { saveAs } from "file-saver";
 
+// Number of conversations to fetch per request when exporting chats.
+// Keep in sync with the max limit accepted by the /api/chat/export endpoint.
+const EXPORT_BATCH_SIZE = 10;
+
 interface DropdownComponentProps {
     items: ModelOptions[];
     selected: number;
@@ -562,6 +566,7 @@ export default function SettingsView() {
 
             // Get total conversation count
             const statsResponse = await fetch("/api/chat/stats");
+            if (!statsResponse.ok) throw new Error("Failed to fetch conversation count");
             const stats = await statsResponse.json();
             const total = stats.num_conversations;
             setTotalConversations(total);
@@ -570,14 +575,26 @@ export default function SettingsView() {
             const zip = new JSZip();
             const conversations = [];
 
-            // Fetch all conversations in batches of 10
-            for (let page = 0; page * 10 < total; page++) {
-                const response = await fetch(`/api/chat/export?offset=${page * 10}&limit=10`);
+            // Fetch all conversations in batches, stopping on a page shorter than the batch size.
+            // A short page means the server ran out of rows, so it marks the end of the export
+            // more reliably than the total count, which goes stale if conversations are added
+            // while the export runs. The max offset keeps the loop bounded even if the server
+            // were to keep returning full pages, with slack for conversations added mid-export.
+            const maxOffset = total + 2 * EXPORT_BATCH_SIZE;
+            for (let offset = 0; offset <= maxOffset; offset += EXPORT_BATCH_SIZE) {
+                const response = await fetch(
+                    `/api/chat/export?offset=${offset}&limit=${EXPORT_BATCH_SIZE}`,
+                );
+                if (!response.ok) throw new Error("Failed to fetch conversations to export");
                 const data = await response.json();
                 conversations.push(...data);
 
-                setExportedConversations((page + 1) * 10);
-                setExportProgress((((page + 1) * 10) / total) * 100);
+                setExportedConversations(conversations.length);
+                setExportProgress(
+                    total > 0 ? Math.min((conversations.length / total) * 100, 100) : 100,
+                );
+
+                if (data.length < EXPORT_BATCH_SIZE) break;
             }
 
             // Add conversations to zip
