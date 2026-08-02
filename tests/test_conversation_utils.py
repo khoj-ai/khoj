@@ -4,6 +4,8 @@ import tiktoken
 from langchain_core.messages.chat import ChatMessage
 
 from khoj.processor.conversation import utils
+from khoj.processor.conversation.openai.utils import get_structured_output_support
+from khoj.processor.conversation.utils import StructuredOutputSupport
 
 
 class TestTruncateMessage:
@@ -214,6 +216,36 @@ class TestLoadComplexJson:
 
         # Assert
         assert parsed_json == expected_json
+
+
+class TestGetStructuredOutputSupport:
+    """Regression tests for https://github.com/khoj-ai/khoj/issues/1336.
+
+    The DeepSeek API only supports ``response_format={"type": "json_object"}`` (i.e.
+    ``StructuredOutputSupport.OBJECT``). Non-reasoner DeepSeek models such as
+    ``deepseek-chat`` must not be advertised as supporting tool/json_schema structured
+    output, otherwise Khoj sends an unsupported ``response_format`` and DeepSeek returns
+    HTTP 400 "This response_format type is unavailable now".
+    """
+
+    deepseek_api_base_url = "https://api.deepseek.com/v1"
+
+    def test_deepseek_chat_supports_object_output(self):
+        # deepseek-chat (DeepSeek V3) supports json_object but not tool/json_schema output
+        assert (
+            get_structured_output_support("deepseek-chat", self.deepseek_api_base_url) == StructuredOutputSupport.OBJECT
+        )
+
+    def test_deepseek_reasoner_still_supports_no_structured_output(self):
+        # deepseek-reasoner remains gated to NONE
+        assert (
+            get_structured_output_support("deepseek-reasoner", self.deepseek_api_base_url)
+            == StructuredOutputSupport.NONE
+        )
+
+    def test_non_deepseek_openai_model_still_supports_tool_output(self):
+        # Ensure the default OpenAI path is unchanged
+        assert get_structured_output_support("gpt-4o", "https://api.openai.com/v1") == StructuredOutputSupport.TOOL
 
 
 def generate_content(count, suffix=""):

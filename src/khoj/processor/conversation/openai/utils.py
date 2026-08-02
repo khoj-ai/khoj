@@ -732,6 +732,11 @@ def get_structured_output_support(model_name: str, api_base_url: str = None) -> 
             return StructuredOutputSupport.OBJECT
         if host == "api.deepinfra.com":
             return StructuredOutputSupport.OBJECT
+        # The official DeepSeek API only supports response_format={"type": "json_object"}.
+        # It rejects tool/json_schema structured output with "This response_format type is
+        # unavailable now", so gate it to OBJECT support (deepseek-reasoner handled above).
+        if host == "api.deepseek.com":
+            return StructuredOutputSupport.OBJECT
     return StructuredOutputSupport.TOOL
 
 
