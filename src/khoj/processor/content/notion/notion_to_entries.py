@@ -105,8 +105,8 @@ class NotionToEntries(TextToEntries):
                 for p_or_d in pages_or_databases:
                     with timer(f"Processing {p_or_d['object']} {p_or_d['id']}", logger=logger):
                         if p_or_d["object"] == "database":
-                            # TODO: Handle databases
-                            continue
+                            db_entries = self.process_database(p_or_d)
+                            current_entries.extend(db_entries)
                         elif p_or_d["object"] == "page":
                             page_entries = self.process_page(p_or_d)
                             current_entries.extend(page_entries)
@@ -119,10 +119,23 @@ class NotionToEntries(TextToEntries):
         page_id = page["id"]
         title, content = self.get_page_content(page_id)
 
-        if title is None or content is None:
-            return []
-
         current_entries = []
+        
+        # Extract properties (crucial for database rows)
+        properties_text = self.extract_properties_text(page.get("properties", {}))
+        if properties_text:
+            current_entries.append(
+                Entry(
+                    compiled=properties_text,
+                    raw=properties_text,
+                    heading=title or "Database Row",
+                    file=page.get("url", ""),
+                )
+            )
+
+        if title is None or content is None:
+            return current_entries
+
         curr_heading = ""
         for block in content.get("results", []):
             block_type = block.get("type")
@@ -172,6 +185,88 @@ class NotionToEntries(TextToEntries):
                     )
                 )
         return current_entries
+
+    def process_database(self, database):
+        database_id = database["id"]
+        current_entries = []
+        
+        # Paginate through database rows
+        body_params = {"page_size": 100}
+        responses = []
+        while True:
+            try:
+                result = self.session.post(
+                    f"https://api.notion.com/v1/databases/{database_id}/query",
+                    json=body_params,
+                ).json()
+                responses.append(result)
+                if not result.get("has_more", False):
+                    break
+                body_params["start_cursor"] = result["next_cursor"]
+            except Exception as e:
+                logger.error(f"Error querying Notion database {database_id}: {e}", exc_info=True)
+                break
+
+        for response in responses:
+            for row in response.get("results", []):
+                # Each row is a page object
+                row_entries = self.process_page(row)
+                current_entries.extend(row_entries)
+                
+        return current_entries
+
+    def extract_properties_text(self, properties):
+        parts = []
+        for prop_name, prop_data in properties.items():
+            # Skip the title property as it's already used for the heading
+            if prop_data.get("type") == "title" or prop_data.get("id") == "title":
+                continue
+                
+            val_text = self.extract_property_value(prop_data)
+            if val_text:
+                parts.append(f"{prop_name}: {val_text}")
+                
+        return "\n".join(parts) if parts else ""
+
+    def extract_property_value(self, prop):
+        prop_type = prop.get("type")
+        if not prop_type:
+            return ""
+            
+        val = prop.get(prop_type)
+        if val is None:
+            return ""
+            
+        if prop_type == "rich_text":
+            return "".join([t.get("plain_text", "") for t in val])
+        elif prop_type == "number":
+            return str(val)
+        elif prop_type == "select":
+            return val.get("name", "")
+        elif prop_type == "multi_select":
+            return ", ".join([v.get("name", "") for v in val])
+        elif prop_type == "date":
+            start = val.get("start", "")
+            end = val.get("end", "")
+            return f"{start} to {end}" if end else start
+        elif prop_type == "checkbox":
+            return "Yes" if val else "No"
+        elif prop_type in ["url", "email", "phone_number"]:
+            return str(val)
+        elif prop_type == "status":
+            return val.get("name", "")
+        elif prop_type == "people":
+            return ", ".join([p.get("name", "") for p in val if "name" in p])
+        elif prop_type == "formula":
+            return self.extract_property_value(val)
+        elif prop_type in ["string", "number", "boolean", "date"]:
+            if prop_type == "date":
+                start = val.get("start", "")
+                end = val.get("end", "")
+                return f"{start} to {end}" if end else start
+            return str(val)
+            
+        return ""
 
     def process_heading(self, heading):
         return f"\n<b>{heading}</b>\n"
