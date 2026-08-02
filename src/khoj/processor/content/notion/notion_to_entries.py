@@ -120,7 +120,7 @@ class NotionToEntries(TextToEntries):
         title, content = self.get_page_content(page_id)
 
         current_entries = []
-        
+
         # Extract properties (crucial for database rows)
         properties_text = self.extract_properties_text(page.get("properties", {}))
         if properties_text:
@@ -189,7 +189,7 @@ class NotionToEntries(TextToEntries):
     def process_database(self, database):
         database_id = database["id"]
         current_entries = []
-        
+
         # Paginate through database rows
         body_params = {"page_size": 100}
         responses = []
@@ -212,7 +212,7 @@ class NotionToEntries(TextToEntries):
                 # Each row is a page object
                 row_entries = self.process_page(row)
                 current_entries.extend(row_entries)
-                
+
         return current_entries
 
     def extract_properties_text(self, properties):
@@ -221,22 +221,22 @@ class NotionToEntries(TextToEntries):
             # Skip the title property as it's already used for the heading
             if prop_data.get("type") == "title" or prop_data.get("id") == "title":
                 continue
-                
+
             val_text = self.extract_property_value(prop_data)
             if val_text:
                 parts.append(f"{prop_name}: {val_text}")
-                
+
         return "\n".join(parts) if parts else ""
 
     def extract_property_value(self, prop):
         prop_type = prop.get("type")
         if not prop_type:
             return ""
-            
+
         val = prop.get(prop_type)
         if val is None:
             return ""
-            
+
         if prop_type == "rich_text":
             return "".join([t.get("plain_text", "") for t in val])
         elif prop_type == "number":
@@ -265,7 +265,7 @@ class NotionToEntries(TextToEntries):
                 end = val.get("end", "")
                 return f"{start} to {end}" if end else start
             return str(val)
-            
+
         return ""
 
     def process_heading(self, heading):
