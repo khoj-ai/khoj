@@ -1,4 +1,5 @@
 import logging
+import os
 import tempfile
 from typing import Dict, Final, List, Tuple
 
@@ -95,21 +96,31 @@ class PdfToEntries(TextToEntries):
     def extract_text(pdf_file):
         """Extract text from specified PDF files"""
         pdf_entry_by_pages = []
+        tmp_file_path = None
         try:
-            # Create temp file with .pdf extension that gets auto-deleted
-            with tempfile.NamedTemporaryFile(suffix=".pdf", delete=True) as tmpf:
+            # delete=False: on Windows a NamedTemporaryFile can't be reopened by
+            # PyMuPDFLoader while this handle is still open, so close it first and
+            # unlink it ourselves once we're done reading.
+            with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as tmpf:
                 tmpf.write(pdf_file)
                 tmpf.flush()  # Ensure all data is written
+                tmp_file_path = tmpf.name
 
-                # Load the content using PyMuPDFLoader
-                loader = PyMuPDFLoader(tmpf.name)
-                pdf_entries_per_file = loader.load()
+            # Load the content using PyMuPDFLoader
+            loader = PyMuPDFLoader(tmp_file_path)
+            pdf_entries_per_file = loader.load()
 
-                # Convert the loaded entries into the desired format
-                pdf_entry_by_pages = [PdfToEntries.clean_text(page.page_content) for page in pdf_entries_per_file]
+            # Convert the loaded entries into the desired format
+            pdf_entry_by_pages = [PdfToEntries.clean_text(page.page_content) for page in pdf_entries_per_file]
         except Exception as e:
             logger.warning(f"Unable to process file: {pdf_file}. This file will not be indexed.")
             logger.warning(e, exc_info=True)
+        finally:
+            if tmp_file_path:
+                try:
+                    os.unlink(tmp_file_path)
+                except OSError:
+                    pass
 
         return pdf_entry_by_pages
 
