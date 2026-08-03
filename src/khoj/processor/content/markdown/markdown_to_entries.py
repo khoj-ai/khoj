@@ -84,7 +84,7 @@ class MarkdownToEntries(TextToEntries):
         markdown_content_with_ancestry = f"{ancestry_string}{markdown_content}"
 
         # If content is small or content has no children headings, save it as a single entry
-        if len(TextToEntries.tokenizer(markdown_content_with_ancestry)) <= max_tokens or not re.search(
+        if TextToEntries.token_count(markdown_content_with_ancestry) <= max_tokens or not re.search(
             rf"^#{{{len(ancestry) + 1},}}\s", markdown_content, flags=re.MULTILINE
         ):
             # Create entry with line number information
