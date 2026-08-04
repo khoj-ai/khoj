@@ -136,6 +136,51 @@ def test_get_date_filter_terms():
     assert dtrange_match == []
 
 
+def test_defilter_removes_date_filter_mid_query():
+    date_filter = DateFilter()
+
+    assert date_filter.defilter('head dt:"1984-01-01" tail') == "head tail"
+    assert date_filter.defilter('head dt>"today" dt:"1984-01-01" tail') == "head tail"
+    assert date_filter.defilter('head dt<="multi word date"') == "head"
+    assert date_filter.defilter("head tail") == "head tail"
+
+
+def test_defilter_removes_date_filter_at_start_of_query():
+    date_filter = DateFilter()
+
+    # A filter at the start of the query has no whitespace before it
+    assert date_filter.defilter('dt:"1984-01-01" tail') == "tail"
+    assert date_filter.defilter('dt>="1984-01-01" dt<="1984-12-31" tail') == "tail"
+
+    # A query can be nothing but a filter
+    assert date_filter.defilter('dt:"1984-01-01"') == ""
+
+
+def test_defilter_removes_date_filter_after_non_space_character():
+    date_filter = DateFilter()
+
+    assert date_filter.defilter('head,dt:"1984-01-01"') == "head,"
+    assert date_filter.defilter('head (dt:"1984-01-01")') == "head ( )"
+
+
+def test_defilter_removes_all_terms_it_reports():
+    "Whatever get_filter_terms finds must not survive defilter"
+    date_filter = DateFilter()
+
+    queries = [
+        'head dt:"1984-01-01" tail',
+        'dt:"1984-01-01" tail',
+        'dt:"1984-01-01"',
+        'head,dt:"1984-01-01"',
+        'head (dt:"1984-01-01")',
+        'dt>="1984-01-01" dt<="1984-12-31" tail',
+        "dt:'1984-01-01' tail",
+    ]
+
+    for query in queries:
+        assert date_filter.get_filter_terms(date_filter.defilter(query)) == [], f"Filter left in query: {query}"
+
+
 def test_date_extraction():
     extracted_dates = DateFilter().extract_dates("")
     assert extracted_dates == [], "Expected to handle empty string"
