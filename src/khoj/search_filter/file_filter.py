@@ -29,4 +29,7 @@ class FileFilter(BaseFilter):
         return file_filter.replace(".", r"\.").replace("*", r".*")
 
     def defilter(self, query: str) -> str:
-        return re.sub(self.file_filter_regex, "", query).strip()
+        # Remove both include (file:"...") and exclude (-file:"...") file filters from the query
+        query = re.sub(self.excluded_file_filter_regex, "", query)
+        query = re.sub(self.file_filter_regex, "", query)
+        return query.strip()
