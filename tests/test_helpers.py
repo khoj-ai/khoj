@@ -14,6 +14,44 @@ from khoj.processor.tools.online_search import (
 from khoj.utils import helpers
 
 
+def test_minimax_m3_cost():
+    cost = helpers.get_cost_of_chat_message(
+        "MiniMax-M3",
+        input_tokens=1_000_000,
+        output_tokens=1_000_000,
+        cache_read_tokens=1_000_000,
+    )
+    assert cost == pytest.approx(3.12)
+
+
+def test_minimax_m27_cost():
+    cost = helpers.get_cost_of_chat_message(
+        "MiniMax-M2.7",
+        input_tokens=1_000_000,
+        output_tokens=1_000_000,
+        cache_read_tokens=1_000_000,
+        cache_write_tokens=1_000_000,
+    )
+    assert cost == pytest.approx(1.935)
+
+
+def test_anthropic_client_uses_custom_base_url():
+    client = helpers.get_anthropic_client("test-key", "https://api.minimax.io/anthropic")
+    try:
+        assert str(client.base_url) == "https://api.minimax.io/anthropic/"
+    finally:
+        client.close()
+
+
+@pytest.mark.asyncio
+async def test_anthropic_async_client_uses_custom_base_url():
+    client = helpers.get_anthropic_async_client("test-key", "https://api.minimax.io/anthropic")
+    try:
+        assert str(client.base_url) == "https://api.minimax.io/anthropic/"
+    finally:
+        await client.close()
+
+
 def test_get_from_null_dict():
     # null handling
     assert helpers.get_from_dict(dict()) == dict()

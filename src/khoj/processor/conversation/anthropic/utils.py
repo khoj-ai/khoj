@@ -19,8 +19,10 @@ from khoj.processor.conversation.utils import (
     ResponseWithThought,
     ToolCall,
     commit_conversation_trace,
+    configure_minimax_m3_thinking,
     get_image_from_base64,
     get_image_from_url,
+    is_minimax_m3_model,
 )
 from khoj.utils.helpers import (
     ToolDefinition,
@@ -63,10 +65,11 @@ def anthropic_completion_with_backoff(
     deepthought: bool = False,
     tracer: dict = {},
 ) -> ResponseWithThought:
-    client = anthropic_clients.get(api_key)
+    client_key = f"{api_key}--{api_base_url}"
+    client = anthropic_clients.get(client_key)
     if not client:
         client = get_anthropic_client(api_key, api_base_url)
-        anthropic_clients[api_key] = client
+        anthropic_clients[client_key] = client
 
     formatted_messages, system = format_messages_for_anthropic(messages, system_prompt)
 
@@ -91,7 +94,9 @@ def anthropic_completion_with_backoff(
         model_kwargs["tools"] = [
             anthropic.types.ToolParam(name=tool.name, description=tool.description, input_schema=tool.schema)
         ]
-    elif response_type == "json_object" and not (is_reasoning_model(model_name) and deepthought):
+    elif response_type == "json_object" and not (
+        deepthought and (is_reasoning_model(model_name) or is_minimax_m3_model(model_name))
+    ):
         # Prefill model response with '{' to make it output a valid JSON object. Not supported with extended thinking.
         formatted_messages.append(anthropic.types.MessageParam(role="assistant", content="{"))
         aggregated_response += "{"
@@ -100,7 +105,8 @@ def anthropic_completion_with_backoff(
         model_kwargs["system"] = system
 
     max_tokens = max_tokens or DEFAULT_MAX_TOKENS_ANTHROPIC
-    if deepthought and is_reasoning_model(model_name):
+    minimax_thinking_configured = configure_minimax_m3_thinking(model_name, deepthought, model_kwargs)
+    if not minimax_thinking_configured and deepthought and is_reasoning_model(model_name):
         model_kwargs["thinking"] = {"type": "enabled", "budget_tokens": MAX_REASONING_TOKENS_ANTHROPIC}
         model_kwargs["betas"] = ["context-management-2025-06-27"]
         model_kwargs["context_management"] = {"edits": [{"type": "clear_thinking_20251015", "keep": "all"}]}
@@ -192,14 +198,16 @@ async def anthropic_chat_completion_with_backoff(
     model_kwargs: dict | None = None,
     tracer: dict = {},
 ) -> AsyncGenerator[ResponseWithThought, None]:
-    client = anthropic_async_clients.get(api_key)
+    client_key = f"{api_key}--{api_base_url}"
+    client = anthropic_async_clients.get(client_key)
     if not client:
         client = get_anthropic_async_client(api_key, api_base_url)
-        anthropic_async_clients[api_key] = client
+        anthropic_async_clients[client_key] = client
 
     model_kwargs = model_kwargs or dict()
     max_tokens = DEFAULT_MAX_TOKENS_ANTHROPIC
-    if deepthought and is_reasoning_model(model_name):
+    minimax_thinking_configured = configure_minimax_m3_thinking(model_name, deepthought, model_kwargs)
+    if not minimax_thinking_configured and deepthought and is_reasoning_model(model_name):
         model_kwargs["thinking"] = {"type": "enabled", "budget_tokens": MAX_REASONING_TOKENS_ANTHROPIC}
         max_tokens += MAX_REASONING_TOKENS_ANTHROPIC
         # Temperature control not supported when using extended thinking

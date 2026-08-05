@@ -14,6 +14,10 @@ content_directory = "~/.khoj/content/"
 default_openai_chat_models = ["gpt-4o-mini", "gpt-4.1", "o3", "o4-mini"]
 default_gemini_chat_models = ["gemini-2.0-flash", "gemini-2.5-flash", "gemini-2.5-pro", "gemini-2.5-flash-lite"]
 default_anthropic_chat_models = ["claude-sonnet-4-0", "claude-3-5-haiku-latest"]
+default_minimax_chat_models = ["MiniMax-M3", "MiniMax-M2.7"]
+default_minimax_vision_chat_models = ["MiniMax-M3"]
+default_minimax_openai_base_url = "https://api.minimax.io/v1"
+default_minimax_anthropic_base_url = "https://api.minimax.io/anthropic"
 
 empty_config = {
     "search-type": {
@@ -91,4 +95,5 @@ model_to_cost: Dict[str, Dict[str, float]] = {
     "moonshotai/kimi-k2-thinking": {"input": 0.60, "output": 2.50},
     # MiniMax Pricing: https://platform.minimax.io/docs/guides/pricing-paygo
     "MiniMax-M3": {"input": 0.6, "output": 2.4, "cache_read": 0.12},
+    "MiniMax-M2.7": {"input": 0.3, "output": 1.2, "cache_read": 0.06, "cache_write": 0.375},
 }

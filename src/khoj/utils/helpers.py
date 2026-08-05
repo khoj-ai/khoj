@@ -1175,7 +1175,7 @@ def get_openai_async_client(api_key: str, api_base_url: str) -> Union[openai.Asy
 def get_anthropic_client(api_key, api_base_url=None) -> anthropic.Anthropic | anthropic.AnthropicVertex:
     api_info = get_ai_api_info(api_key, api_base_url)
     if api_info.api_key:
-        client = anthropic.Anthropic(api_key=api_info.api_key)
+        client = anthropic.Anthropic(api_key=api_info.api_key, base_url=api_base_url)
     else:
         client = anthropic.AnthropicVertex(
             region=api_info.region,
@@ -1188,7 +1188,7 @@ def get_anthropic_client(api_key, api_base_url=None) -> anthropic.Anthropic | an
 def get_anthropic_async_client(api_key, api_base_url=None) -> anthropic.AsyncAnthropic | anthropic.AsyncAnthropicVertex:
     api_info = get_ai_api_info(api_key, api_base_url)
     if api_info.api_key:
-        client = anthropic.AsyncAnthropic(api_key=api_info.api_key)
+        client = anthropic.AsyncAnthropic(api_key=api_info.api_key, base_url=api_base_url)
     else:
         client = anthropic.AsyncAnthropicVertex(
             region=api_info.region,

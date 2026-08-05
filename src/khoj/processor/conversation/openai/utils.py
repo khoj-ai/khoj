@@ -39,6 +39,7 @@ from khoj.processor.conversation.utils import (
     StructuredOutputSupport,
     ToolCall,
     commit_conversation_trace,
+    configure_minimax_m3_thinking,
 )
 from khoj.utils.helpers import (
     ToolDefinition,
@@ -99,9 +100,10 @@ def completion_with_backoff(
     openai_api_key=None,
     api_base_url: str | None = None,
     deepthought: bool = False,
-    model_kwargs: dict = {},
+    model_kwargs: dict | None = None,
     tracer: dict = {},
 ) -> ResponseWithThought:
+    model_kwargs = deepcopy(model_kwargs) if model_kwargs else {}
     client_key = f"{openai_api_key}--{api_base_url}"
     client = openai_clients.get(client_key)
     if not client:
@@ -149,6 +151,7 @@ def completion_with_backoff(
         formatted_messages = updated_messages
     elif is_instream_thinking_model(model_name):
         stream_processor = in_stream_thought_processor
+        configure_minimax_m3_thinking(model_name, deepthought, model_kwargs)
     elif is_qwen_style_reasoning_model(model_name, api_base_url):
         stream_processor = in_stream_thought_processor
         # Reasoning is enabled by default. Disable when deepthought is False.
@@ -351,6 +354,7 @@ async def chat_completion_with_backoff(
         formatted_messages = updated_messages
     elif is_instream_thinking_model(model_name):
         stream_processor = ain_stream_thought_processor
+        configure_minimax_m3_thinking(model_name, deepthought, model_kwargs)
     elif is_qwen_style_reasoning_model(model_name, api_base_url):
         stream_processor = ain_stream_thought_processor
         # Reasoning is enabled by default. Disable when deepthought is False.

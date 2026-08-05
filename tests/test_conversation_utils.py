@@ -4,6 +4,33 @@ import tiktoken
 from langchain_core.messages.chat import ChatMessage
 
 from khoj.processor.conversation import utils
+from khoj.utils import constants
+
+
+def test_minimax_model_registry():
+    assert constants.default_minimax_chat_models == ["MiniMax-M3", "MiniMax-M2.7"]
+    assert constants.default_minimax_vision_chat_models == ["MiniMax-M3"]
+    assert constants.default_minimax_openai_base_url == "https://api.minimax.io/v1"
+    assert constants.default_minimax_anthropic_base_url == "https://api.minimax.io/anthropic"
+    assert utils.model_to_prompt_size["MiniMax-M3"] == 1_000_000
+    assert utils.model_to_prompt_size["MiniMax-M2.7"] == 204_800
+
+
+def test_configure_minimax_m3_thinking():
+    assert utils.is_minimax_m3_model("MiniMax-M3")
+    assert not utils.is_minimax_m3_model("MiniMax-M2.7")
+
+    fast_kwargs = {}
+    assert utils.configure_minimax_m3_thinking("MiniMax-M3", False, fast_kwargs)
+    assert fast_kwargs == {"extra_body": {"thinking": {"type": "disabled"}}}
+
+    deep_kwargs = {}
+    assert utils.configure_minimax_m3_thinking("MiniMax-M3", True, deep_kwargs)
+    assert deep_kwargs == {"extra_body": {"thinking": {"type": "adaptive"}}}
+
+    other_model_kwargs = {}
+    assert not utils.configure_minimax_m3_thinking("MiniMax-M2.7", True, other_model_kwargs)
+    assert other_model_kwargs == {}
 
 
 class TestTruncateMessage:

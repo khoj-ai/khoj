@@ -16,10 +16,20 @@ from khoj.processor.conversation.utils import model_to_prompt_size, model_to_tok
 from khoj.utils.constants import (
     default_anthropic_chat_models,
     default_gemini_chat_models,
+    default_minimax_anthropic_base_url,
+    default_minimax_chat_models,
+    default_minimax_openai_base_url,
+    default_minimax_vision_chat_models,
     default_openai_chat_models,
 )
 
 logger = logging.getLogger(__name__)
+supported_vision_models = set(
+    default_openai_chat_models
+    + default_anthropic_chat_models
+    + default_gemini_chat_models
+    + default_minimax_vision_chat_models
+)
 
 
 def initialization(interactive: bool = True):
@@ -71,6 +81,17 @@ def initialization(interactive: bool = True):
             vision_enabled=True,
             interactive=interactive,
             provider_name=provider,
+        )
+
+        minimax_api_key = os.getenv("MINIMAX_API_KEY")
+        _setup_chat_model_provider(
+            ChatModel.ModelType.OPENAI,
+            default_minimax_chat_models,
+            default_api_key=minimax_api_key,
+            api_base_url=os.getenv("MINIMAX_BASE_URL") or default_minimax_openai_base_url,
+            vision_enabled=True,
+            interactive=interactive,
+            provider_name="MiniMax",
         )
 
         # Setup OpenAI speech to text model
@@ -143,6 +164,16 @@ def initialization(interactive: bool = True):
             interactive=interactive,
         )
 
+        _setup_chat_model_provider(
+            ChatModel.ModelType.ANTHROPIC,
+            default_minimax_chat_models,
+            default_api_key=os.getenv("MINIMAX_ANTHROPIC_API_KEY") or minimax_api_key,
+            api_base_url=os.getenv("MINIMAX_ANTHROPIC_BASE_URL") or default_minimax_anthropic_base_url,
+            vision_enabled=True,
+            interactive=interactive,
+            provider_name="MiniMax Anthropic",
+        )
+
         logger.info("🗣️ Chat model configuration complete")
 
     def _setup_chat_model_provider(
@@ -154,9 +185,6 @@ def initialization(interactive: bool = True):
         vision_enabled: bool = False,
         provider_name: str = None,
     ) -> Tuple[bool, AiModelApi]:
-        supported_vision_models = (
-            default_openai_chat_models + default_anthropic_chat_models + default_gemini_chat_models
-        )
         provider_name = provider_name or model_type.name.capitalize()
 
         default_use_model = default_api_key is not None
@@ -190,14 +218,14 @@ def initialization(interactive: bool = True):
         for chat_model in chat_models:
             default_max_tokens = model_to_prompt_size.get(chat_model)
             default_tokenizer = model_to_tokenizer.get(chat_model)
-            vision_enabled = vision_enabled and chat_model in supported_vision_models
+            model_vision_enabled = vision_enabled and chat_model in supported_vision_models
 
             chat_model_options = {
                 "name": chat_model,
                 "friendly_name": chat_model,
                 "model_type": model_type,
                 "max_prompt_size": default_max_tokens,
-                "vision_enabled": vision_enabled,
+                "vision_enabled": model_vision_enabled,
                 "tokenizer": default_tokenizer,
                 "ai_model_api": ai_model_api,
             }
@@ -213,9 +241,9 @@ def initialization(interactive: bool = True):
             # Get OpenAI configs with custom base URLs
             custom_configs = AiModelApi.objects.exclude(api_base_url__isnull=True)
 
-            # Only enable for whitelisted provider names (i.e Ollama) for now
+            # Only enable for whitelisted OpenAI-compatible providers for now
             # TODO: This is hacky. Will be replaced with more robust solution based on provider type enum
-            custom_configs = custom_configs.filter(name__in=["Ollama"])
+            custom_configs = custom_configs.filter(name__in=["Ollama", "MiniMax"])
 
             for config in custom_configs:
                 try:
@@ -238,7 +266,7 @@ def initialization(interactive: bool = True):
                                 friendly_name=model_name,
                                 model_type=ChatModel.ModelType.OPENAI,
                                 max_prompt_size=model_to_prompt_size.get(model_name),
-                                vision_enabled=model_name in default_openai_chat_models,
+                                vision_enabled=model_name in supported_vision_models,
                                 tokenizer=model_to_tokenizer.get(model_name),
                                 ai_model_api=config,
                             )

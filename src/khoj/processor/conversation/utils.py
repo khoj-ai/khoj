@@ -94,8 +94,22 @@ model_to_prompt_size = {
     "claude-sonnet-4-20250514": 60000,
     "claude-opus-4-0": 60000,
     "claude-opus-4-20250514": 60000,
+    # MiniMax Models
+    "MiniMax-M3": 1000000,
+    "MiniMax-M2.7": 204800,
 }
 model_to_tokenizer: Dict[str, str] = {}
+
+
+def is_minimax_m3_model(model_name: str) -> bool:
+    return model_name.lower().startswith("minimax-m3")
+
+
+def configure_minimax_m3_thinking(model_name: str, deepthought: bool, model_kwargs: dict) -> bool:
+    if not is_minimax_m3_model(model_name):
+        return False
+    model_kwargs.setdefault("extra_body", {})["thinking"] = {"type": "adaptive" if deepthought else "disabled"}
+    return True
 
 
 class RetryableModelError(Exception):
