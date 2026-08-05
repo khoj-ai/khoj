@@ -965,26 +965,17 @@ def get_cost_of_chat_message(
     cache_read_tokens: int = 0,
     cache_write_tokens: int = 0,
     prev_cost: float = 0.0,
-    service_tier: str = "standard",
 ):
     """
     Calculate cost of chat message based on input and output tokens
     """
 
-    model_cost = constants.model_to_cost.get(model_name, {})
-    for tier in constants.model_to_cost_tiers.get(model_name, {}).get(service_tier, []):
-        within_upper_bound = "input_tokens_lte" not in tier or input_tokens <= tier["input_tokens_lte"]
-        above_lower_bound = "input_tokens_gt" not in tier or input_tokens > tier["input_tokens_gt"]
-        if within_upper_bound and above_lower_bound:
-            model_cost = tier
-            break
-
     # Calculate cost of input and output tokens. Costs are per million tokens
-    input_cost = model_cost.get("input", 0) * (input_tokens / 1e6)
-    output_cost = model_cost.get("output", 0) * (output_tokens / 1e6)
-    thought_cost = model_cost.get("thought", 0) * (thought_tokens / 1e6)
-    cache_read_cost = model_cost.get("cache_read", 0) * (cache_read_tokens / 1e6)
-    cache_write_cost = model_cost.get("cache_write", 0) * (cache_write_tokens / 1e6)
+    input_cost = constants.model_to_cost.get(model_name, {}).get("input", 0) * (input_tokens / 1e6)
+    output_cost = constants.model_to_cost.get(model_name, {}).get("output", 0) * (output_tokens / 1e6)
+    thought_cost = constants.model_to_cost.get(model_name, {}).get("thought", 0) * (thought_tokens / 1e6)
+    cache_read_cost = constants.model_to_cost.get(model_name, {}).get("cache_read", 0) * (cache_read_tokens / 1e6)
+    cache_write_cost = constants.model_to_cost.get(model_name, {}).get("cache_write", 0) * (cache_write_tokens / 1e6)
 
     return input_cost + output_cost + thought_cost + cache_read_cost + cache_write_cost + prev_cost
 

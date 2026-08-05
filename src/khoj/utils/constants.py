@@ -94,19 +94,6 @@ model_to_cost: Dict[str, Dict[str, float]] = {
     # Moonshot AI, Baseten pricing for Kimi-K2-Thinking
     "moonshotai/kimi-k2-thinking": {"input": 0.60, "output": 2.50},
     # MiniMax Pricing: https://platform.minimax.io/docs/guides/pricing-paygo
-    "MiniMax-M3": {"input": 0.3, "output": 1.2, "cache_read": 0.06},
+    "MiniMax-M3": {"input": 0.6, "output": 2.4, "cache_read": 0.12},
     "MiniMax-M2.7": {"input": 0.3, "output": 1.2, "cache_read": 0.06, "cache_write": 0.375},
-}
-
-model_to_cost_tiers: Dict[str, Dict[str, list[Dict[str, float]]]] = {
-    "MiniMax-M3": {
-        "standard": [
-            {"input_tokens_lte": 512_000, "input": 0.3, "output": 1.2, "cache_read": 0.06},
-            {"input_tokens_gt": 512_000, "input": 0.6, "output": 2.4, "cache_read": 0.12},
-        ],
-        "priority": [
-            {"input_tokens_lte": 512_000, "input": 0.45, "output": 1.8, "cache_read": 0.09},
-            {"input_tokens_gt": 512_000, "input": 0.9, "output": 3.6, "cache_read": 0.18},
-        ],
-    }
 }

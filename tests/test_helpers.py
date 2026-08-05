@@ -14,24 +14,14 @@ from khoj.processor.tools.online_search import (
 from khoj.utils import helpers
 
 
-@pytest.mark.parametrize(
-    ("input_tokens", "service_tier", "expected_cost"),
-    [
-        (500_000, "standard", 1.356),
-        (600_000, "standard", 2.772),
-        (500_000, "priority", 2.034),
-        (600_000, "priority", 4.158),
-    ],
-)
-def test_minimax_m3_tiered_cost(input_tokens, service_tier, expected_cost):
+def test_minimax_m3_cost():
     cost = helpers.get_cost_of_chat_message(
         "MiniMax-M3",
-        input_tokens=input_tokens,
+        input_tokens=1_000_000,
         output_tokens=1_000_000,
-        cache_read_tokens=100_000,
-        service_tier=service_tier,
+        cache_read_tokens=1_000_000,
     )
-    assert cost == pytest.approx(expected_cost)
+    assert cost == pytest.approx(3.12)
 
 
 def test_minimax_m27_cost():
