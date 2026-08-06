@@ -95,6 +95,10 @@ export class KhojChatView extends KhojPaneView {
     private modeDropdown: HTMLElement | null = null;
     private selectedOptionIndex: number = -1;
     private isStreaming: boolean = false; // Flag to track streaming state
+	    // File filter autocomplete properties
+    private fileFilterDropdown: HTMLElement | null = null;
+    private fileFilterSuggestions: string[] = [];
+    private selectedFileFilterIndex: number = -1;
 
     // Disabled retry logic for now. Can re-enable once:
     // 1. Handle chat history clutter
@@ -1850,6 +1854,15 @@ export class KhojChatView extends KhojPaneView {
             this.hideModeDropdown();
         }
 
+		        // Check for file: filter pattern and show file filter dropdown
+        const fileFilterMatch = chatInput.value.match(/file:(\S*)$/);
+        if (fileFilterMatch) {
+            const filterQuery = fileFilterMatch[1] || '';
+            this.showFileFilterDropdown(chatInput, filterQuery);
+        } else if (this.fileFilterDropdown) {
+            this.hideFileFilterDropdown();
+        }
+
         this.autoResize();
     }
 
@@ -2568,5 +2581,76 @@ export class KhojChatView extends KhojPaneView {
             this.modeDropdown.style.display = "none";
             this.selectedOptionIndex = -1;
         }
+
+		    // File filter autocomplete methods
+    private async fetchUserFiles(): Promise<string[]> {
+        try {
+            const response = await fetch(`${this.setting.khojUrl}/api/content/files`, {
+                headers: { 'Authorization': `Bearer ${this.setting.khojApiKey}` }
+            });
+            if (response.ok) {
+                const data = await response.json();
+                return data.files?.map((f: any) => f.file_name) || [];
+            }
+        } catch (error) {
+            console.error('Error fetching files:', error);
+        }
+        return [];
+    }
+
+    private onChatInput()
+onChatInput() {
+	if (this.fileFilterDropdown) {
+            this.fileFilterDropdown.style.display = "none";
+            this.selectedFileFilterIndex = -1;
+        }
+
+		    private async showFileFilterDropdown(inputEl: HTMLTextAreaElement, filterQuery: string) {
+        // Fetch files if not already loaded
+        if (this.fileFilterSuggestions.length === 0) {
+            this.fileFilterSuggestions = await this.fetchUserFiles();
+        }
+
+        // Filter files based on query
+        const filteredFiles = filterQuery
+            ? this.fileFilterSuggestions.filter(f => f.toLowerCase().includes(filterQuery.toLowerCase()))
+            : this.fileFilterSuggestions;
+
+        if (filteredFiles.length === 0) {
+            this.hideFileFilterDropdown();
+            return;
+        }
+
+        // Create dropdown if it doesn't exist
+        if (!this.fileFilterDropdown) {
+            this.fileFilterDropdown = this.contentEl.createDiv({ cls: "khoj-file-filter-dropdown" });
+            this.fileFilterDropdown.style.position = "absolute";
+            this.fileFilterDropdown.style.zIndex = "1000";
+        }
+
+        // Position dropdown above input
+        const inputRect = inputEl.getBoundingClientRect();
+        const containerRect = this.contentEl.getBoundingClientRect();
+        this.fileFilterDropdown.style.left = `${inputRect.left - containerRect.left}px`;
+        this.fileFilterDropdown.style.bottom = `${containerRect.bottom - inputRect.top + 4}px`;
+        this.fileFilterDropdown.style.width = `${inputRect.width}px`;
+
+        // Clear and populate dropdown
+        this.fileFilterDropdown.empty();
+        filteredFiles.slice(0, 10).forEach((file, index) => {
+            const option = this.fileFilterDropdown!.createDiv({ cls: "khoj-file-filter-option" });
+            option.textContent = file.split('/').pop() || file;
+            option.title = file;
+            option.addEventListener('click', () => {
+                // Replace file: pattern with selected file
+                inputEl.value = inputEl.value.replace(/file:\S*$/, `file:"${file}" `);
+                this.hideFileFilterDropdown();
+                inputEl.focus();
+            });
+        });
+
+        this.fileFilterDropdown.style.display = "block";
+    }
+    }
     }
 }
