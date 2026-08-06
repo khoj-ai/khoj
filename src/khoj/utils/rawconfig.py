@@ -100,6 +100,7 @@ class ChatRequestBody(BaseModel):
     images: Optional[list[str]] = None
     files: Optional[list[FileAttachment]] = []
     create_new: Optional[bool] = False
+    chat_model_id: Optional[int] = None
 
 
 class Entry:

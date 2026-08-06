@@ -1918,6 +1918,7 @@ async def agenerate_chat_response(
     generated_asset_results: Dict[str, Dict] = {},
     is_subscribed: bool = False,
     tracer: dict = {},
+    chat_model_id: int = None,
 ) -> Tuple[AsyncGenerator[ResponseWithThought, None], Dict[str, str]]:
     # Initialize Variables
     chat_response_generator: AsyncGenerator[ResponseWithThought, None] = None
@@ -1938,7 +1939,7 @@ async def agenerate_chat_response(
             operator_results = []
             deepthought = True
 
-        chat_model = await ConversationAdapters.aget_valid_chat_model(user, conversation, is_subscribed)
+        chat_model = await ConversationAdapters.aget_valid_chat_model(user, conversation, is_subscribed, chat_model_id)
         max_prompt_size = await ConversationAdapters.aget_max_context_size(chat_model, user)
         vision_available = chat_model.vision_enabled
         if not vision_available and query_images:
@@ -2529,6 +2530,7 @@ def scheduled_chat(
     calling_url: str | URL,
     job_id: str = None,
     conversation_id: str = None,
+    chat_model_id: int = None,
 ):
     logger.info(f"Processing scheduled_chat: {query_to_run}")
     if job_id:
@@ -2568,6 +2570,10 @@ def scheduled_chat(
 
     # Restructure the original query_dict into a valid JSON payload for the chat API
     json_payload = {key: values[0] for key, values in query_dict.items()}
+
+    # Include the chat model override if specified for this automation
+    if chat_model_id is not None:
+        json_payload["chat_model_id"] = chat_model_id
 
     # Construct the URL to call the chat API with the scheduled query string
     url = f"{scheme}://{parsed_url.netloc}/api/chat?client=khoj"
@@ -2629,9 +2635,13 @@ async def create_automation(
     chat_history: List[ChatMessageModel] = [],
     conversation_id: str = None,
     tracer: dict = {},
+    chat_model_id: int = None,
 ):
     crontime, query_to_run, subject = await aschedule_query(q, chat_history, user, tracer=tracer)
-    job = await aschedule_automation(query_to_run, subject, crontime, timezone, q, user, calling_url, conversation_id)
+    job = await aschedule_automation(
+        query_to_run, subject, crontime, timezone, q, user, calling_url, conversation_id,
+        chat_model_id=chat_model_id,
+    )
     return job, crontime, query_to_run, subject
 
 
@@ -2644,6 +2654,7 @@ def schedule_automation(
     user: KhojUser,
     calling_url: URL,
     conversation_id: str,
+    chat_model_id: int = None,
 ):
     # Disable minute level automation recurrence
     minute_value = crontime.split(" ")[0]
@@ -2668,6 +2679,7 @@ def schedule_automation(
             "subject": subject,
             "crontime": crontime,
             "conversation_id": str(conversation_id),
+            "chat_model_id": chat_model_id,
         }
     )
     query_id = hashlib.md5(f"{query_to_run}_{crontime}".encode("utf-8")).hexdigest()
@@ -2687,6 +2699,7 @@ def schedule_automation(
             "calling_url": calling_url,
             "job_id": job_id,
             "conversation_id": conversation_id,
+            "chat_model_id": chat_model_id,
         },
         id=job_id,
         name=job_metadata,
@@ -2704,6 +2717,7 @@ async def aschedule_automation(
     user: KhojUser,
     calling_url: URL,
     conversation_id: str,
+    chat_model_id: int = None,
 ):
     # Disable minute level automation recurrence
     minute_value = crontime.split(" ")[0]
@@ -2722,6 +2736,7 @@ async def aschedule_automation(
             "subject": subject,
             "crontime": crontime,
             "conversation_id": str(conversation_id),
+            "chat_model_id": chat_model_id,
         }
     )
     query_id = hashlib.md5(f"{query_to_run}_{crontime}".encode("utf-8")).hexdigest()
@@ -2741,6 +2756,7 @@ async def aschedule_automation(
             "calling_url": calling_url,
             "job_id": job_id,
             "conversation_id": conversation_id,
+            "chat_model_id": chat_model_id,
         },
         id=job_id,
         name=job_metadata,
