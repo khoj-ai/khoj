@@ -645,12 +645,12 @@ async def generate_chat_title(
     user: KhojUser = request.user.object
     conversation = await ConversationAdapters.aget_conversation_by_user(user=user, conversation_id=conversation_id)
 
+    if not conversation:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+
     # Conversation.title is explicitly set by the user. Do not override.
     if conversation.title:
         return {"status": "ok", "title": conversation.title}
-
-    if not conversation:
-        raise HTTPException(status_code=404, detail="Conversation not found")
 
     new_title = await acreate_title_from_history(request.user.object, conversation=conversation)
     conversation.slug = clean_text_for_db(new_title[:200])
@@ -658,7 +658,6 @@ async def generate_chat_title(
     await conversation.asave()
 
     return {"status": "ok", "title": new_title}
-
 
 @api_chat.delete("/conversation/message", response_class=Response)
 @requires(["authenticated"])
