@@ -116,3 +116,18 @@ async def test_reading_webpage_with_olostep():
         "An alarm sent from the area near the fire also failed to register at the courthouse where the fire watchmen were"
         in response
     )
+
+
+def test_is_code_sandbox_enabled_respects_disable_flag(monkeypatch):
+    # Arrange: a sandbox is configured
+    monkeypatch.setenv("KHOJ_TERRARIUM_URL", "http://localhost:1234")
+    monkeypatch.delenv("E2B_API_KEY", raising=False)
+
+    # Assert: sandbox is enabled by default when configured
+    assert helpers.is_code_sandbox_enabled() is True
+
+    # Act: admin disables code execution fleet-wide
+    monkeypatch.setenv("KHOJ_DISABLE_CODE_EXECUTION", "true")
+
+    # Assert: sandbox is disabled regardless of sandbox configuration
+    assert helpers.is_code_sandbox_enabled() is False

@@ -267,7 +267,7 @@ def get_conversation_command(query: str) -> ConversationCommand:
         return ConversationCommand.AutomatedTask
     elif query.startswith("/diagram"):
         return ConversationCommand.Diagram
-    elif query.startswith("/code"):
+    elif query.startswith("/code") and is_code_sandbox_enabled():
         return ConversationCommand.Code
     elif query.startswith("/research"):
         return ConversationCommand.Research
