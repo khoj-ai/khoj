@@ -1340,6 +1340,9 @@ class ConversationAdapters:
                 # Else if advanced model is available
                 elif server_chat_settings.chat_advanced:
                     return server_chat_settings.chat_advanced
+                # Else if default model is available
+                elif server_chat_settings.chat_default:
+                    return server_chat_settings.chat_default
             else:
                 # If fast is requested and fast free model is available
                 if server_chat_settings.think_free_fast and fast:
