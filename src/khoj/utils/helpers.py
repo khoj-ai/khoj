@@ -783,7 +783,10 @@ def is_operator_enabled():
 
 def is_code_sandbox_enabled():
     """Check if Khoj can run code in sandbox.
-    Set KHOJ_TERRARIUM_URL or E2B api key via env var to enable it."""
+    Set KHOJ_TERRARIUM_URL or E2B api key via env var to enable it.
+    Set KHOJ_DISABLE_CODE_EXECUTION env var to true to disable it fleet-wide, overriding the above."""
+    if is_env_var_true("KHOJ_DISABLE_CODE_EXECUTION"):
+        return False
     return not is_none_or_empty(os.getenv("KHOJ_TERRARIUM_URL")) or is_e2b_code_sandbox_enabled()
 
 
