@@ -17,7 +17,7 @@ import {
     KhojLogoType,
     KhojSearchLogo,
 } from "../logo/khojLogo";
-import { Plus, Gear, HouseSimple } from "@phosphor-icons/react";
+import { Plus, Gear, HouseSimple, ShieldCheck } from "@phosphor-icons/react";
 import { useEffect, useState } from "react";
 import AllConversations from "../allConversations/allConversations";
 import FooterMenu from "../navMenu/navMenu";
@@ -76,6 +76,11 @@ const items = [
         title: "Settings",
         url: "/settings",
         icon: Gear,
+    },
+    {
+        title: "Admin",
+        url: "/server/admin",
+        icon: ShieldCheck,
     },
 ];
 
