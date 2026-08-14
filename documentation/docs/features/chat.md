@@ -15,7 +15,7 @@ You can configure Khoj to chat with you about anything. When relevant, it'll use
 - Shows reference notes used to generate a response
 
 ### Setup (Self-Hosting)
-See [the setup guide](/get-started/setup.mdx) to configure your chat models.
+See [the setup guide](/get-started/setup) to configure your chat models.
 
 ### Use
 1. Open Khoj Chat
