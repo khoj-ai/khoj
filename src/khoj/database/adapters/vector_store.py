@@ -1,30 +1,30 @@
 import math
-from typing import Optional, List
+from typing import Optional
 
-from django.db.models import QuerySet, Q
+from django.db.models import Q, QuerySet
 from pgvector.django import CosineDistance
 from torch import Tensor
 
-from khoj.database.models import KhojUser, Agent, UserMemory
+from khoj.database.models import Agent, KhojUser, UserMemory
 
 
 class PgVectorStore:
-    "\""
+    """
     A PostgreSQL/pgvector backed store for managing and querying vector embeddings.
     Provides a standardized interface for interacting with vector fields.
-    "\""
+    """
 
     def __init__(self, user: KhojUser, agent: Optional[Agent] = None):
-        "\""
+        """
         Initialize the vector store for a specific user and optionally a specific agent.
-        "\""
+        """
         self.user = user
         self.agent = agent
 
     def add(self, raw_text: str, embedding: Tensor, search_model=None) -> UserMemory:
-        "\""
+        """
         Add a new memory with its embedding to the store.
-        "\""
+        """
         memory = UserMemory.objects.create(
             user=self.user,
             agent=self.agent,
@@ -37,9 +37,9 @@ class PgVectorStore:
     def search(
         self, query_embedding: Tensor, top_k: int = 10, max_distance: float = math.inf
     ) -> QuerySet[UserMemory]:
-        "\""
+        """
         Search the vector store for the closest embeddings using Cosine Distance.
-        "\""
+        """
         # Base filter by user
         owner_filter = Q(user=self.user)
         
@@ -57,10 +57,10 @@ class PgVectorStore:
         return relevant_memories[:top_k]
 
     def delete(self, memory_id: int) -> bool:
-        "\""
+        """
         Delete a specific memory from the store by ID.
         Returns True if deleted, False if not found or unauthorized.
-        "\""
+        """
         deleted_count, _ = UserMemory.objects.filter(
             id=memory_id, user=self.user
         ).delete()
