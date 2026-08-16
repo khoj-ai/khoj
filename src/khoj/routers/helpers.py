@@ -109,7 +109,7 @@ from khoj.processor.conversation.utils import (
     generate_chatml_messages_with_context,
     is_retryable_exception,
 )
-from khoj.processor.speech.text_to_speech import is_eleven_labs_enabled
+from khoj.processor.speech.text_to_speech import is_text_to_speech_enabled
 from khoj.routers.email import is_resend_enabled, send_task_email
 from khoj.routers.twilio import is_twilio_enabled
 from khoj.search_filter.date_filter import DateFilter
@@ -2964,7 +2964,7 @@ def get_user_config(user: KhojUser, request: Request, is_detailed: bool = False)
     if len(voice_model_options) == 0:
         eleven_labs_enabled = False
     else:
-        eleven_labs_enabled = is_eleven_labs_enabled()
+        eleven_labs_enabled = is_text_to_speech_enabled()
 
     selected_voice_model_config = ConversationAdapters.get_voice_model_config(user)
 
