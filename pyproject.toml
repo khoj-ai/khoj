@@ -189,7 +189,13 @@ markers = [
 
 [tool.codespell]
 # Ref: https://github.com/codespell-project/codespell#using-a-config-file
-skip = '.git,.gitignore,.gitattributes,*.pdf,*.svg,*.lock,*.css,*.min.*'
+# Skip Django migrations (frozen historical values that must not be renamed)
+# and tests/data (fixture content — user documents, HTML snapshots, etc.).
+skip = '.git,.gitignore,.gitattributes,*.pdf,*.svg,*.lock,*.css,*.min.*,*/migrations/*,./tests/data,./tests/data/*'
 check-hidden = true
-# ignore-regex = ''
-# ignore-words-list = ''
+# Ignore URLs (never "fix" typos inside links) and camelCase identifiers
+# (JS/TS API names like `doubleClick`).
+ignore-regex = 'https?://\S+|\b[a-z]+[A-Z]\w*\b'
+# nd  - ordinal date suffix ("2nd", "3rd") used in date_filter regexes
+# fo  - abbreviation of `file_object` used as loop variable
+ignore-words-list = 'nd,fo'

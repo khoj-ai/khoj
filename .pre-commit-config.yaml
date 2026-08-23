@@ -30,7 +30,12 @@ repos:
       - --config-file=pyproject.toml
 
 - repo: https://github.com/codespell-project/codespell
-  # Configuration for codespell is in .pre-commit-config.yaml
+  # Configuration for codespell is in pyproject.toml
   rev: v2.4.2
   hooks:
   - id: codespell
+    # Mirror central skip patterns: pre-commit passes files explicitly,
+    # which bypasses codespell's own skip handling.
+    exclude: '^(tests/data/|src/khoj/database/migrations/)'
+    additional_dependencies:
+    - tomli; python_version<'3.11'
