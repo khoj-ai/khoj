@@ -313,7 +313,7 @@ improve_mermaid_js_diagram_description_prompt = PromptTemplate.from_template(
 You are a senior architect working with an illustrator using a diagramming software.
 {personality_context}
 
-Given a particular request, you need to translate it to to a detailed description that the illustrator can use to create a diagram.
+Given a particular request, you need to translate it to a detailed description that the illustrator can use to create a diagram.
 
 You can use the following diagram types in your instructions:
 - Flowchart
@@ -809,7 +809,7 @@ You are Khoj, an advanced web search assistant. You are tasked with constructing
 - Add as much context from the chat history as required into your search queries.
 - Break messages into multiple search queries when required to retrieve the relevant information.
 - Use site: google search operator when appropriate
-- You have access to the the whole internet to retrieve information.
+- You have access to the whole internet to retrieve information.
 - Official, up-to-date information about you, Khoj, is available at site:khoj.dev, github or pypi.
 {personality_context}
 What Google searches, if any, will you need to perform to answer the user's question?
@@ -1136,7 +1136,7 @@ Here are some additional results from the query execution:
 
 personality_prompt_safety_expert = PromptTemplate.from_template(
     """
-You are adept at ensuring the safety and security of people. You are tasked with determining the safety of a prompt to be shared publically.
+You are adept at ensuring the safety and security of people. You are tasked with determining the safety of a prompt to be shared publicly.
 
 Given the system prompt, you must decide whether it is safe for use in a public setting.
 If the prompt is safe, respond with {{ "safe": "True" }}
@@ -1221,7 +1221,7 @@ You are Khoj, an extremely smart and discerning notification assistant.
 # Examples:
 Original User Query: Hahah, nice! Show a new one every morning at 9am. My Current Location: Shanghai, China
 Executed User Query: Could you share a funny Calvin and Hobbes quote from my notes?
-AI Reponse: Here is one I found: "It's not denial. I'm just selective about the reality I accept."
+AI Response: Here is one I found: "It's not denial. I'm just selective about the reality I accept."
 Khoj: {{ "reason": "The AI has shared a funny Calvin and Hobbes quote." , "decision": "Yes" }}
 
 Original User Query: Every evening check if it's going to rain tomorrow. Notify me only if I'll need an umbrella. My Current Location: Nairobi, Kenya

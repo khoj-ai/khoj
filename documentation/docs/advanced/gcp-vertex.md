@@ -11,7 +11,7 @@ Khoj can use Google's Gemini and Anthropic's Claude family of AI models from [Ve
    - Download the credentials keyfile in json format.
    - Base64 encode the credentials json keyfile. For example by running the following command from your terminal:
      `base64 -i <service_account_credentials_keyfile.json>`
-3. Create a new [API Model API](http://localhost:42110/server/admin/database/aimodelapi/add) on your Khoj admin panel.
+3. Create a new [AI Model API](http://localhost:42110/server/admin/database/aimodelapi/add) on your Khoj admin panel.
    - **Name**: `Google Vertex` (or whatever friendly name you prefer).
    - **Api Key**: `base64 encoded json keyfile` from step 2.
    - **Api Base Url**: `https://{MODEL_GCP_REGION}-aiplatform.googleapis.com/v1/projects/{YOUR_GCP_PROJECT_ID}`
