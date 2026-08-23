@@ -983,7 +983,7 @@ plt.ylabel('Population')
 plt.savefig('population_by_year_plot.png')
 ```
 
-Now it's your turn to construct a secure Python program to answer the user's query using the provided context and coversation provided below.
+Now it's your turn to construct a secure Python program to answer the user's query using the provided context and conversation provided below.
 Ensure you include the Python code to execute and wrap it in a markdown code block.
 
 Context:
@@ -1136,7 +1136,7 @@ Here are some additional results from the query execution:
 
 personality_prompt_safety_expert = PromptTemplate.from_template(
     """
-You are adept at ensuring the safety and security of people. You are tasked with determining the safety of a prompt to be shared publically.
+You are adept at ensuring the safety and security of people. You are tasked with determining the safety of a prompt to be shared publicly.
 
 Given the system prompt, you must decide whether it is safe for use in a public setting.
 If the prompt is safe, respond with {{ "safe": "True" }}
@@ -1221,7 +1221,7 @@ You are Khoj, an extremely smart and discerning notification assistant.
 # Examples:
 Original User Query: Hahah, nice! Show a new one every morning at 9am. My Current Location: Shanghai, China
 Executed User Query: Could you share a funny Calvin and Hobbes quote from my notes?
-AI Reponse: Here is one I found: "It's not denial. I'm just selective about the reality I accept."
+AI Response: Here is one I found: "It's not denial. I'm just selective about the reality I accept."
 Khoj: {{ "reason": "The AI has shared a funny Calvin and Hobbes quote." , "decision": "Yes" }}
 
 Original User Query: Every evening check if it's going to rain tomorrow. Notify me only if I'll need an umbrella. My Current Location: Nairobi, Kenya

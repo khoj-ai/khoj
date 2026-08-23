@@ -231,7 +231,7 @@ async def test_grep_files_financial_entries_regex_patterns(
     # Arrange - Create file with financial ledger content that has prefix text
     ledger_content = """This is a financial ledger file
 
-1984-06-23 * "Al Zaheer, Mediteranean" "Chicken Gyro Plate, Falafel Sandwhich for Bob" #bob
+1984-06-23 * "Al Zaheer, Mediterranean" "Chicken Gyro Plate, Falafel Sandwich for Bob" #bob
   Expenses:Food:Dining                                             11.55 USD
   Liabilities:People:Bob                                          11.55 USD
   Liabilities:CreditCard:Chase                            -23.10 USD

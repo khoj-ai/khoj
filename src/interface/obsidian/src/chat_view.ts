@@ -2083,7 +2083,7 @@ export class KhojChatView extends KhojPaneView {
         }
 
         // Original arrow key handling for message history
-        // (Le code existant pour gérer les touches fléchées)
+        // (Le code existant pour gérer les touches fléchées)  // codespell:ignore existant
     }
 
     /**

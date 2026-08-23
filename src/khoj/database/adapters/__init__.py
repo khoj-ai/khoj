@@ -1197,7 +1197,7 @@ class ConversationAdapters:
         subscribed = is_user_subscribed(user)
         config = UserConversationConfig.objects.filter(user=user).first()
         if subscribed:
-            # Subscibed users can use any available chat model
+            # Subscribed users can use any available chat model
             if config and config.setting:
                 return config.setting
             # Fallback to the default advanced chat model
@@ -1218,7 +1218,7 @@ class ConversationAdapters:
             .afirst()
         )
         if subscribed:
-            # Subscibed users can use any available chat model
+            # Subscribed users can use any available chat model
             if config and config.setting:
                 return config.setting
             # Fallback to the default advanced chat model

@@ -189,7 +189,7 @@ function AgentCreationForm(props: IAgentCreationProps) {
                     )}
                     <DialogClose />
                     <DialogDescription>
-                        If these settings have been helpful, create a dedicated agent you can re-use
+                        If these settings have been helpful, create a dedicated agent you can reuse
                         across conversations.
                     </DialogDescription>
                 </DialogHeader>

@@ -325,7 +325,7 @@ Content-Type: text/org\r\n\r\n\
                            (peopleAlsoAsk . [((link . "https://en.wikipedia.org/wiki/Albert_II,_Prince_of...")
                                               (title . "Albert II, Prince of Monaco - Wikipedia")
                                               (snippet . "In July 2011, Prince Albert married South African ...")
-                                              (question . "How many children does Prince Albert of Monaco hav..."))]))))
+                                              (question . "How many children does Prince Albert of Monaco hav..."))])))) ; codespell:ignore hav
          ;; Act
          (result (khoj--extract-online-references
                   '(organic knowledgeGraph peopleAlsoAsk webpages)

@@ -131,7 +131,7 @@ body:
           label: "Additional Information"
           description: "Anything else that might be relevant for troubleshooting this bug.\n
                         Providing context helps us come up with a solution that is most useful in the real-world use case.\n
-                        For example if self-hosting, provide environment details like OS versin, Docker version etc."
+                        For example if self-hosting, provide environment details like OS version, Docker version etc."
       validations:
           required: false
     - type: "input"

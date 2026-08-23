@@ -723,7 +723,7 @@ def test_infer_task_scheduling_request(
             True,
         ),
         (
-            "Let me know the election results once they are offically declared",
+            "Let me know the election results once they are officially declared",
             "What are the results of the elections? Has the winner been declared?",
             "The election results has not been declared yet.",
             False,
