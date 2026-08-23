@@ -1004,7 +1004,7 @@ export default function SettingsView() {
                                                     <Button
                                                         variant="outline"
                                                         size="sm"
-                                                        title="Search thorugh files"
+                                                        title="Search through files"
                                                         onClick={() =>
                                                             (window.location.href = "/search")
                                                         }
