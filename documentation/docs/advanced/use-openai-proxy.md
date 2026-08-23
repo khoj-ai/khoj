@@ -21,7 +21,7 @@ For specific integrations, see our [Ollama](/advanced/ollama), [LMStudio](/advan
 ## General Setup
 
 1. Start your preferred OpenAI API compatible app locally or get API keys from commercial AI model providers.
-3. Create a new [API Model API](http://localhost:42110/server/admin/database/aimodelapi/add) on your Khoj admin panel
+3. Create a new [AI Model API](http://localhost:42110/server/admin/database/aimodelapi/add) on your Khoj admin panel
    - **Name**: `any name`
    - **Api Key**: `any string`
    - **Api Base Url**: *The URL of your Openai Compatible API*

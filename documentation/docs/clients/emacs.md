@@ -126,7 +126,7 @@ This feature finds entries similar to the one you are currently on.
 ### Khoj Menu
 ![](/img/khoj_emacs_menu.png)
 Hit `C-c s` (or `M-x khoj`) to open the khoj menu above. Then:
-- Hit `t` until you preferred content type is selected in the khoj menu
+- Hit `t` until your preferred content type is selected in the khoj menu
   `Content Type` specifies the content to perform `Search`, `Update` or `Find Similar` actions on
 - Hit `n` twice and then enter number of results you want to see
   `Results Count` is used by the `Search` and `Find Similar` actions

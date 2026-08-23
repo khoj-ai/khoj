@@ -715,7 +715,7 @@ function AutomationModificationForm(props: AutomationModificationFormProps) {
                                 </SelectContent>
                             </Select>
                             <FormMessage />
-                            {errors.subject && (
+                            {errors.everyBlah && (
                                 <FormMessage>{errors.everyBlah?.message}</FormMessage>
                             )}
                         </FormItem>
@@ -752,7 +752,7 @@ function AutomationModificationForm(props: AutomationModificationFormProps) {
                                     </SelectContent>
                                 </Select>
                                 <FormMessage />
-                                {errors.subject && (
+                                {errors.dayOfWeek && (
                                     <FormMessage>{errors.dayOfWeek?.message}</FormMessage>
                                 )}
                             </FormItem>
@@ -787,7 +787,7 @@ function AutomationModificationForm(props: AutomationModificationFormProps) {
                                     </SelectContent>
                                 </Select>
                                 <FormMessage />
-                                {errors.subject && (
+                                {errors.dayOfMonth && (
                                     <FormMessage>{errors.dayOfMonth?.message}</FormMessage>
                                 )}
                             </FormItem>
@@ -825,7 +825,7 @@ function AutomationModificationForm(props: AutomationModificationFormProps) {
                                     </SelectContent>
                                 </Select>
                                 <FormMessage />
-                                {errors.subject && (
+                                {errors.timeRecurrence && (
                                     <FormMessage>{errors.timeRecurrence?.message}</FormMessage>
                                 )}
                             </FormItem>
@@ -854,7 +854,7 @@ function AutomationModificationForm(props: AutomationModificationFormProps) {
                                 />
                             </FormControl>
                             <FormMessage />
-                            {errors.subject && (
+                            {errors.schedulingRequest && (
                                 <FormMessage>{errors.schedulingRequest?.message}</FormMessage>
                             )}
                         </FormItem>
