@@ -179,7 +179,7 @@ NO-PAGING FILTER))
    "C-c RET | improve sort \n"))
 
 (defvar khoj--rerank nil "Track when re-rank of results triggered.")
-(defvar khoj--reference-count 0 "Track number of references currently in chat bufffer.")
+(defvar khoj--reference-count 0 "Track number of references currently in chat buffer.")
 (defun khoj--improve-sort () "Use cross-encoder to improve sorting of search results." (interactive) (khoj--incremental-search t))
 (defun khoj--make-search-keymap (&optional existing-keymap)
   "Setup keymap to configure Khoj search. Build of EXISTING-KEYMAP when passed."

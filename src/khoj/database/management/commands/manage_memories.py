@@ -364,7 +364,7 @@ class Command(BaseCommand):
             else:
                 user_memories = UserMemory.objects.filter(user=user, created_at__gte=cutoff_date)
 
-            memories_count = await user_memories.acount()
+            memories_count = await user_memories.account()
             if memories_count == 0:
                 self.stdout.write(f"  User {user.username} has no memories to delete")
                 continue

@@ -2056,7 +2056,7 @@ class EmailAttemptRateLimiter:
         # Count recent attempts for this email and slug
         count = await RateLimitRecord.objects.filter(
             identifier=form.email, slug=self.slug, created_at__gte=cutoff
-        ).acount()
+        ).account()
 
         if count >= self.requests:
             logger.warning(f"Email attempt rate limit exceeded for {form.email} (slug: {self.slug})")
@@ -2087,7 +2087,7 @@ class EmailVerificationApiRateLimiter:
 
         # Remove requests outside of the time window
         cutoff = django_timezone.now() - timedelta(seconds=self.window)
-        count_requests = await UserRequests.objects.filter(user=user, created_at__gte=cutoff, slug=self.slug).acount()
+        count_requests = await UserRequests.objects.filter(user=user, created_at__gte=cutoff, slug=self.slug).account()
 
         # Check if the user has exceeded the rate limit
         if count_requests >= self.requests:
@@ -2172,7 +2172,7 @@ class ApiUserRateLimiter:
 
         # Remove requests outside of the time window
         cutoff = django_timezone.now() - timedelta(seconds=self.window)
-        count_requests = await UserRequests.objects.filter(user=user, created_at__gte=cutoff, slug=self.slug).acount()
+        count_requests = await UserRequests.objects.filter(user=user, created_at__gte=cutoff, slug=self.slug).account()
 
         # Check if the user has exceeded the rate limit
         if subscribed and count_requests >= self.subscribed_requests:
@@ -2315,7 +2315,7 @@ class WebSocketConnectionManager:
         # Count ALL connections for this user (not filtered by time)
         active_connections = await UserRequests.objects.filter(
             user=user, slug__startswith=self.connection_slug_prefix
-        ).acount()
+        ).account()
 
         # Restrict max active connections per user in production
         return active_connections < max_connections or state.anonymous_mode or in_debug_mode()
@@ -2361,7 +2361,7 @@ class ConversationCommandRateLimiter:
         command_slug = f"{self.slug}_{conversation_command.value}"
         count_requests = await UserRequests.objects.filter(
             user=user, created_at__gte=cutoff, slug=command_slug
-        ).acount()
+        ).account()
 
         if subscribed and count_requests >= self.subscribed_rate_limit:
             logger.info(

@@ -97,7 +97,7 @@ def test_extract_entries_with_different_level_headings(tmp_path):
     # Assert
     assert len(entries) == 2
     assert len(entries[1]) == 2
-    assert entries[1][0].raw == "# Heading 1\n## Sub-Heading 1.1", "Ensure entry includes heading ancestory"
+    assert entries[1][0].raw == "# Heading 1\n## Sub-Heading 1.1", "Ensure entry includes heading ancestry"
     assert entries[1][1].raw == "# Heading 2\n"
 
 
@@ -121,8 +121,8 @@ def test_extract_entries_with_non_incremental_heading_levels(tmp_path):
     # Assert
     assert len(entries) == 2
     assert len(entries[1]) == 3
-    assert entries[1][0].raw == "# Heading 1\n#### Sub-Heading 1.1", "Ensure entry includes heading ancestory"
-    assert entries[1][1].raw == "# Heading 1\n## Sub-Heading 1.2", "Ensure entry includes heading ancestory"
+    assert entries[1][0].raw == "# Heading 1\n#### Sub-Heading 1.1", "Ensure entry includes heading ancestry"
+    assert entries[1][1].raw == "# Heading 1\n## Sub-Heading 1.2", "Ensure entry includes heading ancestry"
     assert entries[1][2].raw == "# Heading 2\n"
 
 
@@ -150,7 +150,7 @@ body line 2
     assert entries[1][0].raw == "\nText before headings"
     assert entries[1][1].raw == "# Heading 1\nbody line 1"
     assert entries[1][2].raw == "# Heading 1\n## Heading 2\nbody line 2\n", (
-        "Ensure raw entry includes heading ancestory"
+        "Ensure raw entry includes heading ancestry"
     )
 
 

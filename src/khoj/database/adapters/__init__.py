@@ -1197,7 +1197,7 @@ class ConversationAdapters:
         subscribed = is_user_subscribed(user)
         config = UserConversationConfig.objects.filter(user=user).first()
         if subscribed:
-            # Subscibed users can use any available chat model
+            # Subscribed users can use any available chat model
             if config and config.setting:
                 return config.setting
             # Fallback to the default advanced chat model
@@ -1218,7 +1218,7 @@ class ConversationAdapters:
             .afirst()
         )
         if subscribed:
-            # Subscibed users can use any available chat model
+            # Subscribed users can use any available chat model
             if config and config.setting:
                 return config.setting
             # Fallback to the default advanced chat model
@@ -1916,7 +1916,7 @@ class FileObjectAdapters:
     @staticmethod
     @require_valid_user
     async def aget_number_of_pages(user: KhojUser, limit: int = 10):
-        count = await FileObject.objects.filter(user=user).acount()
+        count = await FileObject.objects.filter(user=user).account()
         return math.ceil(count / limit)
 
     @staticmethod
