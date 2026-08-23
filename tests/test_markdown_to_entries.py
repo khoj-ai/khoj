@@ -149,9 +149,7 @@ body line 2
     assert len(entries[1]) == 3
     assert entries[1][0].raw == "\nText before headings"
     assert entries[1][1].raw == "# Heading 1\nbody line 1"
-    assert entries[1][2].raw == "# Heading 1\n## Heading 2\nbody line 2\n", (
-        "Ensure raw entry includes heading ancestry"
-    )
+    assert entries[1][2].raw == "# Heading 1\n## Heading 2\nbody line 2\n", "Ensure raw entry includes heading ancestry"
 
 
 def test_parse_markdown_file_into_single_entry_if_small(tmp_path):
