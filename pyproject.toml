@@ -186,3 +186,10 @@ addopts = "--strict-markers"
 markers = [
     "chatquality: Evaluate chatbot capabilities and quality",
 ]
+
+[tool.codespell]
+# Ref: https://github.com/codespell-project/codespell#using-a-config-file
+skip = '.git,.gitignore,.gitattributes,*.pdf,*.svg,*.lock,*.css,*.min.*'
+check-hidden = true
+# ignore-regex = ''
+# ignore-words-list = ''
