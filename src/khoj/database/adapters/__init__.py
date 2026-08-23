@@ -1916,7 +1916,7 @@ class FileObjectAdapters:
     @staticmethod
     @require_valid_user
     async def aget_number_of_pages(user: KhojUser, limit: int = 10):
-        count = await FileObject.objects.filter(user=user).account()
+        count = await FileObject.objects.filter(user=user).acount()
         return math.ceil(count / limit)
 
     @staticmethod
