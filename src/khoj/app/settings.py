@@ -24,6 +24,15 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.getenv("KHOJ_DJANGO_SECRET_KEY", "!secret")
+if SECRET_KEY == "!secret":
+    # A predictable SECRET_KEY lets anyone forge session cookies, CSRF tokens
+    # and password-reset emails. Fine for a throwaway local instance, fatal
+    # for anything reachable by others.
+    logging.getLogger(__name__).warning(
+        "KHOJ_DJANGO_SECRET_KEY is not set; using the public default secret. "
+        "Set a unique KHOJ_DJANGO_SECRET_KEY (e.g. output of `python -c \"import secrets; print(secrets.token_urlsafe(64))\"`) "
+        "before exposing this server to anyone else."
+    )
 
 # Set KHOJ_DOMAIN to custom domain for production deployments.
 KHOJ_DOMAIN = os.getenv("KHOJ_DOMAIN") or "khoj.dev"
