@@ -29,4 +29,9 @@ class FileFilter(BaseFilter):
         return file_filter.replace(".", r"\.").replace("*", r".*")
 
     def defilter(self, query: str) -> str:
-        return re.sub(self.file_filter_regex, "", query).strip()
+        # Strip both include (file:"...") and exclude (-file:"...") file filters
+        # from the query, mirroring WordFilter.defilter which removes both
+        # required and blocked terms. The include regex's (?<!-) lookbehind
+        # prevents it from matching exclude filters, so the two substitutions
+        # are independent of order.
+        return re.sub(self.excluded_file_filter_regex, "", re.sub(self.file_filter_regex, "", query)).strip()
