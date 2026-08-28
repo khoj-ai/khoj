@@ -111,7 +111,7 @@ class DateFilter(BaseFilter):
 
     def defilter(self, query):
         # remove date range filter from query
-        query = re.sub(rf"\s+{self.date_regex}", " ", query)
+        query = re.sub(rf"(?:^|\s+){self.date_regex}", " ", query)
         query = re.sub(r"\s{2,}", " ", query).strip()  # remove multiple spaces
         return query
 

@@ -136,6 +136,13 @@ def test_get_date_filter_terms():
     assert dtrange_match == []
 
 
+def test_defilter():
+    assert DateFilter().defilter('dt>="last week" what changed in my project') == "what changed in my project"
+    assert DateFilter().defilter('what changed in my project dt>="last week"') == "what changed in my project"
+    assert DateFilter().defilter('what changed dt>="last week" in my project') == "what changed in my project"
+    assert DateFilter().defilter('dt>="2024-01-01" what changed dt<="2024-02-01" in my project') == "what changed in my project"
+
+
 def test_date_extraction():
     extracted_dates = DateFilter().extract_dates("")
     assert extracted_dates == [], "Expected to handle empty string"
