@@ -132,6 +132,90 @@ def test_get_multiple_include_exclude_file_filter_terms():
     assert filter_terms == ["file 1.org", "/path/to/dir/.*.org", "-file 1.org", "-/path/to/dir/*.org"]
 
 
+def test_defilter_no_file_filter():
+    # Arrange
+    file_filter = FileFilter()
+    q_with_no_filter = "head tail"
+
+    # Act
+    defiltered = file_filter.defilter(q_with_no_filter)
+
+    # Assert
+    assert defiltered == "head tail"
+
+
+def test_defilter_single_file_include():
+    # Arrange
+    file_filter = FileFilter()
+    q_with_filter = 'head file:"file 1.org" tail'
+
+    # Act
+    defiltered = file_filter.defilter(q_with_filter)
+
+    # Assert
+    assert defiltered == "head tail"
+
+
+def test_defilter_single_file_exclude():
+    # Arrange
+    file_filter = FileFilter()
+    q_with_filter = 'head -file:"file 1.org" tail'
+
+    # Act
+    defiltered = file_filter.defilter(q_with_filter)
+
+    # Assert
+    assert defiltered == "head tail"
+
+
+def test_defilter_mixed_include_exclude_file_filter():
+    # Arrange
+    file_filter = FileFilter()
+    q_with_filter = 'head -file:"notes.org" file:"keep.org" tail'
+
+    # Act
+    defiltered = file_filter.defilter(q_with_filter)
+
+    # Assert
+    assert defiltered == "head tail"
+
+
+def test_defilter_multiple_exclude_file_filter():
+    # Arrange
+    file_filter = FileFilter()
+    q_with_filter = 'head -file:"a.org" -file:"b.org" tail'
+
+    # Act
+    defiltered = file_filter.defilter(q_with_filter)
+
+    # Assert
+    assert defiltered == "head tail"
+
+
+def test_defilter_exclude_file_filter_at_start_of_query():
+    # Arrange
+    file_filter = FileFilter()
+    q_with_filter = '-file:"only.org" tail'
+
+    # Act
+    defiltered = file_filter.defilter(q_with_filter)
+
+    # Assert
+    assert defiltered == "tail"
+
+
+def test_defilter_only_file_filter():
+    # Arrange
+    file_filter = FileFilter()
+    q_with_filter = '-file:"only.org"'
+
+    # Act
+    defiltered = file_filter.defilter(q_with_filter)
+
+    # Assert
+    assert defiltered == ""
+
+
 def arrange_content():
     entries = [
         Entry(compiled="", raw="First Entry", file="file 1.org"),
