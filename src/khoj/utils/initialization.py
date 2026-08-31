@@ -22,6 +22,24 @@ from khoj.utils.constants import (
 logger = logging.getLogger(__name__)
 
 
+# Local runners that serve an OpenAI-compatible API, keyed by their default
+# port. Used only to label the provider in the admin UI; any other base URL is
+# treated as OpenAI itself.
+OPENAI_COMPATIBLE_LOCAL_PROVIDERS = {
+    ":11434/v1/": "Ollama",
+    ":17434/v1/": "llmman",
+}
+
+
+def _openai_compatible_provider_name(base_url: str | None) -> str:
+    """Name the provider behind an OpenAI-compatible base URL."""
+    if base_url:
+        for suffix, name in OPENAI_COMPATIBLE_LOCAL_PROVIDERS.items():
+            if base_url.endswith(suffix):
+                return name
+    return "OpenAI"
+
+
 def initialization(interactive: bool = True):
     def _create_admin_user():
         logger.info(
@@ -43,7 +61,7 @@ def initialization(interactive: bool = True):
         )
 
         openai_base_url = os.getenv("OPENAI_BASE_URL") or None
-        provider = "Ollama" if openai_base_url and openai_base_url.endswith(":11434/v1/") else "OpenAI"
+        provider = _openai_compatible_provider_name(openai_base_url)
         openai_api_key = os.getenv("OPENAI_API_KEY", "placeholder" if openai_base_url else None)
         default_chat_models = default_openai_chat_models
         if openai_base_url:
