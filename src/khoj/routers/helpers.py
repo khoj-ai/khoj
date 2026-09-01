@@ -470,8 +470,12 @@ async def aget_data_sources_and_output_format(
                 data_sources = [ConversationCommand.General]
     except Exception as e:
         logger.error(f"Invalid response for determining relevant tools: {response}. Error: {e}", exc_info=True)
-        data_sources = agent_sources if len(agent_sources) > 0 else [ConversationCommand.Default]
-        output_mode = agent_outputs[0] if len(agent_outputs) > 0 else ConversationCommand.Text
+        data_sources = (
+            [ConversationCommand(source) for source in agent_sources]
+            if len(agent_sources) > 0
+            else [ConversationCommand.Default]
+        )
+        output_mode = ConversationCommand(agent_outputs[0]) if len(agent_outputs) > 0 else ConversationCommand.Text
 
     return {"sources": data_sources, "output": output_mode}
 
