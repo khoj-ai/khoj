@@ -1,4 +1,5 @@
 import logging
+import os
 import tempfile
 from typing import Dict, Final, List, Tuple
 
@@ -95,21 +96,32 @@ class PdfToEntries(TextToEntries):
     def extract_text(pdf_file):
         """Extract text from specified PDF files"""
         pdf_entry_by_pages = []
+        tmpf = None
         try:
-            # Create temp file with .pdf extension that gets auto-deleted
-            with tempfile.NamedTemporaryFile(suffix=".pdf", delete=True) as tmpf:
+            # Create temp file with .pdf extension
+            # The handle must be closed before the loader opens the path: on
+            # Windows, a delete=True tempfile cannot be reopened while the
+            # writer handle is open (PermissionError / WinError 32).
+            with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as tmpf:
                 tmpf.write(pdf_file)
                 tmpf.flush()  # Ensure all data is written
 
-                # Load the content using PyMuPDFLoader
-                loader = PyMuPDFLoader(tmpf.name)
-                pdf_entries_per_file = loader.load()
+            # Load the content using PyMuPDFLoader
+            loader = PyMuPDFLoader(tmpf.name)
+            pdf_entries_per_file = loader.load()
 
-                # Convert the loaded entries into the desired format
-                pdf_entry_by_pages = [PdfToEntries.clean_text(page.page_content) for page in pdf_entries_per_file]
+            # Convert the loaded entries into the desired format
+            pdf_entry_by_pages = [PdfToEntries.clean_text(page.page_content) for page in pdf_entries_per_file]
         except Exception as e:
             logger.warning(f"Unable to process file: {pdf_file}. This file will not be indexed.")
             logger.warning(e, exc_info=True)
+        finally:
+            if tmpf is not None:
+                # Best-effort cleanup; do not mask the extraction result
+                try:
+                    os.unlink(tmpf.name)
+                except OSError:
+                    pass
 
         return pdf_entry_by_pages
 

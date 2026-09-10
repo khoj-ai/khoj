@@ -1,9 +1,104 @@
 import os
 import re
+import tempfile
+from types import SimpleNamespace
+from unittest.mock import Mock
 
 import pytest
 
 from khoj.processor.content.pdf.pdf_to_entries import PdfToEntries
+
+
+@pytest.fixture
+def tracked_pdf_tempfiles(monkeypatch, tmp_path):
+    """Track real temporary files without touching the working directory."""
+    created = []
+    named_temporary_file = tempfile.NamedTemporaryFile
+
+    def create_tempfile(*args, **kwargs):
+        kwargs["dir"] = tmp_path
+        handle = named_temporary_file(*args, **kwargs)
+        created.append(handle)
+        return handle
+
+    monkeypatch.setattr("khoj.processor.content.pdf.pdf_to_entries.tempfile.NamedTemporaryFile", create_tempfile)
+    yield created
+    for handle in created:
+        handle.close()
+        if os.path.exists(handle.name):
+            os.unlink(handle.name)
+
+
+def test_extract_text_closes_tempfile_before_loader_and_cleans_up(monkeypatch, tracked_pdf_tempfiles):
+    """The loader can reopen the file only after the writer has closed it."""
+    observed = {}
+
+    class FakeLoader:
+        def __init__(self, path):
+            observed["closed_at_construction"] = tracked_pdf_tempfiles[0].closed
+            with open(path, "rb") as file:
+                observed["content"] = file.read()
+
+        def load(self):
+            return [SimpleNamespace(page_content="hello\x00")]
+
+    monkeypatch.setattr("khoj.processor.content.pdf.pdf_to_entries.PyMuPDFLoader", FakeLoader)
+
+    assert PdfToEntries.extract_text(b"fake pdf bytes") == ["hello"]
+    assert observed == {"closed_at_construction": True, "content": b"fake pdf bytes"}
+    assert len(tracked_pdf_tempfiles) == 1
+    assert tracked_pdf_tempfiles[0].closed
+    assert not os.path.exists(tracked_pdf_tempfiles[0].name)
+
+
+@pytest.mark.parametrize("failure_stage", ["init", "load"])
+def test_extract_text_cleans_up_tempfile_on_loader_error(monkeypatch, tracked_pdf_tempfiles, failure_stage):
+    """Cleanup also runs when either loader construction or loading fails."""
+    observed = {}
+
+    class RaisingLoader:
+        def __init__(self, path):
+            observed["closed_at_construction"] = tracked_pdf_tempfiles[0].closed
+            observed["exists_at_construction"] = os.path.exists(path)
+            if failure_stage == "init":
+                raise RuntimeError("loader construction failed")
+
+        def load(self):
+            raise RuntimeError("loading failed")
+
+    monkeypatch.setattr("khoj.processor.content.pdf.pdf_to_entries.PyMuPDFLoader", RaisingLoader)
+
+    assert PdfToEntries.extract_text(b"fake pdf bytes") == []
+    assert observed == {"closed_at_construction": True, "exists_at_construction": True}
+    assert len(tracked_pdf_tempfiles) == 1
+    assert tracked_pdf_tempfiles[0].closed
+    assert not os.path.exists(tracked_pdf_tempfiles[0].name)
+
+
+@pytest.mark.parametrize("operation", ["write", "flush"])
+def test_extract_text_closes_and_removes_tempfile_on_write_error(monkeypatch, tracked_pdf_tempfiles, operation):
+    """An I/O error must not leave a handle open and prevent Windows cleanup."""
+    named_temporary_file = tempfile.NamedTemporaryFile
+
+    def fail_io(*args, **kwargs):
+        raise OSError("temporary file I/O failed")
+
+    def create_failing_tempfile(*args, **kwargs):
+        handle = named_temporary_file(*args, **kwargs)
+        monkeypatch.setattr(handle, operation, fail_io)
+        return handle
+
+    loader = Mock()
+    monkeypatch.setattr(
+        "khoj.processor.content.pdf.pdf_to_entries.tempfile.NamedTemporaryFile", create_failing_tempfile
+    )
+    monkeypatch.setattr("khoj.processor.content.pdf.pdf_to_entries.PyMuPDFLoader", loader)
+
+    assert PdfToEntries.extract_text(b"fake pdf bytes") == []
+    loader.assert_not_called()
+    assert len(tracked_pdf_tempfiles) == 1
+    assert tracked_pdf_tempfiles[0].closed
+    assert not os.path.exists(tracked_pdf_tempfiles[0].name)
 
 
 def test_single_page_pdf_to_jsonl():
