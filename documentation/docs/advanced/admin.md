@@ -46,6 +46,8 @@ For each AI Model API you [add](http://localhost:42110/server/admin/database/aim
 - `Api base url`: Set the API base URL. This is only relevant to set if you're using another OpenAI-compatible proxy server like [Ollama](/advanced/ollama) or [LMStudio](/advanced/lmstudio).
   ![example configuration for ai model api](/img/example_openai_processor_config.png)
 
+For Ollama, add the API configuration with `Name` set to `Ollama`, then configure a Chat Model using that API configuration. The Chat Model form provides a **Test Connection** button. It checks Ollama's `/api/tags` endpoint, reports whether the selected model is available, and populates the model field from the models returned by Ollama.
+
 ### Search Model Configs
 Search models are used to generate vector embeddings of your documents for natural language search and chat. You can choose any [embeddings models on HuggingFace](https://huggingface.co/models?pipeline_tag=sentence-similarity) to create vector embeddings of your documents for natural language search and chat.
 

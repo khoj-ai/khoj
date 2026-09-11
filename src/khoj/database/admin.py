@@ -1,17 +1,22 @@
 import csv
 import json
 from datetime import datetime, timedelta
+
 from urllib.parse import quote
+
+from django import forms
 
 from apscheduler.job import Job
 from django.contrib import admin, messages
 from django.contrib.auth.admin import GroupAdmin as BaseGroupAdmin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.models import Group
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from django_apscheduler.admin import DjangoJobAdmin, DjangoJobExecutionAdmin
 from django_apscheduler.jobstores import DjangoJobStore
 from django_apscheduler.models import DjangoJob, DjangoJobExecution
+from django.urls import path
+from django.utils.safestring import mark_safe
 from unfold import admin as unfold_admin
 
 from khoj.database.models import (
@@ -41,6 +46,7 @@ from khoj.database.models import (
     WebScraper,
 )
 from khoj.utils.helpers import ImageIntentType
+from khoj.utils.ollama import format_ollama_error, get_ollama_models
 
 
 class KhojDjangoJobAdmin(DjangoJobAdmin, unfold_admin.ModelAdmin):
@@ -241,8 +247,48 @@ class KhojUserSubscription(unfold_admin.ModelAdmin):
     list_filter = ("type",)
 
 
+class OllamaConnectionWidget(forms.TextInput):
+    def render(self, name, value, attrs=None, renderer=None):
+        return mark_safe(
+            '<button type="button" class="button" id="ollama-test-connection">'
+            "Test Connection"
+            "</button>"
+            '<span id="ollama-connection-status" role="status" aria-live="polite" '
+            'style="margin-left: 10px;"></span>'
+        )
+
+class ChatModelAdminForm(forms.ModelForm):
+    connection_test = forms.CharField(
+        label="Connection",
+        required=False,
+        widget=OllamaConnectionWidget(),
+        help_text="For Ollama configurations, verify the server and model before saving.",
+    )
+
+    class Meta:
+        model = ChatModel
+        fields = (
+            "name",
+            "friendly_name",
+            "model_type",
+            "price_tier",
+            "vision_enabled",
+            "ai_model_api",
+            "max_prompt_size",
+            "subscribed_max_prompt_size",
+            "tokenizer",
+            "description",
+            "strengths",
+            "connection_test",
+        )
+
 @admin.register(ChatModel)
 class ChatModelAdmin(unfold_admin.ModelAdmin):
+    form = ChatModelAdminForm
+
+    class Media:
+        js = ("khoj/ollama_admin.js",)
+
     list_display = (
         "id",
         "friendly_name",
@@ -250,7 +296,65 @@ class ChatModelAdmin(unfold_admin.ModelAdmin):
         "ai_model_api",
         "max_prompt_size",
     )
+    list_display_links = ("name",)
     search_fields = ("id", "name", "ai_model_api__name")
+
+    def get_urls(self):
+        urls = super().get_urls()
+        custom_urls = [
+            path(
+                "ollama-test-connection/",
+                self.admin_site.admin_view(self.ollama_test_connection),
+                name="database_chatmodel_ollama_test_connection",
+            ),
+        ]
+        return custom_urls + urls
+
+    def ollama_test_connection(self, request):
+        if request.method != "POST":
+            return JsonResponse({"ok": False, "error": "POST required"}, status=405)
+
+        try:
+            payload = json.loads(request.body or "{}")
+        except json.JSONDecodeError:
+            return JsonResponse({"ok": False, "error": "Invalid JSON request"}, status=400)
+
+        api_id = payload.get("api_id")
+        model_name = (payload.get("model") or "").strip()
+
+        if not api_id:
+            return JsonResponse({"ok": False, "error": "Select an AI Model API first."}, status=400)
+
+        try:
+            api_config = AiModelApi.objects.get(pk=api_id)
+        except AiModelApi.DoesNotExist:
+            return JsonResponse({"ok": False, "error": "AI Model API configuration not found."}, status=404)
+
+        if api_config.name != "Ollama":
+            return JsonResponse(
+                {"ok": False, "error": "Connection testing is currently available for Ollama configurations."},
+                status=400,
+            )
+
+        if not api_config.api_base_url:
+            return JsonResponse({"ok": False, "error": "The Ollama API base URL is empty."}, status=400)
+
+        try:
+            models = get_ollama_models(api_config.api_base_url)
+        except Exception as exc:
+            return JsonResponse(
+                {"ok": False, "error": format_ollama_error(api_config.api_base_url, exc)},
+                status=502,
+            )
+
+        return JsonResponse(
+            {
+                "ok": True,
+                "models": models,
+                "model_available": bool(model_name and model_name in models),
+                "message": f"Connected — {len(models)} model{'s' if len(models) != 1 else ''} available.",
+            }
+        )
 
 
 @admin.register(TextToImageModelConfig)
