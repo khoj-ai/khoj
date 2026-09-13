@@ -4,15 +4,6 @@ from typing import Tuple
 
 import openai
 
-from khoj.database.adapters import ConversationAdapters
-from khoj.database.models import (
-    AiModelApi,
-    ChatModel,
-    KhojUser,
-    SpeechToTextModelOptions,
-    TextToImageModelConfig,
-)
-from khoj.processor.conversation.utils import model_to_prompt_size, model_to_tokenizer
 from khoj.utils.constants import (
     default_anthropic_chat_models,
     default_gemini_chat_models,
@@ -22,7 +13,35 @@ from khoj.utils.constants import (
 logger = logging.getLogger(__name__)
 
 
+def infer_openai_compatible_provider_name(base_url: str = None) -> str:
+    """Infer provider name from OpenAI-compatible base URL."""
+    if not base_url:
+        return "OpenAI"
+    url_lower = base_url.lower()
+    if "api-route.com" in url_lower:
+        return "API Route"
+    if "orcarouter.ai" in url_lower:
+        return "OrcaRouter"
+    if "openrouter.ai" in url_lower:
+        return "OpenRouter"
+    if url_lower.endswith(":11434/v1/") or ":11434" in url_lower:
+        return "Ollama"
+    if ":1234" in url_lower:
+        return "LM Studio"
+    if ":4000" in url_lower:
+        return "LiteLLM"
+    return "OpenAI Compatible"
+
+
 def initialization(interactive: bool = True):
+    from khoj.database.models import (
+        AiModelApi,
+        ChatModel,
+        KhojUser,
+        SpeechToTextModelOptions,
+        TextToImageModelConfig,
+    )
+    from khoj.processor.conversation.utils import model_to_prompt_size, model_to_tokenizer
     def _create_admin_user():
         logger.info(
             "👩‍✈️ Setting up admin user. These credentials will allow you to configure your server at /server/admin."
@@ -42,9 +61,21 @@ def initialization(interactive: bool = True):
             "🗣️ Configure chat models available to your server. You can always update these at /server/admin using your admin account"
         )
 
-        openai_base_url = os.getenv("OPENAI_BASE_URL") or None
-        provider = "Ollama" if openai_base_url and openai_base_url.endswith(":11434/v1/") else "OpenAI"
-        openai_api_key = os.getenv("OPENAI_API_KEY", "placeholder" if openai_base_url else None)
+        openai_base_url = (
+            os.getenv("OPENAI_BASE_URL")
+            or os.getenv("APIROUTE_BASE_URL")
+            or os.getenv("APIROUTE_API_BASE")
+            or None
+        )
+        if not openai_base_url and os.getenv("APIROUTE_API_KEY"):
+            openai_base_url = "https://global.api-route.com/v1"
+
+        provider = infer_openai_compatible_provider_name(openai_base_url)
+        openai_api_key = (
+            os.getenv("OPENAI_API_KEY")
+            or os.getenv("APIROUTE_API_KEY")
+            or ("placeholder" if openai_base_url else None)
+        )
         default_chat_models = default_openai_chat_models
         if openai_base_url:
             # Get available chat models from OpenAI compatible API
@@ -213,9 +244,18 @@ def initialization(interactive: bool = True):
             # Get OpenAI configs with custom base URLs
             custom_configs = AiModelApi.objects.exclude(api_base_url__isnull=True)
 
-            # Only enable for whitelisted provider names (i.e Ollama) for now
+            # Whitelisted provider names that support dynamic model discovery
             # TODO: This is hacky. Will be replaced with more robust solution based on provider type enum
-            custom_configs = custom_configs.filter(name__in=["Ollama"])
+            supported_providers = [
+                "Ollama",
+                "API Route",
+                "OpenRouter",
+                "OrcaRouter",
+                "LM Studio",
+                "LiteLLM",
+                "OpenAI Compatible",
+            ]
+            custom_configs = custom_configs.filter(name__in=supported_providers)
 
             for config in custom_configs:
                 try:
