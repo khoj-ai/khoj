@@ -7,8 +7,10 @@ from asgiref.sync import sync_to_async
 
 from khoj.database.adapters import AgentAdapters
 from khoj.database.models import Agent, ChatModel, Entry, FileObject, KhojUser
-from khoj.routers.helpers import execute_search
-from khoj.utils.helpers import get_absolute_path
+from khoj.processor.conversation.utils import ResponseWithThought
+from khoj.routers import helpers as router_helpers
+from khoj.routers.helpers import aget_data_sources_and_output_format, execute_search
+from khoj.utils.helpers import ConversationCommand, get_absolute_path
 from tests.helpers import ChatModelFactory
 
 
@@ -42,6 +44,39 @@ async def test_create_or_update_agent(default_user: KhojUser, default_openai_cha
     assert new_agent.name == "Test Agent"
     assert new_agent.privacy_level == Agent.PrivacyLevel.PRIVATE
     assert new_agent.creator == default_user
+
+
+@pytest.mark.anyio
+@pytest.mark.django_db(transaction=True)
+async def test_tool_selection_fallback_returns_conversation_commands(
+    default_user: KhojUser, default_openai_chat_model_option: ChatModel, monkeypatch
+):
+    # Arrange: agent with tools configured, and a chat model that returns unparseable tool selection
+    agent = await AgentAdapters.aupdate_agent(
+        default_user,
+        "Tool Agent",
+        "Test Personality",
+        Agent.PrivacyLevel.PRIVATE,
+        "icon",
+        "color",
+        default_openai_chat_model_option.name,
+        [],
+        ["notes"],
+        ["image"],
+    )
+
+    async def invalid_json_response(*args, **kwargs):
+        return ResponseWithThought(text="not json")
+
+    monkeypatch.setattr(router_helpers, "send_message_to_model_wrapper", invalid_json_response)
+
+    # Act
+    chosen_io = await aget_data_sources_and_output_format("summarize my file", [], user=default_user, agent=agent)
+
+    # Assert: fallback to agent tools returns ConversationCommand, not raw strings
+    assert chosen_io["sources"] == [ConversationCommand.Notes]
+    assert chosen_io["output"] == ConversationCommand.Image
+    assert all(isinstance(cmd, ConversationCommand) for cmd in chosen_io["sources"] + [chosen_io["output"]])
 
 
 @pytest.mark.anyio
