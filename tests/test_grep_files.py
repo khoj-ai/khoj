@@ -218,6 +218,8 @@ async def test_grep_files_multiple_files(default_user: KhojUser):
         (r"^\d{4}-\d{2}-\d{2}.*(sailing|sail|Center for Boats|Captain Sailor)", 1, "anchor only"),
         # Test without anchors or flags (should still work due to re.IGNORECASE in function)
         (r"\d{4}-\d{2}-\d{2}.*(sailing|sail|center for boats|captain sailor)", 1, "no flags or anchors"),
+        # Test with word boundaries, which Postgres regex does not support as \b
+        (r"\bsailing\b", 1, "word boundaries"),
     ],
 )
 @pytest.mark.django_db(transaction=True)
