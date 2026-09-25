@@ -1,5 +1,6 @@
 import os
 import re
+import threading
 from pathlib import Path
 
 from khoj.processor.content.markdown.markdown_to_entries import MarkdownToEntries
@@ -208,6 +209,37 @@ longer body line 2.1
     assert entries[1][2].raw == "# Heading 2\n## Subheading 2.1\nlonger body line 2.1\n", (
         "Third entry is second entries child heading"
     )
+
+
+def test_extract_markdown_with_heading_markers_without_titles(tmp_path):
+    "Index large markdown with heading markers that have no title (e.g. empty '#' lines) instead of hanging."
+    # Arrange
+    entry = """
+Notes on the backup script
+####
+body line 1 is long enough to exceed the token limit
+#\tTabbed heading
+body line 2 is long enough to exceed the token limit
+"""
+    data = {
+        f"{tmp_path}": entry,
+    }
+    result = {}
+
+    def extract():
+        result["entries"] = MarkdownToEntries.extract_markdown_entries(markdown_files=data, max_tokens=5)
+
+    # Act
+    # Extract Entries from specified Markdown files. Run in a thread to fail instead of hanging the test suite.
+    extraction = threading.Thread(target=extract, daemon=True)
+    extraction.start()
+    extraction.join(timeout=10)
+
+    # Assert
+    assert not extraction.is_alive(), "Extracting markdown entries did not finish"
+    entries = result["entries"]
+    assert len(entries[1]) > 0
+    assert "body line 2" in "".join([entry.raw for entry in entries[1]])
 
 
 def test_line_number_tracking_in_recursive_split():
