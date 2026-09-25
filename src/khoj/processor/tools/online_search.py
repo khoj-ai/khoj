@@ -7,7 +7,6 @@ from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Union
 
 import aiohttp
 from bs4 import BeautifulSoup
-from markdownify import markdownify
 
 from khoj.database.adapters import ConversationAdapters
 from khoj.database.models import (
@@ -17,6 +16,7 @@ from khoj.database.models import (
     UserMemory,
     WebScraper,
 )
+from khoj.processor.content.plaintext.plaintext_to_entries import html_to_text
 from khoj.routers.helpers import (
     ChatEvent,
     extract_relevant_info,
@@ -579,8 +579,7 @@ async def read_webpage_at_url(web_url: str) -> str:
             response.raise_for_status()
             html = await response.text()
             parsed_html = BeautifulSoup(html, "html.parser")
-            body = parsed_html.body.get_text(separator="\n", strip=True)
-            return markdownify(body)
+            return html_to_text(parsed_html.body)
 
 
 async def read_webpage_with_olostep(web_url: str, api_key: str, api_url: str) -> str:

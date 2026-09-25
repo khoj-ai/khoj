@@ -3,7 +3,7 @@ import re
 from typing import Dict, List, Tuple
 
 import urllib3
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, CData, NavigableString, PageElement, Tag
 
 from khoj.database.models import Entry as DbEntry
 from khoj.database.models import KhojUser
@@ -12,6 +12,63 @@ from khoj.utils.helpers import timer
 from khoj.utils.rawconfig import Entry
 
 logger = logging.getLogger(__name__)
+
+# Elements a browser lays out as blocks. Each one starts a new line of extracted text,
+# while the text of any other element stays in the line of the text around it.
+HTML_BLOCK_TAGS = frozenset(
+    "address article aside blockquote body caption center dd details dialog dir div dl dt"
+    " fieldset figcaption figure footer form h1 h2 h3 h4 h5 h6 head header hgroup hr html"
+    " legend li listing main menu nav ol optgroup option p plaintext pre search section"
+    " summary table tbody td textarea tfoot th thead title tr ul xmp".split()
+)
+# Whitespace inside these elements is content, so their text is kept as written.
+HTML_PREFORMATTED_TAGS = frozenset(("listing", "plaintext", "pre", "textarea", "xmp"))
+# Inline boxes whose text never runs into the text next to them.
+HTML_BOX_TAGS = frozenset(("button", "select"))
+# Only these characters are whitespace in HTML. A no-break space is content.
+HTML_WHITESPACE = re.compile(r"[ \t\n\r\f]+")
+
+
+def html_to_text(soup: Tag) -> str:
+    "Extract the text of parsed HTML with one line per block element"
+    lines: List[str] = []
+    line: List[str] = []
+
+    def end_line():
+        text = HTML_WHITESPACE.sub(" ", "".join(line)).strip(" ")
+        line.clear()
+        if text.strip():
+            lines.append(text)
+
+    # Walk the tree with an explicit stack, so deeply nested markup cannot exhaust the recursion limit
+    stack: List[Tuple[PageElement, str]] = [(soup, "visit")]
+    while stack:
+        node, action = stack.pop()
+        if action == "end_line":
+            end_line()
+        elif action == "space":
+            line.append(" ")
+        elif isinstance(node, Tag):
+            if node.name == "br":
+                end_line()
+            elif node.name in HTML_PREFORMATTED_TAGS:
+                end_line()
+                text = node.get_text().strip("\n")
+                if text.strip():
+                    lines.append(text)
+            else:
+                if node.name in HTML_BLOCK_TAGS:
+                    end_line()
+                    stack.append((node, "end_line"))
+                elif node.name in HTML_BOX_TAGS:
+                    line.append(" ")
+                    stack.append((node, "space"))
+                stack.extend((child, "visit") for child in reversed(node.contents))
+        # Script, style, template and comment strings are subclasses and are not page text
+        elif type(node) in (NavigableString, CData):
+            line.append(str(node))
+    end_line()
+    return "\n".join(lines)
 
 
 class PlaintextToEntries(TextToEntries):
@@ -53,9 +110,8 @@ class PlaintextToEntries(TextToEntries):
         "Extract content from HTML"
         if markup_type == "xml":
             soup = BeautifulSoup(markup_content, "xml")
-        else:
-            soup = BeautifulSoup(markup_content, "html.parser")
-        return soup.get_text(strip=True, separator="\n")
+            return soup.get_text(strip=True, separator="\n")
+        return html_to_text(BeautifulSoup(markup_content, "html.parser"))
 
     @staticmethod
     def extract_plaintext_entries(text_files: Dict[str, str]) -> Tuple[Dict, List[Entry]]:

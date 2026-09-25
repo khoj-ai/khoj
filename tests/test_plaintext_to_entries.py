@@ -54,6 +54,80 @@ def test_parse_html_plaintext_file(tmp_path):
     assert "<div>" not in entries[1][0].raw
 
 
+def test_html_inline_elements_stay_in_their_line():
+    "Ensure links, emphasis and other inline tags do not split the sentence around them"
+    # Arrange
+    markup = dedent(
+        """
+        <html><body>
+        <h1>Setup</h1>
+        <p>Read the <a href="/docs">setup guide</a> before you start. It is un<b>believ</b>able.</p>
+        <p>Do <em>not</em> delete the <code>data</code> folder.</p>
+        <p>Wrapped
+           source line</p>
+        <ul><li>Alpha <b>one</b></li><li>Beta</li></ul>
+        <table><tr><td>Apple <i>red</i></td><td>3</td></tr></table>
+        <p>Line one<br>Line two</p>
+        <div><button>Save</button><button>Cancel</button></div>
+        </body></html>
+        """
+    )
+
+    # Act
+    text = PlaintextToEntries.extract_html_content(markup, "html")
+
+    # Assert
+    assert text.split("\n") == [
+        "Setup",
+        "Read the setup guide before you start. It is unbelievable.",
+        "Do not delete the data folder.",
+        "Wrapped source line",
+        "Alpha one",
+        "Beta",
+        "Apple red",
+        "3",
+        "Line one",
+        "Line two",
+        "Save Cancel",
+    ]
+
+
+def test_html_preformatted_text_keeps_its_layout():
+    "Ensure whitespace inside pre blocks is kept, since it is content there"
+    # Arrange
+    markup = "<p>Example:</p><pre>def f():\n    return 1</pre><p>Done.</p>"
+
+    # Act
+    text = PlaintextToEntries.extract_html_content(markup, "html")
+
+    # Assert
+    assert text == "Example:\ndef f():\n    return 1\nDone."
+
+
+def test_html_non_text_content_is_skipped():
+    "Ensure script, style and comment content does not reach the indexed text"
+    # Arrange
+    markup = "<p>Visible</p><script>var hidden = 1;</script><style>p { color: red; }</style><!-- note -->"
+
+    # Act
+    text = PlaintextToEntries.extract_html_content(markup, "html")
+
+    # Assert
+    assert text == "Visible"
+
+
+def test_deeply_nested_html_is_extracted():
+    "Ensure deeply nested markup does not exhaust the recursion limit"
+    # Arrange
+    markup = "<div>" * 5000 + "deep" + "</div>" * 5000
+
+    # Act
+    text = PlaintextToEntries.extract_html_content(markup, "html")
+
+    # Assert
+    assert text == "deep"
+
+
 def test_large_plaintext_file_split_into_multiple_entries(tmp_path):
     "Convert files with no heading to jsonl."
     # Arrange
