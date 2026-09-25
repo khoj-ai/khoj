@@ -401,8 +401,6 @@ def construct_chat_history_for_operator(conversation_history: List[ChatMessageMo
     user_message: Optional[AgentMessage] = None
 
     for chat in conversation_history:
-        if len(chat_history) >= n:
-            break
         if chat.by == "you" and chat.message:
             content = [{"type": "text", "text": chat.message}]
             for file in chat.queryFiles or []:
@@ -410,7 +408,10 @@ def construct_chat_history_for_operator(conversation_history: List[ChatMessageMo
             user_message = AgentMessage(role="user", content=content)
         elif chat.by == "khoj" and chat.message:
             chat_history += [user_message, AgentMessage(role="assistant", content=chat.message)]
-    return chat_history
+
+    # Keep the most recent turns. Each turn is a user and assistant message pair.
+    num_messages_to_keep = 2 * ((n + 1) // 2)
+    return chat_history[max(len(chat_history) - num_messages_to_keep, 0) :]
 
 
 def construct_tool_chat_history(
