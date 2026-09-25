@@ -29,7 +29,7 @@ HTML_BOX_TAGS = frozenset(("button", "select"))
 HTML_WHITESPACE = re.compile(r"[ \t\n\r\f]+")
 
 
-def html_to_text(soup: BeautifulSoup) -> str:
+def html_to_text(soup: Tag) -> str:
     "Extract the text of parsed HTML with one line per block element"
     lines: List[str] = []
     line: List[str] = []
