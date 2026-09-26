@@ -96,6 +96,7 @@ from khoj.utils.rawconfig import (
     FilesFilterRequest,
     LocationData,
 )
+from khoj.utils.superfast_gate import shadow_log_turn
 
 # Initialize Router
 logger = logging.getLogger(__name__)
@@ -931,6 +932,11 @@ async def event_generator(
         async for result in send_llm_response("Please ask your query to get started.", tracer.get("usage")):
             yield result
         return
+
+    # Superfast Decision Gate (shadow mode, off by default). Classifies the raw user turn through a small
+    # System One model and logs the recommended route in the background. It does not change routing, skip
+    # the model call, or alter any behavior. Fails open when disabled or unavailable.
+    shadow_log_turn(q)
 
     # Automated tasks are handled before to allow mixing them with other conversation commands
     cmds_to_rate_limit = []
