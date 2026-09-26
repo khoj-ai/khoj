@@ -3317,6 +3317,8 @@ async def grep_files(
         db_pattern = re.sub(r"\(\?\w*\)", "", db_pattern)  # Remove inline flags like (?i), (?m), (?im)
         db_pattern = re.sub(r"^\^", "", db_pattern)  # Remove ^ at regex pattern start
         db_pattern = re.sub(r"\$$", "", db_pattern)  # Remove $ at regex pattern end
+        # Remove word boundaries (\b, \B). Postgres reads \b as a backspace, so it would match no files
+        db_pattern = re.sub(r"\\.", lambda m: "" if m.group(0) in (r"\b", r"\B") else m.group(0), db_pattern)
 
         file_matches = await FileObjectAdapters.aget_file_objects_by_regex(user, db_pattern, path_prefix)
 
