@@ -94,11 +94,19 @@ class MarkdownToEntries(TextToEntries):
             return entries, entry_to_file_map
 
         # Split by next heading level present in the entry
+        # Stop at the deepest heading marker in the entry. Markers without a title (e.g. an empty "#" line) can't split it.
+        max_heading_level = max(len(marker) for marker in re.findall(r"^(#+)\s", markdown_content, flags=re.MULTILINE))
         next_heading_level = len(ancestry)
         sections: List[str] = []
-        while len(sections) < 2:
+        while len(sections) < 2 and next_heading_level < max_heading_level:
             next_heading_level += 1
             sections = re.split(rf"(\n|^)(?=[#]{{{next_heading_level}}} .+\n?)", markdown_content, flags=re.MULTILINE)
+
+        # If unable to split entry into sections, save it as a single entry
+        if len(sections) < 2:
+            entry_to_file_map += [(markdown_content_with_ancestry, markdown_file, start_line)]
+            entries.extend([markdown_content_with_ancestry])
+            return entries, entry_to_file_map
 
         # Recurse down each non-empty section after parsing its body, heading and ancestry
         current_line_offset = 0
