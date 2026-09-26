@@ -3,6 +3,7 @@ from copy import deepcopy
 import tiktoken
 from langchain_core.messages.chat import ChatMessage
 
+from khoj.database.models import ChatMessageModel
 from khoj.processor.conversation import utils
 
 
@@ -214,6 +215,28 @@ class TestLoadComplexJson:
 
         # Assert
         assert parsed_json == expected_json
+
+
+class TestConstructChatHistoryForOperator:
+    def test_keeps_most_recent_turns(self):
+        # Arrange
+        conversation_log = []
+        for turn in range(1, 6):
+            conversation_log += [
+                ChatMessageModel(by="you", message=f"question {turn}"),
+                ChatMessageModel(by="khoj", message=f"answer {turn}"),
+            ]
+
+        # Act
+        chat_history = utils.construct_chat_history_for_operator(conversation_log, n=6)
+
+        # Assert
+        assert [message.content for message in chat_history if message.role == "assistant"] == [
+            "answer 3",
+            "answer 4",
+            "answer 5",
+        ]
+        assert chat_history[0].content == [{"type": "text", "text": "question 3"}]
 
 
 def generate_content(count, suffix=""):
