@@ -865,7 +865,7 @@ async def event_generator(
 
             if event_type == ChatEvent.MESSAGE:
                 yield data
-            elif event_type == ChatEvent.REFERENCES or ChatEvent.METADATA or stream:
+            elif event_type in (ChatEvent.REFERENCES, ChatEvent.METADATA) or stream:
                 yield json.dumps({"type": event_type.value, "data": data}, ensure_ascii=False)
         except Exception as e:
             if not cancellation_event.is_set():
