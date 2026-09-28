@@ -782,6 +782,7 @@ async def generate_summary_from_files(
             yield response_log
             return
 
+        file_objects = file_objects or []
         contextual_data = " ".join([f"File: {file.file_name}\n\n{file.raw_text}" for file in file_objects])
 
         if query_files:
@@ -798,8 +799,9 @@ async def generate_summary_from_files(
         for file_name in file_names:
             all_file_names += f"- {file_name}\n"
 
-        async for result in send_status_func(f"**Constructing Summary Using:**\n{all_file_names}"):
-            yield {ChatEvent.STATUS: result}
+        if send_status_func:
+            async for result in send_status_func(f"**Constructing Summary Using:**\n{all_file_names}"):
+                yield {ChatEvent.STATUS: result}
 
         response = await extract_relevant_summary(
             q,
@@ -815,7 +817,7 @@ async def generate_summary_from_files(
     except Exception as e:
         response_log = "Error summarizing file. Please try again, or contact support."
         logger.error(f"Error summarizing file for {user.email}: {e}", exc_info=True)
-        yield result
+        yield response_log
 
 
 async def generate_excalidraw_diagram(
