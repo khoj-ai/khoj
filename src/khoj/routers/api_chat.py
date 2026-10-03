@@ -1389,55 +1389,82 @@ async def event_generator(
     async for result in send_event(ChatEvent.STATUS, "**Generating a well-informed response**"):
         yield result
 
-    llm_response, chat_metadata = await agenerate_chat_response(
-        defiltered_query,
-        chat_history,
-        conversation,
-        compiled_references,
-        online_results,
-        code_results,
-        operator_results,
-        research_results,
-        user,
-        location,
-        user_name,
-        uploaded_images,
-        attached_file_context,
-        relevant_memories,
-        program_execution_context,
-        generated_asset_results,
-        is_subscribed,
-        tracer,
-    )
-
+    llm_response = None
     full_response = ""
     message_start = True
-    async for item in llm_response:
-        # Should not happen with async generator. Skip.
-        if item is None or not isinstance(item, ResponseWithThought):
-            logger.warning(f"Unexpected item type in LLM response: {type(item)}. Skipping.")
-            continue
-        if cancellation_event.is_set():
-            break
-        message = item.text
-        full_response += message if message else ""
-        if item.thought:
-            async for result in send_event(ChatEvent.THOUGHT, item.thought):
-                yield result
-            continue
-        # Start sending response
-        elif message_start:
-            message_start = False
-            async for result in send_event(ChatEvent.START_LLM_RESPONSE, ""):
-                yield result
+    try:
+        llm_response, chat_metadata = await agenerate_chat_response(
+            defiltered_query,
+            chat_history,
+            conversation,
+            compiled_references,
+            online_results,
+            code_results,
+            operator_results,
+            research_results,
+            user,
+            location,
+            user_name,
+            uploaded_images,
+            attached_file_context,
+            relevant_memories,
+            program_execution_context,
+            generated_asset_results,
+            is_subscribed,
+            tracer,
+        )
 
-        try:
-            async for result in send_event(ChatEvent.MESSAGE, message):
+        async for item in llm_response:
+            # Should not happen with async generator. Skip.
+            if item is None or not isinstance(item, ResponseWithThought):
+                logger.warning(f"Unexpected item type in LLM response: {type(item)}. Skipping.")
+                continue
+            if cancellation_event.is_set():
+                break
+            message = item.text
+            full_response += message if message else ""
+            if item.thought:
+                async for result in send_event(ChatEvent.THOUGHT, item.thought):
+                    yield result
+                continue
+            # Start sending response
+            elif message_start:
+                message_start = False
+                async for result in send_event(ChatEvent.START_LLM_RESPONSE, ""):
+                    yield result
+
+            try:
+                async for result in send_event(ChatEvent.MESSAGE, message):
+                    yield result
+            except Exception as e:
+                if not cancellation_event.is_set():
+                    logger.warning(f"Error during streaming. Stopping send: {e}")
+                break
+    except Exception:
+        logger.exception("Chat model failed while generating a response")
+        if not cancellation_event.is_set():
+            if message_start:
+                async for result in send_event(ChatEvent.START_LLM_RESPONSE, ""):
+                    yield result
+            error_message = (
+                "I could not complete this response because the chat model is unavailable. Please try again."
+            )
+            if full_response:
+                error_message = "\n\n" + error_message
+            async for result in send_event(ChatEvent.MESSAGE, error_message):
                 yield result
-        except Exception as e:
-            if not cancellation_event.is_set():
-                logger.warning(f"Error during streaming. Stopping send: {e}")
-            break
+            async for result in send_event(ChatEvent.END_LLM_RESPONSE, ""):
+                yield result
+            async for result in send_event(ChatEvent.END_RESPONSE, ""):
+                yield result
+        # 失败的部分回答不能按正常完成的会话保存。
+        return
+    finally:
+        try:
+            if llm_response is not None and hasattr(llm_response, "aclose"):
+                await llm_response.aclose()
+        finally:
+            await cancel_disconnect_monitor()
 
     # Check if the user has disconnected
     if cancellation_event.is_set():
