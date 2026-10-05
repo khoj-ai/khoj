@@ -17,6 +17,7 @@ from khoj.database.models import (
     UserMemory,
     WebScraper,
 )
+from khoj.processor.tools.serpkite_search import search_with_serpkite
 from khoj.routers.helpers import (
     ChatEvent,
     extract_relevant_info,
@@ -102,6 +103,8 @@ async def search_online(
     if SERPER_DEV_API_KEY:
         search_engine = "Serper"
         search_engines.append((search_engine, search_with_serper))
+    if os.getenv("SERPKITE_API_KEY"):
+        search_engines.append(("SerpKite", search_with_serpkite))
     if EXA_API_KEY:
         search_engine = "Exa"
         search_engines.append((search_engine, search_with_exa))
