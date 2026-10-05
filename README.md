@@ -70,7 +70,7 @@ To get started with self-hosting Khoj, [read the docs](https://docs.khoj.dev/get
 
 ## Enterprise
 
-Khoj is available as a cloud service, on-premises, or as a hybrid solution. To learn more about Khoj Enterprise, [visit our website](https://khoj.dev/teams).
+Khoj is available as a cloud service, on-premises, or as a hybrid solution. To learn more about Khoj Enterprise, [visit our website](https://khoj.dev).
 
 ## Frequently Asked Questions (FAQ)
 
