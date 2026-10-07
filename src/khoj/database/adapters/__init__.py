@@ -513,6 +513,37 @@ def get_user_notion_config(user: KhojUser):
     return config
 
 
+def reserve_request_slot(user: KhojUser, slug: str, window: int, limit: int) -> tuple[int, bool]:
+    """Atomically admit one request against a cumulative per-user allowance.
+
+    Returns the number of requests already recorded in the window and whether a
+    slot was reserved for this request. A reserved slot is recorded before this
+    returns, so the caller never has to write the UserRequests row itself.
+
+    Counting the window and recording the request have to be indivisible. Doing
+    them as two statements lets concurrent requests all read the same count,
+    all decide they are under the limit and all record themselves, which spends
+    an allowance several times over. The row lock below is taken on the user,
+    so admissions are serialised per account and never contend across accounts.
+    """
+    cutoff = django_timezone.now() - timedelta(seconds=window)
+    with transaction.atomic():
+        # Serialise admissions for this account. Khoj runs on PostgreSQL
+        # (see DATABASES in khoj/app/settings.py), where SELECT ... FOR UPDATE
+        # is always available.
+        locked = KhojUser.objects.select_for_update().filter(pk=user.pk).values_list("pk", flat=True).first()
+        if locked is None:
+            return 0, False
+        count_requests = UserRequests.objects.filter(user=user, created_at__gte=cutoff, slug=slug).count()
+        if count_requests >= limit:
+            return count_requests, False
+        UserRequests.objects.create(user=user, slug=slug)
+        return count_requests, True
+
+
+areserve_request_slot = sync_to_async(reserve_request_slot)
+
+
 def delete_user_requests(max_age: timedelta = timedelta(days=1)):
     """Deletes UserRequests entries older than the specified max_age."""
     cutoff = django_timezone.now() - max_age
