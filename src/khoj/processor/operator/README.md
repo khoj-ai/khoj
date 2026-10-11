@@ -23,7 +23,7 @@ Give Khoj its own computer to operate in a transparent, controlled manner. Accom
 
 3. Start Khoj services
     ```shell
-    docker-compose up
+    docker compose up
     ```
 
 4. Access the web app at http://localhost:42110

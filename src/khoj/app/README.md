@@ -12,7 +12,7 @@ Khoj uses Django as the backend framework primarily for its powerful ORM and the
 
 Using the `docker-compose.yml` file in the root directory, you can run the Khoj app using the following command:
 ```bash
-docker-compose up
+docker compose up
 ```
 
 ## Setup (Local)
