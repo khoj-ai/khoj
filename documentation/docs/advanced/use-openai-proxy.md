@@ -32,3 +32,15 @@ For specific integrations, see our [Ollama](/advanced/ollama), [LMStudio](/advan
    - **Max prompt size**: `2000` (replace with the max prompt size of your model)
    - **Tokenizer**: *Do not set for OpenAI, mistral, llama3 based models*
 4. Go to [your config](http://localhost:42110/settings) and select the model you just created in the chat model dropdown.
+
+## Example: Fikra API
+
+Fikra API (https://fikraapi.co.ke) is an OpenAI-compatible hosted inference endpoint serving DeepSeek, GLM, Kimi, StepFun and Qwen models.
+
+In the steps above, use:
+
+- **Api Base Url**: `https://api.fikraapi.co.ke/v1`
+- **Api Key**: your Fikra API key from https://fikraapi.co.ke
+- For the Chat Model's **Name**, use `deepseek-v4.1-flash` (model ids come from `https://api.fikraapi.co.ke/v1/models`)
+
+Models on the endpoint: DeepSeek V4.1 Flash ($0.045 per 1M input / $0.09 per 1M output, 1M context; the 1017 build is $0.05/$0.11), GLM 5.3 ($1.05/$3.35), GLM 5.3 Flash ($0.155/$0.49), GLM 5.2 ($0.75/$1.65), Kimi K3 ($2.10/$10.50), StepFun Step 5 (preview), Qwen 3.8 27B ($0.045/$0.35, cached input $0.10), MiMo V2.6 Pro, Nemotron 3.5 Super VL. Per-token USD with $1 minimum top-up; M-Pesa and card payments. Prices verified 2026-10-19 at [fikraapi.co.ke/pricing](https://fikraapi.co.ke/pricing).
