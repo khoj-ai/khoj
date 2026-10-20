@@ -269,10 +269,7 @@ def gemini_completion_with_backoff(
         )
 
     # Aggregate cost of chat
-    input_tokens = response.usage_metadata.prompt_token_count or 0 if response else 0
-    output_tokens = response.usage_metadata.candidates_token_count or 0 if response else 0
-    thought_tokens = response.usage_metadata.thoughts_token_count or 0 if response else 0
-    cache_read_tokens = response.usage_metadata.cached_content_token_count or 0 if response else 0
+    input_tokens, output_tokens, thought_tokens, cache_read_tokens = get_usage_token_counts(response)
     tracer["usage"] = get_chat_usage_metrics(
         model_name,
         input_tokens,
@@ -381,9 +378,7 @@ async def gemini_chat_completion_with_backoff(
                 aggregated_response += part.text
                 yield ResponseWithThought(text=part.text)
     # Calculate cost of chat
-    input_tokens = final_chunk.usage_metadata.prompt_token_count or 0 if final_chunk else 0
-    output_tokens = final_chunk.usage_metadata.candidates_token_count or 0 if final_chunk else 0
-    thought_tokens = final_chunk.usage_metadata.thoughts_token_count or 0 if final_chunk else 0
+    input_tokens, output_tokens, thought_tokens, _ = get_usage_token_counts(final_chunk)
     tracer["usage"] = get_chat_usage_metrics(
         model_name, input_tokens, output_tokens, thought_tokens=thought_tokens, usage=tracer.get("usage")
     )
@@ -401,6 +396,22 @@ async def gemini_chat_completion_with_backoff(
     tracer["temperature"] = temperature
     if is_promptrace_enabled():
         commit_conversation_trace(messages, aggregated_response, tracer)
+
+
+def get_usage_token_counts(response: gtypes.GenerateContentResponse | None) -> tuple[int, int, int, int]:
+    """Get (input, output, thought, cache read) token counts of a Gemini response or stream chunk.
+
+    A response can come without usage metadata, e.g. a blocked prompt, so missing counts are zero.
+    """
+    usage = getattr(response, "usage_metadata", None)
+    if usage is None:
+        return 0, 0, 0, 0
+    return (
+        usage.prompt_token_count or 0,
+        usage.candidates_token_count or 0,
+        usage.thoughts_token_count or 0,
+        usage.cached_content_token_count or 0,
+    )
 
 
 def handle_gemini_response(
