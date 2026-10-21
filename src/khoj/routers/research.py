@@ -76,6 +76,7 @@ async def execute_tool(
     interrupt_queue: Optional[asyncio.Queue],
     agent: Agent,
     tracer: dict,
+    max_webpages_to_read: int = 1,
 ) -> ToolExecutionResult:
     """Execute a single tool call and return results. Designed for parallel execution."""
     result = ToolExecutionResult()
@@ -169,8 +170,16 @@ async def execute_tool(
                     iteration.onlineContext = result.online_results
 
         elif iteration.query.name == ConversationCommand.ReadWebpage:
+            # Read at most max_webpages_to_read webpages per read_webpage call, as advertised in the tool description
+            webpage_args = dict(iteration.query.args)
+            webpage_urls = webpage_args.get("urls") or []
+            if isinstance(webpage_urls, list) and len(webpage_urls) > max_webpages_to_read:
+                logger.warning(
+                    f"Research mode: read_webpage requested {len(webpage_urls)} webpages. Only reading the first {max_webpages_to_read}."
+                )
+                webpage_args["urls"] = webpage_urls[:max_webpages_to_read]
             async for res in read_webpages_content(
-                **iteration.query.args,
+                **webpage_args,
                 user=user,
                 send_status_func=status_collector,
                 agent=agent,
@@ -292,6 +301,7 @@ async def apick_next_tool(
     mcp_clients: List[MCPClient] = [],
     send_status_func: Optional[Callable] = None,
     tracer: dict = {},
+    max_tool_calls: Optional[int] = None,
 ):
     """Given a query, determine which of the available tools the agent should use in order to answer appropriately."""
 
@@ -443,6 +453,13 @@ async def apick_next_tool(
         # Otherwise assume the model has decided to end the research run and respond to the user.
         parsed_responses = [ToolCall(name=ConversationCommand.Text, args={"response": response_text}, id=None)]
 
+    # Each tool call is a research iteration. Drop parallel tool calls beyond the iterations left.
+    if max_tool_calls is not None and len(parsed_responses) > max(max_tool_calls, 1):
+        logger.warning(
+            f"Research mode: model requested {len(parsed_responses)} tool calls with {max_tool_calls} research iterations left. Skipping the rest."
+        )
+        parsed_responses = parsed_responses[: max(max_tool_calls, 1)]
+
     # Detect selection of previously used query, tool combinations.
     previous_tool_query_combinations = {
         (i.query.name, dict_to_tuple(i.query.args))
@@ -554,6 +571,7 @@ async def research(
             mcp_clients=mcp_clients,
             send_status_func=send_status_func,
             tracer=tracer,
+            max_tool_calls=MAX_ITERATIONS - current_iteration,
         ):
             if isinstance(result, dict) and ChatEvent.STATUS in result:
                 yield result[ChatEvent.STATUS]
@@ -639,6 +657,7 @@ async def research(
                         interrupt_queue=interrupt_queue,
                         agent=agent,
                         tracer=tracer,
+                        max_webpages_to_read=max_webpages_to_read,
                     )
                     for iteration in parallel_iterations
                 ]
