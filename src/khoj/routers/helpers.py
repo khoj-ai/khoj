@@ -48,6 +48,7 @@ from khoj.database.adapters import (
     FileObjectAdapters,
     UserMemoryAdapters,
     aget_user_by_email,
+    areserve_request_slot,
     create_khoj_token,
     get_default_search_model,
     get_khoj_tokens,
@@ -55,6 +56,7 @@ from khoj.database.adapters import (
     get_user_notion_config,
     get_user_subscription_state,
     require_valid_user,
+    reserve_request_slot,
     run_with_process_lock,
 )
 from khoj.database.models import (
@@ -2085,19 +2087,15 @@ class EmailVerificationApiRateLimiter:
         if not user:
             raise HTTPException(status_code=404, detail="User not found.")
 
-        # Remove requests outside of the time window
-        cutoff = django_timezone.now() - timedelta(seconds=self.window)
-        count_requests = await UserRequests.objects.filter(user=user, created_at__gte=cutoff, slug=self.slug).acount()
+        # Count the window and record this request in one indivisible step
+        count_requests, admitted = await areserve_request_slot(user, self.slug, self.window, self.requests)
 
         # Check if the user has exceeded the rate limit
-        if count_requests >= self.requests:
+        if not admitted:
             logger.warning(
                 f"Rate limit: {count_requests}/{self.requests} requests not allowed in {self.window} seconds for email: {email}."
             )
             raise HTTPException(status_code=429, detail="Ran out of login attempts. Please wait before trying again.")
-
-        # Add the current request to the db
-        await UserRequests.objects.acreate(user=user, slug=self.slug)
 
 
 class ApiUserRateLimiter:
@@ -2120,12 +2118,12 @@ class ApiUserRateLimiter:
         user: KhojUser = request.user.object
         subscribed = has_required_scope(request, ["premium"])
 
-        # Remove requests outside of the time window
-        cutoff = django_timezone.now() - timedelta(seconds=self.window)
-        count_requests = UserRequests.objects.filter(user=user, created_at__gte=cutoff, slug=self.slug).count()
+        # Count the window and record this request in one indivisible step
+        limit = self.subscribed_requests if subscribed else self.requests
+        count_requests, admitted = reserve_request_slot(user, self.slug, self.window, limit)
 
         # Check if the user has exceeded the rate limit
-        if subscribed and count_requests >= self.subscribed_requests:
+        if subscribed and not admitted:
             logger.info(
                 f"Rate limit ({self.slug}): {count_requests}/{self.subscribed_requests} requests not allowed in {self.window} seconds for subscribed user: {user}."
             )
@@ -2133,7 +2131,7 @@ class ApiUserRateLimiter:
                 status_code=429,
                 detail="I'm glad you're enjoying interacting with me! You've unfortunately exceeded your usage limit for today. But let's chat more tomorrow?",
             )
-        if not subscribed and count_requests >= self.requests:
+        if not subscribed and not admitted:
             if self.requests >= self.subscribed_requests:
                 logger.info(
                     f"Rate limit ({self.slug}): {count_requests}/{self.subscribed_requests} requests not allowed in {self.window} seconds for user: {user}."
@@ -2151,9 +2149,6 @@ class ApiUserRateLimiter:
                 detail="I'm glad you're enjoying interacting with me! You've unfortunately exceeded your usage limit for today. You can subscribe to increase your usage limit via [your settings](https://app.khoj.dev/settings) or we can continue our conversation tomorrow?",
             )
 
-        # Add the current request to the cache
-        UserRequests.objects.create(user=user, slug=self.slug)
-
     async def check_websocket(self, websocket: WebSocket):
         """WebSocket-specific rate limiting method"""
         # Rate limiting disabled if billing is disabled
@@ -2170,12 +2165,12 @@ class ApiUserRateLimiter:
         next_window = "tomorrow" if self.window == 60 * 60 * 24 else "in a bit"
         common_message_prefix = f"I'm glad you're enjoying interacting with me! You've unfortunately exceeded your usage limit for {current_window}."
 
-        # Remove requests outside of the time window
-        cutoff = django_timezone.now() - timedelta(seconds=self.window)
-        count_requests = await UserRequests.objects.filter(user=user, created_at__gte=cutoff, slug=self.slug).acount()
+        # Count the window and record this request in one indivisible step
+        limit = self.subscribed_requests if subscribed else self.requests
+        count_requests, admitted = await areserve_request_slot(user, self.slug, self.window, limit)
 
         # Check if the user has exceeded the rate limit
-        if subscribed and count_requests >= self.subscribed_requests:
+        if subscribed and not admitted:
             logger.info(
                 f"Rate limit ({self.slug}): {count_requests}/{self.subscribed_requests} requests not allowed in {self.window} seconds for subscribed user: {user}."
             )
@@ -2183,7 +2178,7 @@ class ApiUserRateLimiter:
                 status_code=429,
                 detail=f"{common_message_prefix} But let's chat more {next_window}?",
             )
-        if not subscribed and count_requests >= self.requests:
+        if not subscribed and not admitted:
             if self.requests >= self.subscribed_requests:
                 logger.info(
                     f"Rate limit ({self.slug}): {count_requests}/{self.subscribed_requests} requests not allowed in {self.window} seconds for user: {user}."
@@ -2200,9 +2195,6 @@ class ApiUserRateLimiter:
                 status_code=429,
                 detail=f"{common_message_prefix} You can subscribe to increase your usage limit via [your settings](https://app.khoj.dev/settings) or we can continue our conversation {next_window}.",
             )
-
-        # Add the current request to the cache
-        await UserRequests.objects.acreate(user=user, slug=self.slug)
 
 
 class ApiImageRateLimiter:
@@ -2356,14 +2348,12 @@ class ConversationCommandRateLimiter:
         user: KhojUser = request.user.object
         subscribed = has_required_scope(request, ["premium"])
 
-        # Remove requests outside of the 24-hr time window
-        cutoff = django_timezone.now() - timedelta(seconds=60 * 60 * 24)
+        # Count the 24-hr window and record this request in one indivisible step
         command_slug = f"{self.slug}_{conversation_command.value}"
-        count_requests = await UserRequests.objects.filter(
-            user=user, created_at__gte=cutoff, slug=command_slug
-        ).acount()
+        limit = self.subscribed_rate_limit if subscribed else self.trial_rate_limit
+        count_requests, admitted = await areserve_request_slot(user, command_slug, 60 * 60 * 24, limit)
 
-        if subscribed and count_requests >= self.subscribed_rate_limit:
+        if subscribed and not admitted:
             logger.info(
                 f"Rate limit: {count_requests}/{self.subscribed_rate_limit} requests not allowed in 24 hours for subscribed user: {user}."
             )
@@ -2371,7 +2361,7 @@ class ConversationCommandRateLimiter:
                 status_code=429,
                 detail=f"I'm glad you're enjoying interacting with me! You've unfortunately exceeded your `/{conversation_command.value}` command usage limit for today. Maybe we can talk about something else for today?",
             )
-        if not subscribed and count_requests >= self.trial_rate_limit:
+        if not subscribed and not admitted:
             logger.info(
                 f"Rate limit: {count_requests}/{self.trial_rate_limit} requests not allowed in 24 hours for user: {user}."
             )
@@ -2379,7 +2369,6 @@ class ConversationCommandRateLimiter:
                 status_code=429,
                 detail=f"I'm glad you're enjoying interacting with me! You've unfortunately exceeded your `/{conversation_command.value}` command usage limit for today. You can subscribe to increase your usage limit via [your settings](https://app.khoj.dev/settings) or we can talk about something else for today?",
             )
-        await UserRequests.objects.acreate(user=user, slug=command_slug)
         return
 
 
