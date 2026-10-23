@@ -105,11 +105,57 @@ Rule everything\n\n"))))
 * Become God\n\
 ** Upgrade\n\
 \n\
-Penance to Immortality\n\
+ Penance to Immortality\n\
 ** Act\n\
 \n\
-Rule everything\n\
+ Rule everything\n\
 \n"))))
+
+
+(ert-deftest khoj-tests--org-search-title-without-heading ()
+  "Display an indexed file title as a result heading."
+  (let ((response '(((entry . " Solar lighting\nA project note.")))))
+    (should (equal (khoj--extract-entries-as-org response "solar" nil)
+                   "* solar\n** Solar lighting\nA project note.\n\n"))))
+
+(ert-deftest khoj-tests--org-search-multiple-titled-results ()
+  "Keep title-only notes separate from notes with Org headings."
+  (let ((response '(((entry . " First title\nFirst note."))
+                    ((entry . "*** Existing heading\nSecond note.\n"))
+                    ((entry . " Last title\nLast note.")))))
+    (should (equal (khoj--extract-entries-as-org response "query" nil)
+                   "* query\n** First title\nFirst note.\n** Existing heading\nSecond note.\n** Last title\nLast note.\n\n"))))
+
+(ert-deftest khoj-tests--org-search-preserves-body-formatting ()
+  "Keep parentheses, indentation and emphasis in the result text."
+  (let ((response '(((entry . " A title (draft)\n(An excerpt)\n  - An indented item\n*emphasis*")))))
+    (should (equal (khoj--extract-entries-as-org response "query (draft)" nil)
+                   "* query (draft)\n** A title (draft)\n(An excerpt)\n  - An indented item\n*emphasis*\n\n"))))
+
+(ert-deftest khoj-tests--org-search-find-similar-titled-notes ()
+  "Skip the current note and give similar notes a heading."
+  (let ((response '(((entry . " Current title\nCurrent note."))
+                    ((entry . " Similar title\nSimilar note.")))))
+    (should (equal (khoj--extract-entries-as-org response "current" t)
+                   "* Similar to: current\n** Similar title\nSimilar note.\n\n"))))
+
+(ert-deftest khoj-tests--org-search-empty-results ()
+  "Show only the query heading when there are no results."
+  (should (equal (khoj--extract-entries-as-org [] "query" nil)
+                 "* query\n\n")))
+
+(ert-deftest khoj-tests--org-search-titled-result-is-navigable ()
+  "Make titled notes visible to Org outline navigation."
+  (let ((response '(((entry . " First title\nFirst note."))
+                    ((entry . " Second title\nSecond note.")))))
+    (with-temp-buffer
+      (org-mode)
+      (insert (khoj--extract-entries-as-org response "query" nil))
+      (goto-char (point-min))
+      (org-next-visible-heading 1)
+      (should (equal (org-get-heading t t t t) "First title"))
+      (org-next-visible-heading 1)
+      (should (equal (org-get-heading t t t t) "Second title")))))
 
 
 
