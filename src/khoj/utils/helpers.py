@@ -798,7 +798,7 @@ def is_valid_url(url: str) -> bool:
 
 def is_internet_connected():
     try:
-        response = requests.head("https://www.google.com")
+        response = requests.head("https://www.google.com", timeout=5)
         return response.status_code == 200
     except Exception:
         return False
