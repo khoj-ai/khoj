@@ -13,7 +13,9 @@
 <b>Your AI second brain</b>
 </div>
 
-<br />
+<p align="center">
+  <b>English</b> · <a href="https://github.com/khoj-ai/khoj/blob/master/README.zh.md">简体中文</a>
+</p>
 
 <div align="center">
 
