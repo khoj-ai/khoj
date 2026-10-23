@@ -541,23 +541,18 @@ As first result is the current entry at point."
   "Convert JSON-RESPONSE, QUERY from API to `org-mode' entries.
 Use IS-FIND-SIMILAR bool to filter out first result.
 As first result is the current entry at point."
-  (thread-last
-    json-response
-    ;; filter our first result if is find similar as it'll be the current entry at point
-    ((lambda (response) (if is-find-similar (seq-drop response 1) response)))
-    ;; Extract and render each org-mode entry from response
-    (mapcar (lambda (json-response-item)
-              (thread-last
-                ;; Extract org entry from each item in json response
-                (cdr (assoc 'entry json-response-item))
-                ;; Format org entry as a string
-                (format "%s")
-                ;; Standardize results to 2nd level heading for consistent rendering
-                (replace-regexp-in-string "^\*+" "**"))))
-    ;; Render entries into org formatted string with query set as as top level heading
-    (format "* %s\n%s\n" (if is-find-similar (khoj--construct-find-similar-title query) query))
-    ;; remove leading (, ) or SPC from extracted entries string
-    (replace-regexp-in-string "^[\(\) ]" "")))
+  (let ((results (if is-find-similar (seq-drop json-response 1) json-response)))
+    (format "* %s\n%s\n"
+            (if is-find-similar (khoj--construct-find-similar-title query) query)
+            (mapconcat
+             (lambda (result)
+               (let ((entry (string-trim (alist-get 'entry result))))
+                 (concat
+                  (if (string-match-p "\\`\\*+[ \t]" entry)
+                      (replace-regexp-in-string "^\\*+\\([ \t]\\)" "**\\1" entry)
+                    (concat "** " entry))
+                  "\n")))
+             results ""))))
 
 (defun khoj--extract-entries-as-pdf (json-response query is-find-similar)
   "Convert JSON-RESPONSE, QUERY from API to PDF entries.
