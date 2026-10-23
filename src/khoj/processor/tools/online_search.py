@@ -71,7 +71,7 @@ async def search_online(
     tracer: dict = {},
 ):
     query += " ".join(custom_filters)
-    if not is_internet_connected():
+    if not await asyncio.to_thread(is_internet_connected):
         logger.warning("Cannot search online as not connected to internet")
         yield {}
         return
