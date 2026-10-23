@@ -559,6 +559,20 @@ As first result is the current entry at point."
     ;; remove leading (, ) or SPC from extracted entries string
     (replace-regexp-in-string "^[\(\) ]" "")))
 
+(defun khoj--format-pdf-search-result (result)
+  "Format a PDF search RESULT with its filename and page when available."
+  (let* ((metadata (alist-get 'additional result))
+         (filename (or (alist-get 'file metadata) "PDF result"))
+         (uri (alist-get 'uri metadata))
+         (page (when (and (stringp uri)
+                          (string-match "#page=\\([1-9][0-9]*\\)\\'" uri))
+                 (match-string 1 uri)))
+         (excerpt (or (alist-get 'entry result)
+                      (alist-get 'compiled metadata)
+                      "")))
+    (format "** %s%s\n%s\n\n" filename
+            (if page (format " (page %s)" page) "") excerpt)))
+
 (defun khoj--extract-entries-as-pdf (json-response query is-find-similar)
   "Convert JSON-RESPONSE, QUERY from API to PDF entries.
 Use IS-FIND-SIMILAR bool to filter out first result.
@@ -568,16 +582,10 @@ As first result is the current entry at point."
     ;; filter our first result if is find similar as it'll be the current entry at point
     ((lambda (response) (if is-find-similar (seq-drop response 1) response)))
     ;; Extract and render each pdf entry from response
-    (mapcar (lambda (json-response-item)
-              (thread-last
-                ;; Extract pdf entry from each item in json response
-                (cdr (assoc 'compiled (assoc 'additional json-response-item)))
-                ;; Format pdf entry as a org entry string
-                (format "** %s\n\n"))))
+    (mapcar #'khoj--format-pdf-search-result)
+    (string-join)
     ;; Render entries into org formatted string with query set as as top level heading
-    (format "* %s\n%s\n" (if is-find-similar (khoj--construct-find-similar-title query) query))
-    ;; remove leading (, ) or SPC from extracted entries string
-    (replace-regexp-in-string "^[\(\) ]" "")))
+    (format "* %s\n%s\n" (if is-find-similar (khoj--construct-find-similar-title query) query))))
 
 (defun khoj--extract-entries-as-images (json-response query)
   "Convert JSON-RESPONSE, QUERY from API to html with images."
@@ -616,22 +624,19 @@ As first result is the current entry at point."
                ((lambda (response) (if is-find-similar (seq-drop response 1) response)))
                ;; extract and render entries from API response
                (mapcar (lambda (json-response-item)
-                         (thread-last
-                           ;; Extract pdf entry from each item in json response
-                           (cdr (assoc 'entry json-response-item))
-                           (format "%s\n\n")
-                           ;; Standardize results to 2nd level heading for consistent rendering
-                           (replace-regexp-in-string "^\*+" "")
-                           ;; Standardize results to 2nd level heading for consistent rendering
-                           (replace-regexp-in-string "^\#+" "")
-                           ;; Format entries as org entry string
-                           (format "** %s"))))
+                         (let ((filename (alist-get 'file (alist-get 'additional json-response-item))))
+                           (if (and filename (equal (downcase (or (file-name-extension filename) "")) "pdf"))
+                               (khoj--format-pdf-search-result json-response-item)
+                             (thread-last
+                               (cdr (assoc 'entry json-response-item))
+                               (format "%s\n\n")
+                               ;; Standardize results to 2nd level heading for consistent rendering
+                               (replace-regexp-in-string "^\*+" "")
+                               (replace-regexp-in-string "^\#+" "")
+                               (format "** %s"))))))
+               (string-join)
                ;; Set query as heading in rendered results buffer
-               (format "* %s\n%s\n" (if is-find-similar (khoj--construct-find-similar-title query) query))
-               ;; remove leading (, ) or SPC from extracted entries string
-               (replace-regexp-in-string "^[\(\) ]" "")
-               ;; remove trailing (, ) or SPC from extracted entries string
-               (replace-regexp-in-string "[\(\) ]$" "")))
+               (format "* %s\n%s\n" (if is-find-similar (khoj--construct-find-similar-title query) query))))
 
 (defun khoj--buffer-name-to-content-type (buffer-name)
   "Infer content type based on BUFFER-NAME."
