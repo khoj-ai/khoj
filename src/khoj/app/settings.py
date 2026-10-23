@@ -43,6 +43,15 @@ CSRF_TRUSTED_ORIGINS = [
 
 DISABLE_HTTPS = is_env_var_true("KHOJ_NO_HTTPS")
 
+EMAIL_HOST = os.getenv("EMAIL_HOST", "")
+EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER", "")
+EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD", "")
+EMAIL_USE_SSL = is_env_var_true("EMAIL_USE_SSL")
+EMAIL_USE_TLS = is_env_var_true("EMAIL_USE_TLS", default="false" if EMAIL_USE_SSL else "true")
+EMAIL_PORT = int(os.getenv("EMAIL_PORT", "465" if EMAIL_USE_SSL else "587"))
+EMAIL_TIMEOUT = int(os.getenv("EMAIL_TIMEOUT", "10"))
+DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", os.getenv("RESEND_EMAIL", "noreply@khoj.dev"))
+
 # WARNING: Change this check only if you know what you are doing.
 if not os.getenv("KHOJ_DOMAIN"):
     SESSION_COOKIE_DOMAIN = "localhost"

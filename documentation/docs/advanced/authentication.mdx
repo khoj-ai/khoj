@@ -12,7 +12,9 @@ Remove the `--anonymous-mode` flag from your khoj start up command or docker-com
 :::
 
 ## Using Magic Links
-The most secure way to do this is to integrate with [Resend](https://resend.com).
+You can send sign-in links using [Resend](https://resend.com) or your own SMTP server.
+
+### Resend
 
 1. Setup your account at https://resend.com
 2. Set an environment variable for `RESEND_API_KEY`. You can get your API key [here](https://resend.com/api-keys).
@@ -20,13 +22,34 @@ The most secure way to do this is to integrate with [Resend](https://resend.com)
 
 This will allow you to automatically send sign-in links to users who want to log in.
 
-It's still possible to use the magic links feature without Resend, but you'll need to manually send the magic links to users who want to log in.
+### SMTP
+
+Set these environment variables on the Khoj server:
+
+```bash
+EMAIL_HOST=smtp.example.com
+EMAIL_PORT=587
+EMAIL_USE_TLS=true
+EMAIL_HOST_USER=your-smtp-user
+EMAIL_HOST_PASSWORD=your-smtp-password
+DEFAULT_FROM_EMAIL="Khoj <noreply@example.com>"
+```
+
+SMTP handles sign-in links, welcome emails, feedback and automation notifications.
+It takes precedence when both SMTP and Resend are configured. SMTP does not add users to a Resend audience.
+
+- Leave `EMAIL_HOST_USER` and `EMAIL_HOST_PASSWORD` unset if your relay does not require authentication.
+- For implicit TLS, set `EMAIL_USE_SSL=true`, `EMAIL_USE_TLS=false` and `EMAIL_PORT=465`.
+- For an internal relay without TLS, set `EMAIL_USE_TLS=false` and `EMAIL_USE_SSL=false` and use the relay's port.
+- `EMAIL_TIMEOUT` defaults to `10` seconds.
+
+Without SMTP or Resend, you can still send magic links manually as described below.
 
 ## Manually sending magic links
 
 1. The user will have to enter their email address in the login popup shown at http://localhost:42110/?v=app.
 
-    They'll click `Get Login Link`. Without the Resend API key, this will just create an unverified account for them in the backend
+    They'll click `Get Login Link`. Without SMTP or a Resend API key, this will just create an unverified account for them in the backend
 <img src="/img/magic_link.png" alt="Magic link login form" width="400"/>
 
 2. You can get their magic link using the admin panel

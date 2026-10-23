@@ -110,7 +110,7 @@ from khoj.processor.conversation.utils import (
     is_retryable_exception,
 )
 from khoj.processor.speech.text_to_speech import is_eleven_labs_enabled
-from khoj.routers.email import is_resend_enabled, send_task_email
+from khoj.routers.email import is_email_enabled, send_task_email
 from khoj.routers.twilio import is_twilio_enabled
 from khoj.search_filter.date_filter import DateFilter
 from khoj.search_filter.file_filter import FileFilter
@@ -2615,7 +2615,7 @@ def scheduled_chat(
     ):
         formatted_response = format_automation_response(scheduling_request, cleaned_query, ai_response, user)
 
-        if is_resend_enabled():
+        if is_email_enabled():
             send_task_email(user.get_short_name(), user.email, cleaned_query, formatted_response, subject, is_image)
         else:
             return formatted_response
