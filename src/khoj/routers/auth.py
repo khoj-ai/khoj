@@ -22,7 +22,7 @@ from khoj.database.adapters import (
     get_khoj_tokens,
     get_or_create_user,
 )
-from khoj.routers.email import send_magic_link_email, send_welcome_email
+from khoj.routers.email import is_email_enabled, send_magic_link_email, send_welcome_email
 from khoj.routers.helpers import (
     EmailAttemptRateLimiter,
     EmailVerificationApiRateLimiter,
@@ -54,11 +54,11 @@ if not state.anonymous_mode:
     from google.auth.transport import requests as google_requests
     from google.oauth2 import id_token
 
-    if not os.environ.get("RESEND_API_KEY") and (
+    if not is_email_enabled() and (
         not os.environ.get("GOOGLE_CLIENT_ID") or not os.environ.get("GOOGLE_CLIENT_SECRET")
     ):
         missing_requirements += [
-            "Set your RESEND_API_KEY or GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET as environment variables"
+            "Set EMAIL_HOST for SMTP, RESEND_API_KEY or GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET as environment variables"
         ]
     if missing_requirements:
         requirements_string = "\n   - " + "\n   - ".join(missing_requirements)
