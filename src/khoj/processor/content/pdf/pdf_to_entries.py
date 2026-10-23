@@ -52,40 +52,37 @@ class PdfToEntries(TextToEntries):
         return num_new_embeddings, num_deleted_embeddings
 
     @staticmethod
-    def extract_pdf_entries(pdf_files) -> Tuple[Dict, List[Entry]]:  # important function
+    def extract_pdf_entries(pdf_files) -> Tuple[Dict, List[Entry]]:
         """Extract entries by page from specified PDF files"""
         file_to_text_map = dict()
-        entries: List[str] = []
-        entry_to_location_map: List[Tuple[str, str]] = []
+        entries: List[Entry] = []
         for pdf_file in pdf_files:
             try:
                 pdf_entries_per_file = PdfToEntries.extract_text(pdf_files[pdf_file])
-                entry_to_location_map += zip(pdf_entries_per_file, [pdf_file] * len(pdf_entries_per_file))
-                entries.extend(pdf_entries_per_file)
+                entries.extend(PdfToEntries.convert_pdf_entries_to_maps(pdf_entries_per_file, pdf_file))
                 file_to_text_map[pdf_file] = pdf_entries_per_file
             except Exception as e:
                 logger.warning(f"Unable to extract entries from file: {pdf_file}")
                 logger.warning(e, exc_info=True)
 
-        return file_to_text_map, PdfToEntries.convert_pdf_entries_to_maps(entries, dict(entry_to_location_map))
+        return file_to_text_map, entries
 
     @staticmethod
-    def convert_pdf_entries_to_maps(parsed_entries: List[str], entry_to_file_map) -> List[Entry]:
-        "Convert each PDF entries into a dictionary"
+    def convert_pdf_entries_to_maps(parsed_entries: List[str], entry_filename: str) -> List[Entry]:
+        "Convert PDF pages to entries with their source locations."
         entries = []
-        for parsed_entry in parsed_entries:
-            entry_filename = entry_to_file_map[parsed_entry]
-            # Append base filename to compiled entry for context to model
-            heading = f"{entry_filename}\n"
+        for page_number, parsed_entry in enumerate(parsed_entries, start=1):
+            heading = f"{entry_filename} (page {page_number})\n"
             compiled_entry = f"{heading}{parsed_entry}"
-            entries.append(
-                Entry(
-                    compiled=compiled_entry,
-                    raw=parsed_entry,
-                    heading=heading,
-                    file=f"{entry_filename}",
-                )
+            entry = Entry(
+                compiled=compiled_entry,
+                raw=parsed_entry,
+                heading=heading,
+                file=entry_filename,
             )
+            if entry.uri:
+                entry.uri = f"{entry.uri}#page={page_number}"
+            entries.append(entry)
 
         logger.debug(f"Converted {len(parsed_entries)} PDF entries to dictionaries")
 

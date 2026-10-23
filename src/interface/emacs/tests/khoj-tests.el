@@ -112,6 +112,59 @@ Rule everything\n\
 \n"))))
 
 
+(ert-deftest khoj-tests--pdf-search-context ()
+  "Show the PDF filename and page in PDF-only and mixed results."
+  (let ((response '(((entry . "A useful excerpt")
+                     (additional . ((file . "/docs/paper.pdf")
+                                    (uri . "file:///docs/paper.pdf#page=2")
+                                    (compiled . "/docs/paper.pdf (page 2)\nA useful excerpt")))))))
+    (dolist (renderer '(khoj--extract-entries-as-pdf khoj--extract-entries))
+      (let ((rendered (funcall renderer response "query" nil)))
+        (should (string-match-p (regexp-quote "** /docs/paper.pdf (page 2)\nA useful excerpt") rendered))))))
+
+(ert-deftest khoj-tests--pdf-search-legacy-context ()
+  "Keep the filename for old indexes without inventing a page number."
+  (dolist (uri '(nil "file:///docs/paper.pdf#line=4"))
+    (let ((response `(((entry . "A useful excerpt")
+                       (additional . ((file . "/docs/paper.pdf")
+                                      (uri . ,uri)
+                                      (compiled . "/docs/paper.pdf\nA useful excerpt")))))))
+      (dolist (renderer '(khoj--extract-entries-as-pdf khoj--extract-entries))
+        (let ((rendered (funcall renderer response "query" nil)))
+          (should (string-match-p (regexp-quote "** /docs/paper.pdf\nA useful excerpt") rendered))
+          (should-not (string-match-p "(page " rendered)))))))
+
+(ert-deftest khoj-tests--mixed-search-pdf-context ()
+  "Recognize uppercase PDF extensions and preserve other results."
+  (let* ((response '(((entry . "PDF excerpt")
+                      (additional . ((file . "/docs/paper.PDF")
+                                     (uri . "file:///docs/paper.PDF#page=3"))))
+                     ((entry . "## Notes\nMarkdown excerpt (keep this)")
+                      (additional . ((file . "/docs/notes.md"))))))
+         (rendered (khoj--extract-entries response "query" nil)))
+    (should (string-match-p (regexp-quote "** /docs/paper.PDF (page 3)\nPDF excerpt") rendered))
+    (should (string-match-p (regexp-quote "Markdown excerpt (keep this)") rendered))))
+
+(ert-deftest khoj-tests--pdf-find-similar-context ()
+  "Drop the current entry while retaining context for similar PDFs."
+  (let ((response '(((entry . "Current excerpt")
+                     (additional . ((file . "current.pdf") (compiled . "Current excerpt"))))
+                    ((entry . "Similar excerpt")
+                     (additional . ((file . "similar.pdf")
+                                    (uri . "file://similar.pdf#page=4")
+                                    (compiled . "similar.pdf\nSimilar excerpt")))))))
+    (dolist (renderer '(khoj--extract-entries-as-pdf khoj--extract-entries))
+      (let ((rendered (funcall renderer response "query" t)))
+        (should-not (string-match-p "Current excerpt" rendered))
+        (should (string-match-p (regexp-quote "** similar.pdf (page 4)\nSimilar excerpt") rendered))))))
+
+(ert-deftest khoj-tests--pdf-search-missing-metadata ()
+  "Preserve the excerpt when older responses omit source metadata."
+  (let ((rendered (khoj--extract-entries-as-pdf
+                   '(((additional . ((compiled . "Legacy excerpt"))))) "query" nil)))
+    (should (string-match-p "Legacy excerpt" rendered))
+    (should-not (string-match-p "nil" rendered))))
+
 
 ;; -------------------------------------
 ;; Test Helpers for Find Similar Feature

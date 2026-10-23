@@ -102,6 +102,9 @@ See [Khoj Search](/features/search) for details
 2. Enter your query in natural language<br/>
   E.g. *"What is the meaning of life?"*, *"My life goals for 2023"*
 
+PDF results show the source filename and page number in both PDF-only and mixed searches.
+Reindex existing PDFs to add page numbers. Results from older indexes still show the filename.
+
 ### Chat
 See [Khoj Chat](/features/chat) for details
 1. Hit `C-c s c` (or `M-x khoj RET c`) to open khoj chat
