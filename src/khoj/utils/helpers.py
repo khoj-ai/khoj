@@ -815,6 +815,7 @@ def is_web_search_enabled():
             "GOOGLE_SEARCH_API_KEY",
             "SERPER_DEV_API_KEY",
             "EXA_API_KEY",
+            "OUTCRAWL_API_KEY",
             "FIRECRAWL_API_KEY",
             "KHOJ_SEARXNG_URL",
         ]
