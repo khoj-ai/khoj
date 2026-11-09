@@ -22,6 +22,7 @@ Online search can work even with self-hosting! You have a few options:
 - To get production-grade, fast online search, set the `SERPER_DEV_API_KEY` environment variable to your [Serper.dev](https://serper.dev/) API key. These search results include additional context like answer box, knowledge graph etc.
 - To use open, self-hostable search provider, set the `FIRECRAWL_API_KEY` environment variable to your [Firecrawl](https://firecrawl.dev) API key. These search results do not scrape social media results.
 - To use Exa search provider, set the `EXA_API_KEY` environment variable to your [Exa](https://exa.ai) API key.
+- To use [Outcrawl](https://outcrawl.ai) for search, set the `OUTCRAWL_API_KEY` environment variable to your Outcrawl API key. Search runs through `POST /v1/search`, and the free plan includes 1,000 credits a month.
 
 ### Webpage Reading
 
@@ -30,3 +31,4 @@ Out of the box, you **don't have to do anything to enable webpage reading**. Kho
 - For open, self-hostable webpage reader, you can use [Firecrawl](https://www.firecrawl.dev/). Create a new [Webscraper](http://localhost:42110/server/admin/database/webscraper/add/). Set your Firecrawl API key to the Api Key field, and set the type to Firecrawl.
 - For advanced webpage reading, you can use [Olostep](https://www.olostep.com/). This can read a wider variety of webpages. Create a new [Webscraper](http://localhost:42110/server/admin/database/webscraper/add/). Set your Olostep API key to the Api Key field, and set the type to Olostep.
 - For fast webpage reading, you can use [Exa](https://exa.ai). Create a new [Webscraper](http://localhost:42110/server/admin/database/webscraper/add/). Set your Exa API key to the Api Key field, and set the type to Exa.
+- For markdown pages from a cloud browser, you can use [Outcrawl](https://outcrawl.ai). Create a new [Webscraper](http://localhost:42110/server/admin/database/webscraper/add/). Set your Outcrawl API key to the Api Key field, and set the type to Outcrawl.

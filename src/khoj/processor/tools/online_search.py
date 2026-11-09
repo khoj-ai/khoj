@@ -46,6 +46,8 @@ FIRECRAWL_API_KEY = os.getenv("FIRECRAWL_API_KEY")
 SEARXNG_URL = os.getenv("KHOJ_SEARXNG_URL")
 # Exa API credentials
 EXA_API_KEY = os.getenv("EXA_API_KEY")
+# Outcrawl API credentials
+OUTCRAWL_API_KEY = os.getenv("OUTCRAWL_API_KEY")
 
 # Whether to automatically read web pages from search results
 AUTO_READ_WEBPAGE = is_env_var_true("KHOJ_AUTO_READ_WEBPAGE")
@@ -105,6 +107,9 @@ async def search_online(
     if EXA_API_KEY:
         search_engine = "Exa"
         search_engines.append((search_engine, search_with_exa))
+    if OUTCRAWL_API_KEY:
+        search_engine = "Outcrawl"
+        search_engines.append((search_engine, search_with_outcrawl))
     if FIRECRAWL_API_KEY:
         search_engine = "Firecrawl"
         search_engines.append((search_engine, search_with_firecrawl))
@@ -248,6 +253,50 @@ async def search_with_exa(query: str, location: LocationData) -> Tuple[str, Dict
 
         except Exception as e:
             logger.error(f"Error searching with Exa: {str(e)}")
+            return query, {}
+
+
+async def search_with_outcrawl(query: str, location: LocationData) -> Tuple[str, Dict[str, List[Dict]]]:
+    """
+    Search using Outcrawl API.
+
+    Args:
+        query: The search query string
+        location: Location data (unused, Outcrawl search takes no location parameter)
+
+    Returns:
+        Tuple containing the original query and a dictionary of search results
+    """
+    outcrawl_api_base = os.getenv("OUTCRAWL_API_URL", "https://api.outcrawl.ai")
+    outcrawl_search_api_endpoint = f"{outcrawl_api_base}/v1/search"
+    headers = {"Content-Type": "application/json", "Authorization": f"Bearer {OUTCRAWL_API_KEY}"}
+    payload = {"query": query, "limit": 10}
+
+    async with aiohttp.ClientSession() as session:
+        try:
+            async with session.post(
+                outcrawl_search_api_endpoint, headers=headers, json=payload, timeout=WEBPAGE_REQUEST_TIMEOUT
+            ) as response:
+                if response.status != 200:
+                    error_text = await response.text()
+                    logger.error(f"Outcrawl search failed: {error_text}")
+                    return query, {}
+
+                response_json = await response.json()
+                hits = response_json.get("hits", [])
+
+                if is_none_or_empty(hits):
+                    logger.error(f"Outcrawl search returned no results for query: {query}")
+                    return query, {}
+
+                # Transform Outcrawl response to match the expected format
+                organic_results = [
+                    {"title": hit.get("title"), "link": hit["url"], "snippet": hit.get("snippet")} for hit in hits
+                ]
+                return query, {"organic": organic_results}
+
+        except Exception as e:
+            logger.error(f"Error searching with Outcrawl: {str(e)}")
             return query, {}
 
 
@@ -511,6 +560,8 @@ async def scrape_webpage(url, scraper_type=None, api_key=None, api_url=None) -> 
         return await read_webpage_with_olostep(url, api_key, api_url)
     elif scraper_type == WebScraper.WebScraperType.EXA:
         return await read_webpage_with_exa(url, api_key, api_url)
+    elif scraper_type == WebScraper.WebScraperType.OUTCRAWL:
+        return await read_webpage_with_outcrawl(url, api_key, api_url)
     else:
         return await read_webpage_at_url(url)
 
@@ -624,6 +675,20 @@ async def read_webpage_with_exa(web_url: str, api_key: str, api_url: str) -> str
             response.raise_for_status()
             response_json = await response.json()
             return response_json["results"][0]["text"]
+
+
+async def read_webpage_with_outcrawl(web_url: str, api_key: str, api_url: str) -> str:
+    outcrawl_api_url = f"{api_url}/v1/scrape"
+    headers = {"Content-Type": "application/json", "Authorization": f"Bearer {api_key}"}
+    params = {"url": web_url, "formats": ["markdown"]}
+
+    async with aiohttp.ClientSession() as session:
+        async with session.post(
+            outcrawl_api_url, json=params, headers=headers, timeout=WEBPAGE_REQUEST_TIMEOUT
+        ) as response:
+            response.raise_for_status()
+            response_json = await response.json()
+            return response_json["markdown"]
 
 
 async def read_webpage_with_firecrawl(web_url: str, api_key: str, api_url: str) -> str:

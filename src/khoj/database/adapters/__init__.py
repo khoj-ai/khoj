@@ -1511,6 +1511,16 @@ class ConversationAdapters:
                         api_url=api_url,
                     )
                 )
+            if os.getenv("OUTCRAWL_API_KEY"):
+                api_url = os.getenv("OUTCRAWL_API_URL", "https://api.outcrawl.ai")
+                enabled_scrapers.append(
+                    WebScraper(
+                        type=WebScraper.WebScraperType.OUTCRAWL,
+                        name=WebScraper.WebScraperType.OUTCRAWL.capitalize(),
+                        api_key=os.getenv("OUTCRAWL_API_KEY"),
+                        api_url=api_url,
+                    )
+                )
             if os.getenv("OLOSTEP_API_KEY"):
                 api_url = os.getenv("OLOSTEP_API_URL", "https://agent.olostep.com/olostep-p2p-incomingAPI")
                 enabled_scrapers.append(
