@@ -249,7 +249,9 @@ def completion_with_backoff(
         input_tokens = chunk.usage.prompt_tokens
         output_tokens = chunk.usage.completion_tokens
         if hasattr(chunk.usage, "prompt_tokens_details") and chunk.usage.prompt_tokens_details:
-            cache_read_tokens = chunk.usage.prompt_tokens_details.cached_tokens
+            cache_read_tokens = chunk.usage.prompt_tokens_details.cached_tokens or 0
+            # Prompt tokens include cached tokens. Only count uncached tokens as input
+            input_tokens = max(input_tokens - cache_read_tokens, 0)
         if hasattr(chunk.usage, "completion_tokens_details") and chunk.usage.completion_tokens_details:
             output_tokens += chunk.usage.completion_tokens_details.reasoning_tokens
         cost = chunk.usage.model_extra.get("estimated_cost", 0)  # Estimated costs returned by DeepInfra API
@@ -411,7 +413,9 @@ async def chat_completion_with_backoff(
         input_tokens = final_chunk.usage.prompt_tokens
         output_tokens = final_chunk.usage.completion_tokens
         if hasattr(final_chunk.usage, "prompt_tokens_details") and final_chunk.usage.prompt_tokens_details:
-            cache_read_tokens = final_chunk.usage.prompt_tokens_details.cached_tokens
+            cache_read_tokens = final_chunk.usage.prompt_tokens_details.cached_tokens or 0
+            # Prompt tokens include cached tokens. Only count uncached tokens as input
+            input_tokens = max(input_tokens - cache_read_tokens, 0)
         if hasattr(final_chunk.usage, "completion_tokens_details") and final_chunk.usage.completion_tokens_details:
             output_tokens += final_chunk.usage.completion_tokens_details.reasoning_tokens
         # Estimated costs returned by DeepInfra API

@@ -59,6 +59,67 @@ def test_lru_cache():
     assert cache == {"b": 2, "d": 4}
 
 
+def test_cost_of_anthropic_chat_uses_provider_cache_prices():
+    # Expected prices in USD per 1M tokens from https://platform.claude.com/docs/en/about-claude/pricing
+    # Claude Opus 4.5: cache hits $0.50
+    assert helpers.get_cost_of_chat_message("claude-opus-4-5", cache_read_tokens=1_000_000) == pytest.approx(0.50)
+    assert helpers.get_cost_of_chat_message("claude-opus-4-5-20251101", cache_read_tokens=1_000_000) == pytest.approx(
+        0.50
+    )
+
+    # Claude Haiku 4.5: cache hits $0.10, 5m cache writes $1.25
+    cost = helpers.get_cost_of_chat_message(
+        "claude-haiku-4-5-20251001", cache_read_tokens=1_000_000, cache_write_tokens=1_000_000
+    )
+    assert cost == pytest.approx(0.10 + 1.25)
+
+    # Claude Sonnet 4.5: $3 input, $15 output, $0.30 cache hits, $3.75 5m cache writes
+    cost = helpers.get_cost_of_chat_message(
+        "claude-sonnet-4-5",
+        input_tokens=2_048,
+        output_tokens=1_024,
+        cache_read_tokens=45_000,
+        cache_write_tokens=3_500,
+    )
+    assert cost == pytest.approx((2_048 * 3 + 1_024 * 15 + 45_000 * 0.30 + 3_500 * 3.75) / 1e6)
+
+
+def test_cost_of_gemini_chat_includes_cache_reads_and_thoughts():
+    # Expected prices in USD per 1M tokens from https://ai.google.dev/gemini-api/docs/pricing
+    # Gemini 2.5 Pro (prompts <= 200k tokens): $1.25 input, $10 output including thinking tokens, $0.125 context caching
+    cost = helpers.get_cost_of_chat_message(
+        "gemini-2.5-pro", input_tokens=10_000, output_tokens=1_000, thought_tokens=2_000, cache_read_tokens=100_000
+    )
+    assert cost == pytest.approx((10_000 * 1.25 + 3_000 * 10 + 100_000 * 0.125) / 1e6)
+
+    # Gemini 2.5 Flash: $0.03 context caching
+    assert helpers.get_cost_of_chat_message("gemini-2.5-flash", cache_read_tokens=1_000_000) == pytest.approx(0.03)
+
+
+def test_cost_of_chat_falls_back_to_khoj_prices():
+    # Models not in the llm-prices table use the prices in constants.model_to_cost
+    assert helpers.get_cost_of_chat_message("grok-4", input_tokens=1_000_000, cache_read_tokens=1_000_000) == (
+        pytest.approx(3.0 + 0.75)
+    )
+    # Gemini cache reads are priced in the fallback table too
+    assert helpers.get_cost_of_chat_message("gemini-3-pro-preview", cache_read_tokens=1_000_000) == pytest.approx(0.20)
+    # Open-weight models served by a third party host keep their configured prices
+    assert helpers.get_cost_of_chat_message("MiniMax-M3", input_tokens=1_000_000, output_tokens=1_000_000) == (
+        pytest.approx(0.6 + 2.4)
+    )
+    # Unknown and local models cost nothing
+    assert helpers.get_cost_of_chat_message("llama3.1:8b", input_tokens=1_000_000, output_tokens=1_000_000) == 0
+    assert helpers.get_cost_of_chat_message("", input_tokens=1_000_000) == 0
+
+
+def test_cost_of_chat_adds_previous_cost():
+    usage = helpers.get_chat_usage_metrics("claude-opus-4-5", input_tokens=1_000_000)
+    usage = helpers.get_chat_usage_metrics("claude-opus-4-5", output_tokens=1_000_000, usage=usage)
+    assert usage["input_tokens"] == 1_000_000
+    assert usage["output_tokens"] == 1_000_000
+    assert usage["cost"] == pytest.approx(5.0 + 25.0)
+
+
 @pytest.mark.skip(reason="Memory leak exists on GPU, MPS devices")
 def test_encode_docs_memory_leak():
     # Arrange

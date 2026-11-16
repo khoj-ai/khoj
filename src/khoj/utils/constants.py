@@ -28,6 +28,11 @@ default_config = {
     },
 }
 
+# Providers whose own prices are used from the llm-prices table.
+# Hosts of open-weight models (Groq, Together, Fireworks) price the same model differently.
+first_party_price_providers = frozenset({"anthropic", "openai", "google", "xai", "deepseek", "mistral", "cohere"})
+
+# Fallback prices for models the llm-prices table does not list
 model_to_cost: Dict[str, Dict[str, float]] = {
     # OpenAI Pricing: https://openai.com/api/pricing/
     "gpt-4o": {"input": 2.50, "output": 10.00},
@@ -50,11 +55,11 @@ model_to_cost: Dict[str, Dict[str, float]] = {
     "gemini-1.5-pro": {"input": 1.25, "output": 5.00},
     "gemini-1.5-pro-002": {"input": 1.25, "output": 5.00},
     "gemini-2.0-flash": {"input": 0.10, "output": 0.40},
-    "gemini-2.0-flash-lite": {"input": 0.0075, "output": 0.30},
+    "gemini-2.0-flash-lite": {"input": 0.075, "output": 0.30},
     "gemini-2.5-flash-lite": {"input": 0.10, "output": 0.40},
-    "gemini-2.5-flash": {"input": 0.30, "cache_read_tokens": 0.03, "output": 2.50},
-    "gemini-2.5-pro": {"input": 1.25, "cache_read_tokens": 0.125, "output": 10.0},
-    "gemini-3-pro-preview": {"input": 2.00, "cache_read_tokens": 0.20, "output": 12.0},
+    "gemini-2.5-flash": {"input": 0.30, "cache_read": 0.03, "output": 2.50},
+    "gemini-2.5-pro": {"input": 1.25, "cache_read": 0.125, "output": 10.0},
+    "gemini-3-pro-preview": {"input": 2.00, "cache_read": 0.20, "output": 12.0},
     # Anthropic Pricing: https://www.anthropic.com/pricing#anthropic-api
     "claude-3-5-haiku-20241022": {"input": 1.0, "output": 5.0, "cache_read": 0.08, "cache_write": 1.0},
     "claude-3-5-haiku@20241022": {"input": 1.0, "output": 5.0, "cache_read": 0.08, "cache_write": 1.0},

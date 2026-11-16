@@ -43,6 +43,7 @@ dependencies = [
     "python-multipart >= 0.0.31",
     "jinja2 == 3.1.6",
     "openai >= 2.0.0, < 3.0.0",
+    "llm-prices >= 1.3.0, < 2.0.0",
     "tiktoken >= 0.3.2",
     "tenacity >= 9.0.0",
     "magika ~= 0.5.1",

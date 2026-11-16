@@ -273,6 +273,8 @@ def gemini_completion_with_backoff(
     output_tokens = response.usage_metadata.candidates_token_count or 0 if response else 0
     thought_tokens = response.usage_metadata.thoughts_token_count or 0 if response else 0
     cache_read_tokens = response.usage_metadata.cached_content_token_count or 0 if response else 0
+    # Prompt token count includes cached tokens. Only count uncached tokens as input
+    input_tokens = max(input_tokens - cache_read_tokens, 0)
     tracer["usage"] = get_chat_usage_metrics(
         model_name,
         input_tokens,
@@ -384,8 +386,16 @@ async def gemini_chat_completion_with_backoff(
     input_tokens = final_chunk.usage_metadata.prompt_token_count or 0 if final_chunk else 0
     output_tokens = final_chunk.usage_metadata.candidates_token_count or 0 if final_chunk else 0
     thought_tokens = final_chunk.usage_metadata.thoughts_token_count or 0 if final_chunk else 0
+    cache_read_tokens = final_chunk.usage_metadata.cached_content_token_count or 0 if final_chunk else 0
+    # Prompt token count includes cached tokens. Only count uncached tokens as input
+    input_tokens = max(input_tokens - cache_read_tokens, 0)
     tracer["usage"] = get_chat_usage_metrics(
-        model_name, input_tokens, output_tokens, thought_tokens=thought_tokens, usage=tracer.get("usage")
+        model_name,
+        input_tokens,
+        output_tokens,
+        cache_read_tokens=cache_read_tokens,
+        thought_tokens=thought_tokens,
+        usage=tracer.get("usage"),
     )
 
     # Validate the response. If empty, raise an error to retry.

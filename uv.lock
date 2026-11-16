@@ -1266,6 +1266,7 @@ dependencies = [
     { name = "jinja2" },
     { name = "langchain-community" },
     { name = "langchain-text-splitters" },
+    { name = "llm-prices" },
     { name = "lxml" },
     { name = "magika" },
     { name = "markdown-it-py" },
@@ -1367,6 +1368,7 @@ requires-dist = [
     { name = "jinja2", specifier = "==3.1.6" },
     { name = "langchain-community", specifier = "==0.3.31" },
     { name = "langchain-text-splitters", specifier = "==0.3.11" },
+    { name = "llm-prices", specifier = ">=1.3.0,<2.0.0" },
     { name = "lxml", specifier = "==6.1.0" },
     { name = "magika", specifier = "~=0.5.1" },
     { name = "markdown-it-py", specifier = "~=3.0.0" },
@@ -1507,6 +1509,15 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/17/eb/8883d1158c743d0aac350f09df7880714d27283497e8c80bb9fe3480f165/langsmith-0.8.5.tar.gz", hash = "sha256:3615243d99c12f4047f13042bdc05a373dce232d106a6511b3ca7b48c5af1c2c", size = 4462348, upload-time = "2026-05-15T21:31:41.093Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/23/85/968c88a63e32a59b3e5c68afd2fe114ce0708a125db0be1a85efc25fb2ea/langsmith-0.8.5-py3-none-any.whl", hash = "sha256:efc779f9d450dcaf9d97bc8894f4926276509d6e730e05289af9a64debce06ae", size = 399564, upload-time = "2026-05-15T21:31:39.046Z" },
+]
+
+[[package]]
+name = "llm-prices"
+version = "1.3.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/12/f8/5f599c3e749267914057907a048c0a0490633e280f9b84d86a99b4af221d/llm_prices-1.3.0.tar.gz", hash = "sha256:0905445a039853e71320d6e86df190e8f7e3050663875ff67fb13dce94c12c91", size = 28028, upload-time = "2026-11-15T18:28:59.443Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/fd/f6/ae72e6cc98f37c7658fcbbf916cb87915b9d9ddfc32d94516d8ab69a426a/llm_prices-1.3.0-py3-none-any.whl", hash = "sha256:b7d5172b66d8ad9c58ed346c53e8df624ffd27e154a324f13e55a310f2eaed66", size = 20410, upload-time = "2026-11-15T18:28:58.279Z" },
 ]
 
 [[package]]

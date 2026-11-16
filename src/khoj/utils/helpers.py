@@ -28,6 +28,7 @@ from typing import TYPE_CHECKING, Any, NamedTuple, Optional, Tuple, Type, Union
 from urllib.parse import ParseResult, urlparse
 
 import anthropic
+import llm_prices
 import openai
 import psutil
 import pyjson5
@@ -967,15 +968,42 @@ def get_cost_of_chat_message(
     prev_cost: float = 0.0,
 ):
     """
-    Calculate cost of chat message based on input and output tokens
+    Calculate cost of chat message based on input and output tokens.
+
+    Input tokens are the uncached prompt tokens. Cache reads and writes are passed separately.
+    Prices come from the llm-prices table of first party provider prices when it lists the model.
+    Otherwise fall back to the prices in constants.model_to_cost.
     """
+    input_tokens = int(input_tokens or 0)
+    output_tokens = int(output_tokens or 0)
+    thought_tokens = int(thought_tokens or 0)
+    cache_read_tokens = int(cache_read_tokens or 0)
+    cache_write_tokens = int(cache_write_tokens or 0)
+
+    # Use maintained, dated provider prices when available.
+    # Only use first party rows. Hosts of open-weight models price the same model differently.
+    price = llm_prices.lookup(model_name) if model_name else None
+    if price is not None and price.provider in constants.first_party_price_providers:
+        cost = price.cost_usage(
+            llm_prices.Usage(
+                input=input_tokens,
+                # Thinking tokens are billed as output tokens
+                output=output_tokens + thought_tokens,
+                cache_read=cache_read_tokens,
+                # Prompt caching is used with the default 5 minute lifetime
+                cache_write_5m=cache_write_tokens,
+            )
+        )
+        if cost is not None:
+            return cost.total + prev_cost
 
     # Calculate cost of input and output tokens. Costs are per million tokens
-    input_cost = constants.model_to_cost.get(model_name, {}).get("input", 0) * (input_tokens / 1e6)
-    output_cost = constants.model_to_cost.get(model_name, {}).get("output", 0) * (output_tokens / 1e6)
-    thought_cost = constants.model_to_cost.get(model_name, {}).get("thought", 0) * (thought_tokens / 1e6)
-    cache_read_cost = constants.model_to_cost.get(model_name, {}).get("cache_read", 0) * (cache_read_tokens / 1e6)
-    cache_write_cost = constants.model_to_cost.get(model_name, {}).get("cache_write", 0) * (cache_write_tokens / 1e6)
+    model_cost = constants.model_to_cost.get(model_name, {})
+    input_cost = model_cost.get("input", 0) * (input_tokens / 1e6)
+    output_cost = model_cost.get("output", 0) * (output_tokens / 1e6)
+    thought_cost = model_cost.get("thought", model_cost.get("output", 0)) * (thought_tokens / 1e6)
+    cache_read_cost = model_cost.get("cache_read", 0) * (cache_read_tokens / 1e6)
+    cache_write_cost = model_cost.get("cache_write", 0) * (cache_write_tokens / 1e6)
 
     return input_cost + output_cost + thought_cost + cache_read_cost + cache_write_cost + prev_cost
 
