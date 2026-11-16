@@ -5,7 +5,7 @@ slug: /privacy
 
 # Privacy
 
-If you're using Khoj to index you personal data, it's almost certain you'll have sensitive and private information you'd like to index.
+If you're using Khoj to index your personal data, it's almost certain you'll have sensitive and private information you'd like to index.
 
 Khoj is designed to be a personal AI, so one of our cornerstone principles is to make it as privacy-friendly as possible. That's why, you can *always* choose to run Khoj on your own hardware, and never share your data outside of your device. You can generate your embeddings directly on your machine, and then use an offline chat client so that your data never leaves your machine. You'll find the instructions to [self-hosting](./setup.mdx) here.
 
@@ -13,7 +13,7 @@ Here's what to consider if you're using Khoj, whether self-hosted or on our clou
 1. Some of your relevant indexed data may be included as context when you chat with Khoj. This means that it may be sent to OpenAI, if you use one of the OpenAI models.
 1. We collect completely anonymized usage telemetry and send it to [PostHog](https://posthog.com/). This includes data like unique chat requests, unique search requests, unique requests to index data. Usage data is collected to help us understand how people are using Khoj, and to help us prioritize features.
     - We do not log your IP address, nor upload any of your personal data to PostHog.
-    - You can see our telemetry aggregation code [here](https://github.com/khoj-ai/khoj/blob/master/src/khoj/routers/helpers.py#L71) and see our telemetry server [here](https://github.com/khoj-ai/khoj/blob/master/src/telemetry/telemetry.py).
+    - You can see our telemetry aggregation code [here](https://github.com/khoj-ai/khoj/blob/master/src/khoj/routers/helpers.py#L197) and see our telemetry server [here](https://github.com/khoj-ai/khoj/blob/master/src/telemetry/telemetry.py).
     - If you're self-hosting, you can opt out of telemetry by following [these instructions](/miscellaneous/telemetry).
 
 
