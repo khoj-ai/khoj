@@ -16,7 +16,7 @@ Configuring this allows you to use non-standard, open or commercial, local or ho
 
 Combine them with Khoj can turn your favorite LLM into an AI agent. Allowing you to chat with your docs, find answers from the internet, build custom agents and run automations.
 
-For specific integrations, see our [Ollama](/advanced/ollama), [LMStudio](/advanced/lmstudio) and [LiteLLM](/advanced/litellm) setup docs. For general instructions to setup Khoj with an OpenAI API proxy see below.
+For specific integrations, see our [Ollama](/advanced/ollama), [LMStudio](/advanced/lmstudio), [Rapid-MLX](/advanced/rapid-mlx) and [LiteLLM](/advanced/litellm) setup docs. For general instructions to setup Khoj with an OpenAI API proxy see below.
 
 ## General Setup
 
