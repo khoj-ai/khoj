@@ -6,7 +6,7 @@ For example, the [paraphrase-multilingual-MiniLM-L12-v2](https://huggingface.co/
 To use it:
 1. Open [the search config](http://localhost:42110/server/admin/database/searchmodelconfig/) on your server's admin settings page. Either create a new search model, if none exists, or update the existing one. For example,
    - Set the `bi_encoder` field to `sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2`
-   - Set the `cross_encoder` field to `mixedbread-ai/mxbai-rerank-xsmall-v1`
+   - Set the `cross_encoder` field to a multilingual reranker, e.g. [syntriq/lupe-multilingual-reranker-small](https://huggingface.co/syntriq/lupe-multilingual-reranker-small) (36 languages, 141M parameters) or [BAAI/bge-reranker-v2-m3](https://huggingface.co/BAAI/bge-reranker-v2-m3). The default `mixedbread-ai/mxbai-rerank-xsmall-v1` is trained for English.
 2. Regenerate your content index from all the relevant clients. This step is very important, as you'll need to re-encode all your content with the new model.
 
 :::info[Note]
