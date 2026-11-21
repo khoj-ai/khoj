@@ -675,13 +675,14 @@ export default function Search() {
             });
     }
 
-    const fetchFiles = async (currentPageNumber: number) => {
+    const fetchFiles = async (currentPageNumber: number, signal?: AbortSignal) => {
         try {
             const url = `api/content/files?page=${currentPageNumber}`;
-            const response = await fetch(url);
+            const response = await fetch(url, { signal });
             if (!response.ok) throw new Error("Failed to fetch files");
 
             const filesData = await response.json();
+            if (signal?.aborted) return;
             const filesList = filesData.files;
             const totalPages = filesData.num_pages;
 
@@ -691,25 +692,32 @@ export default function Search() {
                 setFiles(filesList.toSorted());
             }
         } catch (error) {
+            if (error instanceof DOMException && error.name === "AbortError") return;
             setError("Failed to load files");
             console.error("Error fetching files:", error);
         } finally {
-            setFileObjectsLoading(false);
+            if (!signal?.aborted) {
+                setFileObjectsLoading(false);
+            }
         }
     };
 
     useEffect(() => {
-        fetchFiles(pageNumber);
+        const controller = new AbortController();
+        fetchFiles(pageNumber, controller.signal);
+        return () => controller.abort();
     }, [pageNumber]);
 
-    const fetchSpecificFile = async (fileName: string) => {
+    const fetchSpecificFile = async (fileName: string, signal?: AbortSignal) => {
         try {
-            const response = await fetch(`/api/content/file?file_name=${fileName}`);
+            const response = await fetch(`/api/content/file?file_name=${fileName}`, { signal });
             if (!response.ok) throw new Error("Failed to fetch file");
 
             const file = await response.json();
+            if (signal?.aborted) return;
             setSelectedFileFullText(file.raw_text);
         } catch (error) {
+            if (error instanceof DOMException && error.name === "AbortError") return;
             setError("Failed to load file");
             console.error("Error fetching file:", error);
         }
@@ -728,9 +736,10 @@ export default function Search() {
     };
 
     useEffect(() => {
-        if (selectedFile) {
-            fetchSpecificFile(selectedFile);
-        }
+        if (!selectedFile) return;
+        const controller = new AbortController();
+        fetchSpecificFile(selectedFile, controller.signal);
+        return () => controller.abort();
     }, [selectedFile]);
 
     useEffect(() => {
@@ -739,8 +748,10 @@ export default function Search() {
 
     useEffect(() => {
         if (uploadedFiles.length > 0) {
+            const controller = new AbortController();
             setPageNumber(0);
-            fetchFiles(0);
+            fetchFiles(0, controller.signal);
+            return () => controller.abort();
         }
     }, [uploadedFiles]);
 
