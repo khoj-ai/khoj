@@ -178,6 +178,97 @@ function deleteConversation(conversationId: string) {
         });
 }
 
+interface FilesMenuCommandBoxProps {
+    usingConversationContext: boolean;
+    addedFiles: string[];
+    unfilteredFiles: string[];
+    onRemoveAllFiles: () => void;
+    onAddAllFiles: () => void;
+    onModifyFileFilter: (filename: string, action: "add" | "remove") => void;
+}
+
+function FilesMenuCommandBox({
+    usingConversationContext,
+    addedFiles,
+    unfilteredFiles,
+    onRemoveAllFiles,
+    onAddAllFiles,
+    onModifyFileFilter,
+}: FilesMenuCommandBoxProps) {
+    return (
+        <Command>
+            <CommandInput placeholder="Find file" />
+            <CommandList>
+                <CommandEmpty>
+                    No results found. <Link href="/search">Try advanced search</Link>.
+                </CommandEmpty>
+                {usingConversationContext && (
+                    <CommandGroup heading="Quick">
+                        <CommandItem
+                            onSelect={() => {
+                                onRemoveAllFiles();
+                            }}
+                        >
+                            <Trash className="h-4 w-4 mr-2" />
+                            <span>Clear all</span>
+                        </CommandItem>
+                        <CommandItem
+                            onSelect={() => {
+                                onAddAllFiles();
+                            }}
+                        >
+                            <FolderPlus className="h-4 w-4 mr-2" />
+                            <span>Select all</span>
+                        </CommandItem>
+                    </CommandGroup>
+                )}
+                <CommandGroup heading="Manage files">
+                    <CommandItem>
+                        <Link href="/search">Settings</Link>
+                    </CommandItem>
+                </CommandGroup>
+                <CommandGroup
+                    heading={`${usingConversationContext ? "Configure files" : "Synced files"}`}
+                >
+                    {addedFiles.length == 0 && (
+                        <CommandItem>
+                            <Link href="/search">Upload documents</Link>
+                        </CommandItem>
+                    )}
+                    {unfilteredFiles.map((filename: string) =>
+                        Array.isArray(addedFiles) && addedFiles.includes(filename) ? (
+                            <CommandItem
+                                key={filename}
+                                value={filename}
+                                className="bg-accent text-accent-foreground mb-1"
+                                onSelect={(value) => {
+                                    if (!usingConversationContext) return;
+                                    onModifyFileFilter(value, "remove");
+                                }}
+                            >
+                                <Check className="h-4 w-4 mr-2" />
+                                <span className="break-all">{filename}</span>
+                            </CommandItem>
+                        ) : (
+                            <CommandItem
+                                key={filename}
+                                className="mb-1"
+                                value={filename}
+                                onSelect={(value) => {
+                                    if (!usingConversationContext) return;
+                                    onModifyFileFilter(value, "add");
+                                }}
+                            >
+                                <span className="break-all">{filename}</span>
+                            </CommandItem>
+                        ),
+                    )}
+                </CommandGroup>
+            </CommandList>
+        </Command>
+    );
+}
+
 interface FilesMenuProps {
     conversationId: string | null;
     uploadedFiles: string[];
@@ -261,91 +352,8 @@ export function FilesMenu(props: FilesMenuProps) {
     if (!files) return <InlineLoading />;
     if (!selectedFiles && props.conversationId) return <InlineLoading />;
 
-    const FilesMenuCommandBox = () => {
-        return (
-            <Command>
-                <CommandInput placeholder="Find file" />
-                <CommandList>
-                    <CommandEmpty>
-                        No results found. <Link href="/search">Try advanced search</Link>.
-                    </CommandEmpty>
-                    {usingConversationContext && (
-                        <CommandGroup heading="Quick">
-                            <CommandItem
-                                onSelect={() => {
-                                    removeAllFiles();
-                                }}
-                            >
-                                <Trash className="h-4 w-4 mr-2" />
-                                <span>Clear all</span>
-                            </CommandItem>
-                            <CommandItem
-                                onSelect={() => {
-                                    addAllFiles();
-                                }}
-                            >
-                                <FolderPlus className="h-4 w-4 mr-2" />
-                                <span>Select all</span>
-                            </CommandItem>
-                        </CommandGroup>
-                    )}
-                    <CommandGroup heading="Manage files">
-                        <CommandItem>
-                            <Link href="/search">Settings</Link>
-                        </CommandItem>
-                    </CommandGroup>
-                    <CommandGroup
-                        heading={`${usingConversationContext ? "Configure files" : "Synced files"}`}
-                    >
-                        {addedFiles.length == 0 && (
-                            <CommandItem>
-                                <Link href="/search">Upload documents</Link>
-                            </CommandItem>
-                        )}
-                        {unfilteredFiles.map((filename: string) =>
-                            Array.isArray(addedFiles) && addedFiles.includes(filename) ? (
-                                <CommandItem
-                                    key={filename}
-                                    value={filename}
-                                    className="bg-accent text-accent-foreground mb-1"
-                                    onSelect={(value) => {
-                                        if (!usingConversationContext) return;
-
-                                        modifyFileFilterForConversation(
-                                            props.conversationId,
-                                            [value],
-                                            setAddedFiles,
-                                            "remove",
-                                        );
-                                    }}
-                                >
-                                    <Check className="h-4 w-4 mr-2" />
-                                    <span className="break-all">{filename}</span>
-                                </CommandItem>
-                            ) : (
-                                <CommandItem
-                                    key={filename}
-                                    className="mb-1"
-                                    value={filename}
-                                    onSelect={(value) => {
-                                        if (!usingConversationContext) return;
-
-                                        modifyFileFilterForConversation(
-                                            props.conversationId,
-                                            [value],
-                                            setAddedFiles,
-                                            "add",
-                                        );
-                                    }}
-                                >
-                                    <span className="break-all">{filename}</span>
-                                </CommandItem>
-                            ),
-                        )}
-                    </CommandGroup>
-                </CommandList>
-            </Command>
-        );
+    const handleModifyFileFilter = (filename: string, action: "add" | "remove") => {
+        modifyFileFilterForConversation(props.conversationId, [filename], setAddedFiles, action);
     };
 
     if (props.isMobileWidth) {
@@ -365,7 +373,14 @@ export function FilesMenu(props: FilesMenuProps) {
                             </DrawerDescription>
                         </DrawerHeader>
                         <div className={`${styles.panelWrapper}`}>
-                            <FilesMenuCommandBox />
+                            <FilesMenuCommandBox
+                                usingConversationContext={usingConversationContext}
+                                addedFiles={addedFiles}
+                                unfilteredFiles={unfilteredFiles}
+                                onRemoveAllFiles={removeAllFiles}
+                                onAddAllFiles={addAllFiles}
+                                onModifyFileFilter={handleModifyFileFilter}
+                            />
                         </div>
                         <DrawerFooter>
                             <DrawerClose>
@@ -418,7 +433,14 @@ export function FilesMenu(props: FilesMenuProps) {
                     </div>
                 </PopoverTrigger>
                 <PopoverContent className={`mx-2`}>
-                    <FilesMenuCommandBox />
+                    <FilesMenuCommandBox
+                        usingConversationContext={usingConversationContext}
+                        addedFiles={addedFiles}
+                        unfilteredFiles={unfilteredFiles}
+                        onRemoveAllFiles={removeAllFiles}
+                        onAddAllFiles={addAllFiles}
+                        onModifyFileFilter={handleModifyFileFilter}
+                    />
                 </PopoverContent>
             </Popover>
         </>
