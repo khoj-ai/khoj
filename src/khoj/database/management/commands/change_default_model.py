@@ -78,6 +78,7 @@ class Command(BaseCommand):
                         query_encode_kwargs=model.bi_encoder_query_encode_config,
                         docs_encode_kwargs=model.bi_encoder_docs_encode_config,
                         model_kwargs=model.bi_encoder_model_config,
+                        embeddings_batch_size=model.embeddings_batch_size,
                     )
                 }
             )

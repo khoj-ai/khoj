@@ -36,7 +36,15 @@ class EmbeddingsModel:
         query_encode_kwargs: dict = {},
         docs_encode_kwargs: dict = {},
         model_kwargs: dict = {},
+        embeddings_batch_size: int = 1000,
     ):
+        if (
+            not isinstance(embeddings_batch_size, int)
+            or isinstance(embeddings_batch_size, bool)
+            or embeddings_batch_size < 1
+        ):
+            raise ValueError("embeddings_batch_size must be a positive integer")
+        self.embeddings_batch_size = embeddings_batch_size
         default_query_encode_kwargs = {"show_progress_bar": False, "normalize_embeddings": True}
         default_docs_encode_kwargs = {"show_progress_bar": True, "normalize_embeddings": True}
         self.query_encode_kwargs = merge_dicts(fix_json_dict(query_encode_kwargs), default_query_encode_kwargs)
@@ -103,14 +111,14 @@ class EmbeddingsModel:
                 f"Unsupported inference endpoint: {self.inference_endpoint_type}. Generating embeddings locally instead."
             )
             return self.embeddings_model.encode(docs, **self.docs_encode_kwargs).tolist()
-        # break up the docs payload in chunks of 1000 to avoid hitting rate limits
+        # Split documents into batches to respect the inference endpoint's payload limit.
         embeddings = []
         with tqdm.tqdm(total=len(docs)) as pbar:
-            for i in range(0, len(docs), 1000):
-                docs_to_embed = docs[i : i + 1000]
+            for i in range(0, len(docs), self.embeddings_batch_size):
+                docs_to_embed = docs[i : i + self.embeddings_batch_size]
                 generated_embeddings = embed_with_api(docs_to_embed)
                 embeddings += generated_embeddings
-                pbar.update(1000)
+                pbar.update(len(docs_to_embed))
         return embeddings
 
 

@@ -15,3 +15,13 @@ Modern search/embedding model like [mixedbread-ai/mxbai-embed-large-v1](https://
 E.g. `{prompt: "Represent this query for searching documents"}`. You can pass any valid JSON object that the SentenceTransformer `encode` function accepts
 
 :::
+
+## Remote embedding batch size
+
+For OpenAI-compatible or Hugging Face inference endpoints, set `embeddings_batch_size` on each
+[search model](http://localhost:42110/server/admin/database/searchmodelconfig/) in the admin settings.
+Use a positive integer at or below your provider's maximum number of documents per embedding request.
+The default is `1000`, preserving the existing batch size.
+
+Restart Khoj after saving the setting. Changing only the batch size does not require regenerating
+existing embeddings. Local encoding continues to use `bi_encoder_docs_encode_config`.

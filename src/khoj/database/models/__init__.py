@@ -8,6 +8,7 @@ from typing import Dict, List, Optional, Union
 from django.contrib.auth.models import AbstractUser
 from django.contrib.postgres.fields import ArrayField
 from django.core.exceptions import ValidationError
+from django.core.validators import MinValueValidator
 from django.db import models
 from django.db.models.signals import pre_save
 from django.dispatch import receiver
@@ -573,6 +574,14 @@ class SearchModelConfig(DbBaseModel):
     # Inference server API type to use for embeddings inference.
     embeddings_inference_endpoint_type = models.CharField(
         max_length=200, choices=ApiType.choices, default=ApiType.LOCAL
+    )
+    embeddings_batch_size = models.PositiveIntegerField(
+        default=1000,
+        validators=[MinValueValidator(1)],
+        help_text=(
+            "Maximum number of documents per OpenAI or Hugging Face embedding API request. "
+            "Restart Khoj after changing this setting."
+        ),
     )
     # Inference server API endpoint to use for embeddings inference. Cross-encoder model should be hosted on this server
     cross_encoder_inference_endpoint = models.CharField(max_length=200, default=None, null=True, blank=True)
