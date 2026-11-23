@@ -21,6 +21,7 @@ from khoj.utils import state
     "document_count,batch_size,expected_batch_sizes",
     [
         (0, 2, []),
+        (3, 1, [1, 1, 1]),
         (1, 2, [1]),
         (2, 2, [2]),
         (4, 2, [2, 2]),
@@ -29,7 +30,17 @@ from khoj.utils import state
         (1000, None, [1000]),
         (1001, None, [1000, 1]),
     ],
-    ids=["empty", "small", "exact", "multiple", "partial", "different-limit", "default-exact", "default-partial"],
+    ids=[
+        "empty",
+        "minimum-limit",
+        "small",
+        "exact",
+        "multiple",
+        "partial",
+        "different-limit",
+        "default-exact",
+        "default-partial",
+    ],
 )
 def test_embed_documents_respects_configured_batch_size(
     monkeypatch, endpoint_type, api_method, document_count, batch_size, expected_batch_sizes
@@ -52,6 +63,26 @@ def test_embed_documents_respects_configured_batch_size(
     progress_factory.assert_called_once_with(total=document_count)
     progress_bar = progress_factory.return_value.__enter__.return_value
     assert progress_bar.update.call_args_list == [call(size) for size in expected_batch_sizes]
+
+
+@pytest.mark.parametrize(
+    "endpoint_type,api_method",
+    [
+        (SearchModelConfig.ApiType.OPENAI, "embed_with_openai"),
+        (SearchModelConfig.ApiType.HUGGINGFACE, "embed_with_hf"),
+    ],
+)
+def test_remote_batch_failure_is_propagated_without_sending_remaining_documents(monkeypatch, endpoint_type, api_method):
+    failure = RuntimeError("Provider failed on the second batch")
+    api_mock = Mock(side_effect=[[[0.0], [1.0]], failure])
+    monkeypatch.setattr(EmbeddingsModel, api_method, api_mock)
+    model = EmbeddingsModel(embeddings_inference_endpoint_type=endpoint_type, embeddings_batch_size=2)
+
+    with pytest.raises(RuntimeError) as error:
+        model.embed_documents(["doc-0", "doc-1", "doc-2", "doc-3", "doc-4"])
+
+    assert error.value is failure
+    assert api_mock.call_args_list == [call(["doc-0", "doc-1"]), call(["doc-2", "doc-3"])]
 
 
 @pytest.mark.parametrize("batch_size", [0, -1, None, 1.5, "2", True, False])
