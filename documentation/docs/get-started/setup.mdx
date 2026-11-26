@@ -112,8 +112,15 @@ Your setup is complete once you see `🌖 Khoj is ready to engage` in the server
   <TabItem value="pip" label="Pip">
 
 <h3>1. Install Khoj Server</h3>
-- Make sure [python](https://realpython.com/installing-python/) and [pip](https://pip.pypa.io/en/stable/installation/) are installed on your machine
+- Install [Python](https://realpython.com/installing-python/) 3.10, 3.11, or 3.12 and [pip](https://pip.pypa.io/en/stable/installation/). Check `python --version` (`py --version` on Windows) before installing Khoj.
 - Check [llama-cpp-python setup](https://github.com/abetlen/llama-cpp-python?tab=readme-ov-file#supported-backends) if you hit any llama-cpp issues with the installation
+
+If your default Python is 3.13 or newer, as on Debian 13, use a virtual environment with Python 3.12. On Linux, you can create and activate one with [uv](https://docs.astral.sh/uv/getting-started/installation/):
+
+```shell
+uv venv --python 3.12 --seed .venv
+source .venv/bin/activate
+```
 
 Run the following command in your terminal to install the Khoj server.
 
