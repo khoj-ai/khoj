@@ -579,8 +579,8 @@ class SearchModelConfig(DbBaseModel):
         default=1000,
         validators=[MinValueValidator(1)],
         help_text=(
-            "Maximum number of documents per OpenAI or Hugging Face embedding API request. "
-            "Restart Khoj after changing this setting."
+            "Maximum number of text chunks per remote embedding API request. "
+            "Changes apply to the next embedding operation without a restart."
         ),
     )
     # Inference server API endpoint to use for embeddings inference. Cross-encoder model should be hosted on this server

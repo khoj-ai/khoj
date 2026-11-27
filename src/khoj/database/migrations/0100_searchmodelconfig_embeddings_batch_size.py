@@ -15,7 +15,7 @@ class Migration(migrations.Migration):
             name="embeddings_batch_size",
             field=models.PositiveIntegerField(
                 default=1000,
-                help_text="Maximum number of documents per OpenAI or Hugging Face embedding API request. Restart Khoj after changing this setting.",
+                help_text="Maximum number of text chunks per remote embedding API request. Changes apply to the next embedding operation without a restart.",
                 validators=[django.core.validators.MinValueValidator(1)],
             ),
         ),

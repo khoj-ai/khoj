@@ -1,11 +1,15 @@
 from unittest.mock import MagicMock, Mock, call
 
 import pytest
+from django.db import connection
 from django.forms import modelform_factory
+from django.test.utils import CaptureQueriesContext
 
 from khoj import configure
 from khoj.database.management.commands import change_default_model
+from khoj.database.models import Entry as DbEntry
 from khoj.database.models import SearchModelConfig
+from khoj.processor.content.plaintext.plaintext_to_entries import PlaintextToEntries
 from khoj.processor.embeddings import EmbeddingsModel
 from khoj.utils import state
 
@@ -103,7 +107,7 @@ def test_local_encoding_keeps_its_own_batch_size(monkeypatch, document_count):
     monkeypatch.setattr("khoj.processor.embeddings.SentenceTransformer", Mock(return_value=encoder))
     model = EmbeddingsModel(embeddings_batch_size=1, docs_encode_kwargs={"batch_size": 7})
 
-    assert model.embed_documents(documents) == expected_embeddings
+    assert model.embed_documents(documents, embeddings_batch_size=2) == expected_embeddings
     if documents:
         encoder.encode.assert_called_once_with(
             documents, batch_size=7, show_progress_bar=True, normalize_embeddings=True
@@ -199,3 +203,173 @@ def test_change_default_model_uses_configured_batch_sizes(monkeypatch):
         ("first-encoder", 2),
         ("second-encoder", 3),
     ]
+
+
+@pytest.mark.parametrize("batch_size", [0, -1, 1.5, "2", True, False])
+def test_embedding_operation_rejects_invalid_batch_size(monkeypatch, batch_size):
+    api_mock = Mock()
+    monkeypatch.setattr(EmbeddingsModel, "embed_with_openai", api_mock)
+    model = EmbeddingsModel(embeddings_inference_endpoint_type=SearchModelConfig.ApiType.OPENAI)
+
+    with pytest.raises(ValueError, match="embeddings_batch_size must be a positive integer"):
+        model.embed_documents(["doc"], embeddings_batch_size=batch_size)
+
+    api_mock.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "endpoint_type,api_method",
+    [
+        (SearchModelConfig.ApiType.OPENAI, "embed_with_openai"),
+        (SearchModelConfig.ApiType.HUGGINGFACE, "embed_with_hf"),
+    ],
+)
+def test_operation_batch_size_does_not_mutate_shared_model_or_query_database(
+    monkeypatch, django_assert_num_queries, endpoint_type, api_method
+):
+    documents = [f"doc-{index}" for index in range(5)]
+    vectors = {document: [float(index)] for index, document in enumerate(documents)}
+    api_mock = Mock(side_effect=lambda batch: [vectors[document] for document in batch])
+    monkeypatch.setattr(EmbeddingsModel, api_method, api_mock)
+    model = EmbeddingsModel(embeddings_inference_endpoint_type=endpoint_type, embeddings_batch_size=3)
+
+    for override, expected_sizes in [(2, [2, 2, 1]), (1, [1, 1, 1, 1, 1]), (None, [3, 2])]:
+        api_mock.reset_mock()
+        with django_assert_num_queries(0):
+            result = model.embed_documents(documents, embeddings_batch_size=override)
+
+        assert result == [vectors[document] for document in documents]
+        assert [len(api_call.args[0]) for api_call in api_mock.call_args_list] == expected_sizes
+        assert model.embeddings_batch_size == 3
+
+
+@pytest.mark.parametrize(
+    "endpoint_type,api_method",
+    [
+        (SearchModelConfig.ApiType.OPENAI, "embed_with_openai"),
+        (SearchModelConfig.ApiType.HUGGINGFACE, "embed_with_hf"),
+    ],
+)
+def test_saved_batch_size_applies_to_existing_indexers_and_keeps_inflight_batches_stable(
+    monkeypatch, default_user, endpoint_type, api_method
+):
+    config = SearchModelConfig.objects.create(
+        name="default", embeddings_inference_endpoint_type=endpoint_type, embeddings_batch_size=3
+    )
+    model = EmbeddingsModel(embeddings_inference_endpoint_type=endpoint_type, embeddings_batch_size=3)
+    monkeypatch.setattr(state, "embeddings_model", {"default": model})
+    indexers = [PlaintextToEntries(), PlaintextToEntries()]
+    for indexer in indexers:
+        monkeypatch.setattr(indexer.date_filter, "extract_dates", Mock(return_value=[]))
+
+    def vector_for(document):
+        return [float(sum(document.encode()))] + [0.0] * 383
+
+    change_during_request = False
+
+    def embed_batch(batch):
+        nonlocal change_during_request
+        if change_during_request:
+            SearchModelConfig.objects.filter(pk=config.pk).update(embeddings_batch_size=1)
+            change_during_request = False
+        return [vector_for(document) for document in batch]
+
+    api_mock = Mock(side_effect=embed_batch)
+    monkeypatch.setattr(model, api_method, api_mock)
+    form_class = modelform_factory(SearchModelConfig, fields=["embeddings_batch_size"])
+
+    for phase, expected_sizes in [
+        ("initial", [3, 2]),
+        ("saved", [2, 2, 1]),
+        ("next", [1, 1, 1, 1, 1]),
+        ("increased", [4, 1]),
+    ]:
+        if phase in ("saved", "increased"):
+            form = form_class(
+                data={"embeddings_batch_size": 2 if phase == "saved" else 4},
+                instance=SearchModelConfig.objects.get(pk=config.pk),
+            )
+            assert form.is_valid(), form.errors
+            form.save()
+        change_during_request = phase == "saved"
+        files = {f"{phase}-{index}.txt": f"Text for {phase} document {index}" for index in range(5)}
+        indexer = indexers[1] if phase == "next" else indexers[0]
+        api_mock.reset_mock()
+
+        with CaptureQueriesContext(connection) as queries:
+            added, deleted = indexer.process(files, default_user)
+
+        assert (added, deleted) == (5, 0)
+        assert [len(api_call.args[0]) for api_call in api_mock.call_args_list] == expected_sizes
+        config_reads = [
+            query
+            for query in queries
+            if query["sql"].startswith("SELECT") and SearchModelConfig._meta.db_table in query["sql"]
+        ]
+        assert len(config_reads) == 1
+        saved_entries = DbEntry.objects.filter(user=default_user, file_path__in=files)
+        assert saved_entries.count() == 5
+        for entry in saved_entries:
+            assert list(entry.embeddings) == vector_for(entry.compiled)
+        assert model.embeddings_batch_size == 3
+
+
+def test_change_default_model_reads_current_batch_size_without_overwriting_concurrent_admin_changes(
+    monkeypatch, default_user
+):
+    previous = SearchModelConfig.objects.create(
+        name="default", embeddings_inference_endpoint_type=SearchModelConfig.ApiType.OPENAI
+    )
+    target = SearchModelConfig.objects.create(
+        name="target",
+        bi_encoder="target-encoder",
+        embeddings_inference_endpoint_type=SearchModelConfig.ApiType.OPENAI,
+        embeddings_batch_size=2,
+    )
+    DbEntry.objects.bulk_create(
+        [
+            DbEntry(
+                user=default_user,
+                compiled=f"doc-{index}",
+                raw=f"doc-{index}",
+                hashed_value=f"hash-{index}",
+                embeddings=[0.0] * 384,
+                search_model=previous,
+            )
+            for index in range(5)
+        ]
+    )
+    changed_after_initialization = False
+    changed_during_operation = False
+
+    def create_embedding_model(*args, **kwargs):
+        nonlocal changed_after_initialization
+        model = EmbeddingsModel(*args, **kwargs)
+        if model.model_name == "target-encoder" and not changed_after_initialization:
+            SearchModelConfig.objects.filter(pk=target.pk).update(embeddings_batch_size=1)
+            changed_after_initialization = True
+        return model
+
+    def embed_batch(batch):
+        nonlocal changed_during_operation
+        if not changed_during_operation:
+            SearchModelConfig.objects.filter(pk=target.pk).update(embeddings_batch_size=4)
+            changed_during_operation = True
+        return [[float(document.rsplit("-", 1)[1])] + [0.0] * 383 for document in batch]
+
+    api_mock = Mock(side_effect=embed_batch)
+    monkeypatch.setattr(EmbeddingsModel, "embed_with_openai", api_mock)
+    monkeypatch.setattr(change_default_model, "EmbeddingsModel", create_embedding_model)
+
+    change_default_model.Command().handle(search_model_id=target.pk, apply=True)
+
+    assert [len(api_call.args[0]) for api_call in api_mock.call_args_list] == [1, 1, 1, 1, 1]
+    target.refresh_from_db()
+    assert target.name == "default"
+    assert target.embeddings_batch_size == 4
+    assert DbEntry.objects.filter(search_model=target).count() == 5
+    api_mock.reset_mock()
+
+    change_default_model.Command().handle(search_model_id=target.pk, apply=True)
+
+    assert [len(api_call.args[0]) for api_call in api_mock.call_args_list] == [4, 1]
