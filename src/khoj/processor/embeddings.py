@@ -1,5 +1,5 @@
 import logging
-from typing import List
+from typing import List, Optional
 
 import requests
 import tqdm
@@ -26,6 +26,12 @@ from khoj.utils.rawconfig import SearchResponse
 logger = logging.getLogger(__name__)
 
 
+def _validate_embeddings_batch_size(batch_size: int) -> int:
+    if not isinstance(batch_size, int) or isinstance(batch_size, bool) or batch_size < 1:
+        raise ValueError("embeddings_batch_size must be a positive integer")
+    return batch_size
+
+
 class EmbeddingsModel:
     def __init__(
         self,
@@ -36,7 +42,9 @@ class EmbeddingsModel:
         query_encode_kwargs: dict = {},
         docs_encode_kwargs: dict = {},
         model_kwargs: dict = {},
+        embeddings_batch_size: int = 1000,
     ):
+        self.embeddings_batch_size = _validate_embeddings_batch_size(embeddings_batch_size)
         default_query_encode_kwargs = {"show_progress_bar": False, "normalize_embeddings": True}
         default_docs_encode_kwargs = {"show_progress_bar": True, "normalize_embeddings": True}
         self.query_encode_kwargs = merge_dicts(fix_json_dict(query_encode_kwargs), default_query_encode_kwargs)
@@ -91,7 +99,7 @@ class EmbeddingsModel:
         response = client.embeddings.create(input=docs, model=self.model_name, encoding_format="float")
         return [item.embedding for item in response.data]
 
-    def embed_documents(self, docs):
+    def embed_documents(self, docs, *, embeddings_batch_size: Optional[int] = None):
         if self.inference_endpoint_type == SearchModelConfig.ApiType.LOCAL:
             return self.embeddings_model.encode(docs, **self.docs_encode_kwargs).tolist() if docs else []
         elif self.inference_endpoint_type == SearchModelConfig.ApiType.HUGGINGFACE:
@@ -103,14 +111,17 @@ class EmbeddingsModel:
                 f"Unsupported inference endpoint: {self.inference_endpoint_type}. Generating embeddings locally instead."
             )
             return self.embeddings_model.encode(docs, **self.docs_encode_kwargs).tolist()
-        # break up the docs payload in chunks of 1000 to avoid hitting rate limits
+        # Use the current operation's setting without mutating the shared model instance.
+        batch_size = _validate_embeddings_batch_size(
+            self.embeddings_batch_size if embeddings_batch_size is None else embeddings_batch_size
+        )
         embeddings = []
         with tqdm.tqdm(total=len(docs)) as pbar:
-            for i in range(0, len(docs), 1000):
-                docs_to_embed = docs[i : i + 1000]
+            for i in range(0, len(docs), batch_size):
+                docs_to_embed = docs[i : i + batch_size]
                 generated_embeddings = embed_with_api(docs_to_embed)
                 embeddings += generated_embeddings
-                pbar.update(1000)
+                pbar.update(len(docs_to_embed))
         return embeddings
 
 

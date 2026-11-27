@@ -180,7 +180,9 @@ class TextToEntries(ABC):
             entries_to_process = [hash_to_current_entries[hashed_val] for hashed_val in hashes_to_process]
             data_to_embed = [getattr(entry, key) for entry in entries_to_process]
             modified_files = {entry.file for entry in entries_to_process}
-            embeddings += self.embeddings_model[model.name].embed_documents(data_to_embed)
+            embeddings += self.embeddings_model[model.name].embed_documents(
+                data_to_embed, embeddings_batch_size=model.embeddings_batch_size
+            )
 
         file_to_file_object_map = {}
         if file_to_text_map and modified_files:

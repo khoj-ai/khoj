@@ -46,7 +46,9 @@ class Command(BaseCommand):
                 updated_entries: List[Entry] = []
 
                 try:
-                    embeddings = embeddings_model.embed_documents(compiled_entries)
+                    embeddings = embeddings_model.embed_documents(
+                        compiled_entries, embeddings_batch_size=search_model.embeddings_batch_size
+                    )
                 except Exception as e:
                     logger.error(f"Error embedding documents: {e}")
                     return
@@ -78,6 +80,7 @@ class Command(BaseCommand):
                         query_encode_kwargs=model.bi_encoder_query_encode_config,
                         docs_encode_kwargs=model.bi_encoder_docs_encode_config,
                         model_kwargs=model.bi_encoder_model_config,
+                        embeddings_batch_size=model.embeddings_batch_size,
                     )
                 }
             )
@@ -108,10 +111,10 @@ class Command(BaseCommand):
         if apply and current_default.id != new_default_search_model_config.id:
             # Get the existing default SearchModelConfig object and update its name
             current_default.name = f"prev_default_{current_default.id}"
-            current_default.save()
+            current_default.save(update_fields=["name", "updated_at"])
 
             # Update the new default SearchModelConfig object's name
             new_default_search_model_config.name = "default"
-            new_default_search_model_config.save()
+            new_default_search_model_config.save(update_fields=["name", "updated_at"])
         if not apply:
             logger.info("Run the command with the --apply flag to apply the new default Search model.")
